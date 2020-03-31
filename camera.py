@@ -17,17 +17,16 @@ import trimesh
 
 def get_pose_matrix(x: float=0, y: float=0, z: float=0, 
                     phi: float=0,  theta: float=0, psi: float=0) -> np.array:
-    """
-    Returns pose matrix (3, 4) for given translation/rotation
-    parameters.
+    """Returns pose matrix (3, 4) for given translation/rotation
+        parameters.
     
-    Args:
-        x (float): x coordinate
-        y (float): y coordinate
-        z (float): z coordinate
-        phi (float): rotation around x axis in degrees
-        theta (float): rotation around y axis in degrees
-        psi (float): rotation around x axis in degree
+        Args:
+            x (float): x coordinate
+            y (float): y coordinate
+            z (float): z coordinate
+            phi (float): rotation around x axis in degrees
+            theta (float): rotation around y axis in degrees
+            psi (float): rotation around x axis in degree
     """
     rot = R.from_euler('xyz',[phi, theta, psi],degrees=True).as_matrix()
     trans = np.array([[x, y, z]])
@@ -36,13 +35,12 @@ def get_pose_matrix(x: float=0, y: float=0, z: float=0,
     return pose
 
 def get_circle_pose(alpha: float, r: float) -> np.array:
-    """
-    Returns pose matrix for angle alpha in xz-circle with radius r around 
-    y-axis (alpha = 0 corresponds position (0, 0, r))
+    """ Returns pose matrix for angle alpha in xz-circle with radius r around 
+        y-axis (alpha = 0 corresponds position (0, 0, r))
     
-    Args:
-        alpha (float): rotation around y axis in degrees
-        r (float): radius of circle 
+        Args:
+            alpha (float): rotation around y axis in degrees
+            r (float): radius of circle 
     """
     z = r*np.cos(np.radians(alpha))
     x = r*np.sin(np.radians(alpha))
