@@ -12,13 +12,40 @@ from scipy.spatial.transform import Rotation as R
 import pyrender
 import trimesh
 
-def get_pose_matrix(x=0, y=0, z=0, phi=0, theta=0, psi=0):
+def get_pose_matrix(x: float=0, y: float=0, z: float=0, 
+                    phi: float=0,  theta: float=0, psi: float=0) -> np.array:
+    """
+    Returns pose matrix (3, 4) for given translation/rotation
+    parameters.
+    
+    Args:
+        x (float): x coordinate
+        y (float): y coordinate
+        z (float): z coordinate
+        phi (float): rotation around x axis in degrees
+        theta (float): rotation around y axis in degrees
+        psi (float): rotation around x axis in degree
+    """
     rot = R.from_euler('xyz',[phi, theta, psi],degrees=True).as_matrix()
     trans = np.array([[x, y, z]])
     pose = np.concatenate((np.concatenate((rot, trans.T), axis=1), 
                           [[0, 0, 0, 1]]), axis=0)
     return pose
+
+def get_circle_pose(alpha: float, r: float) -> np.array:
+    """
+    Returns pose matrix for angle alpha in xz-circle with radius r around 
+    y-axis (alpha = 0 corresponds position (0, 0, r))
     
+    Args:
+        alpha (float): rotation around y axis in degrees
+        r (float): radius of circle 
+    """
+    z = r*np.cos(np.radians(alpha))
+    x = r*np.sin(np.radians(alpha))
+    pose = get_pose_matrix(x=x, z=z, theta=alpha)
+    return pose
+
 model = smplx.create("models", model_type='smplx')
 camera_phi, camera_theta = 0, 0
 human_phi, human_theta = 0,0
