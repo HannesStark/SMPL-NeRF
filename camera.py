@@ -47,6 +47,21 @@ def get_circle_pose(alpha: float, r: float) -> np.array:
     pose = get_pose_matrix(x=x, z=z, theta=alpha)
     return pose
 
+def get_sphere_pose(alpha: float, beta: float, r: float) -> np.array:
+    """Returns pose matrix for angle alpha in xz-circle with radius r around
+        y-axis and angle beta in yz-circle around x-axis (spherical coordinates)
+        
+        Args:
+            alpha (float): rotation around y axis in degrees
+            beta (float): rotation around x axis in degrees
+            r (float): radius of circle 
+    """
+    z = r*np.cos(np.radians(beta))*np.cos(np.radians(alpha))
+    x = r*np.cos(np.radians(beta))*np.sin(np.radians(alpha))
+    y = r*np.sin(np.radians(beta))
+    pose = get_pose_matrix(x=x, y=y, z=z, theta=alpha, phi=-beta)
+    return pose
+
 def camera_origin_direction(x: float, y: float, z: float) -> Tuple[float, float]:
     """Calculates phi and theta in degrees for a camera too face the origin of the coordinate system
 
@@ -94,6 +109,9 @@ camera = pyrender.PerspectiveCamera(yfov=np.pi / 3, aspectRatio=1.0)
 phi, theta = camera_origin_direction(camera_x, camera_y, camera_z)
 camera_pose = get_pose_matrix(phi=-phi, theta=theta, x=camera_x, y=camera_y, z=camera_z)
 
+#
+camera_pose = get_sphere_pose(-45, -180, 2.3)
+#
 print(camera_pose)
 scene.add(camera, pose=camera_pose)
 r = pyrender.OffscreenRenderer(1000, 1000)
