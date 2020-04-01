@@ -3,3 +3,4 @@ models
 images/
 model.fbx
 model.obj
+__pycache__/
