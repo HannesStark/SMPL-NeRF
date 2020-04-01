@@ -19,10 +19,10 @@ output = model(betas=betas, expression=expression,
 vertices = output.vertices.detach().cpu().numpy().squeeze()
 
 
-with open('texture.jpg', 'rb') as file:
+with open('models/texture.jpg', 'rb') as file:
     texture = Image.open(BytesIO(file.read()))
 
-uv = np.load('smpl_uv_map.npy')
+uv = np.load('models/smpl_uv_map.npy')
 print(uv)
 smpl_mesh = trimesh.Trimesh(vertices, model.faces, visual=trimesh.visual.TextureVisuals(uv=uv, image=texture), process=False)
 
