@@ -30,5 +30,6 @@ pymesh = pyrender.Mesh.from_trimesh(smpl_mesh)
 
 scene = pyrender.Scene()
 scene.add(pymesh)
-
+pl = pyrender.PointLight(color=[1.0, 1.0, 1.0], intensity=2.0)
+scene.add(pl)
 pyrender.Viewer(scene)
