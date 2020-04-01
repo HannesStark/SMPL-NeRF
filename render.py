@@ -33,10 +33,10 @@ def get_smpl_mesh():
                    return_verts=True)
     vertices = output.vertices.detach().cpu().numpy().squeeze()
 
-    with open('models/texture.jpg', 'rb') as file:
+    with open('textures/texture.jpg', 'rb') as file:
         texture = Image.open(BytesIO(file.read()))
 
-    uv = np.load('models/smpl_uv_map.npy')
+    uv = np.load('textures/smpl_uv_map.npy')
     smpl_mesh = trimesh.Trimesh(vertices, model.faces, visual=trimesh.visual.TextureVisuals(uv=uv, image=texture),
                                 process=False)
 
