@@ -31,7 +31,7 @@ def get_smpl_mesh():
                    return_verts=True)
     vertices = output.vertices.detach().cpu().numpy().squeeze()
     
-    vertex_colors = np.ones([vertices.shape[0], 4]) * [0.3, 0.3, 0.3, 1]
+    vertex_colors = np.ones([vertices.shape[0], 4]) * [1., 0, 0, 1]
     tri_mesh = trimesh.Trimesh(vertices, model.faces,
                                vertex_colors=vertex_colors)
     
@@ -54,7 +54,7 @@ def render_scene(camera_pose: np.array, human_pose: np.array,
     camera = pyrender.PerspectiveCamera(yfov=np.pi / 3, aspectRatio=1.0)
     print(camera_pose)
     scene.add(camera, pose=camera_pose)
-    light = pyrender.SpotLight(color=np.ones(3), intensity=3.0,
+    light = pyrender.SpotLight(color=np.ones(3), intensity=20.0,
                                 innerConeAngle=np.pi/16.0,
                                 outerConeAngle=np.pi/6.0)
     scene.add(light, pose=camera_pose)
@@ -96,8 +96,6 @@ def main(camera_alpha, camera_beta, camera_radius=2.4,
     
 if __name__ == "__main__":
     camera_phi = 0
-    while camera_phi <= 360:
-        main(camera_phi, -45)
-        camera_phi += 45
+    main(0, 0)
     
     
