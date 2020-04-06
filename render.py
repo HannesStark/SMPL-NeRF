@@ -101,6 +101,6 @@ def main(camera_alpha, camera_beta, camera_radius=2.4,
     
 if __name__ == "__main__":
     camera_phi = 0
-    main(0, 0)
+    main(8, 30)
     
     
