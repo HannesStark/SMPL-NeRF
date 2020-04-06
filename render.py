@@ -24,7 +24,7 @@ from camera import get_pose_matrix, get_sphere_pose
 def get_smpl_mesh():
     """Load SMPL model and convert it to mesh
     """
-    model = smplx.create("models/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl", model_type='smpl')
+    model = smplx.create("SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl", model_type='smpl')
     betas = torch.tensor([[-0.3596, -1.0232, -1.7584, -2.0465, 0.3387, -0.8562, 0.8869, 0.5013,
                            0.5338, -0.0210]], dtype=torch.float32)
     expression = torch.tensor([[2.7228, -1.8139, 0.6270, -0.5565, 0.3251, 0.5643, -1.2158, 1.4149,

@@ -61,4 +61,8 @@ class RaySampling():
         t_rand = np.random.uniform(z_vals.shape)
         z_vals = lower + (upper - lower) * t_rand
         ray_samples = ray_translation[None, :] + ray_direction[None, :] * z_vals[:, None]  # [N_samples, 3]
-        return ray_samples, ray_translation, ray_direction, rgb
+
+        samples_directions = [ray_direction] * self.number_samples
+        samples_translations = [ray_translation] * self.number_samples
+        rgbs_for_samples = [rgb] * self.number_samples
+        return ray_samples, samples_translations, samples_directions, z_vals, rgbs_for_samples
