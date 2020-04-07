@@ -107,8 +107,6 @@ class Solver():
 
                 loss_item = loss.item()
                 if i % log_nth == log_nth - 1:
-                    print("difference between inputs and predictions: " + str(self.loss_func(inputs, outputs).item()))
-                    print("difference between inputs and labels:      " + str(self.loss_func(inputs, labels).item()))
                     print('[Epoch %d, Iteration %5d/%5d] TRAIN loss: %.7f' %
                           (epoch + 1, i + 1, iter_per_epoch, loss_item))
 
@@ -120,10 +118,6 @@ class Solver():
 
             model.eval()
             val_loss = 0
-            stoi_clean_noisy = 0
-            stoi_clean_output = 0
-            pesq_clean_noisy = 0
-            pesq_clean_output = 0
             for i, data in enumerate(val_loader):
                 inputs, labels = data
                 inputs, labels = inputs.to(device), labels.to(device)
@@ -134,48 +128,6 @@ class Solver():
                 inputs = inputs.cpu().detach().numpy()
                 outputs = outputs.cpu().detach().numpy()
                 labels = labels.cpu().detach().numpy()
-                for j in range(len(inputs)):
-                    stoi_clean_noisy += stoi(labels[j][0], inputs[j][0], fs_sig=16000)
-                    stoi_clean_output += stoi(labels[j][0], outputs[j][0], fs_sig=16000)
-                    pesq_clean_noisy += pesq(16000, labels[j][0], inputs[j][0], mode='wb')
-                    pesq_clean_output += pesq(16000, labels[j][0], outputs[j][0], mode='wb')
-
-                if i + 1 == len(val_loader):
-                    self.writer.add_scalars('STOI', {'enhanced': stoi_clean_output / (iter_per_epoch * len(inputs)),
-                                                     'mixture': stoi_clean_noisy / (iter_per_epoch * len(inputs))},
-                                            epoch)
-                    self.writer.add_scalars('PESQ', {'enhanced': pesq_clean_output / (iter_per_epoch * len(inputs)),
-                                                     'mixture': pesq_clean_noisy / (iter_per_epoch * len(inputs))},
-                                            epoch)
-
-                    # draw plots for the first tensorboard_plots plots in the batch
-                    for j in range(min(len(inputs), tensorboard_plots)):
-                        # waveform
-                        fig1, axes1 = plt.subplots(3, 1, sharex='all')
-                        axes1[0].set_ylabel('mixed')
-                        axes1[1].set_ylabel('cleaned')
-                        axes1[2].set_ylabel('truth')
-                        for k, audio in enumerate([inputs, outputs, labels]):
-                            librosa.display.waveplot(audio[j][0], sr=1600, ax=axes1[k], x_axis=None)
-                            axes1[k].set_ylim((-1, 1))
-                        self.writer.add_figure(str(j) + ' of batch', fig1, epoch)
-
-                        # spectogram
-                        inputs_mag, _ = librosa.magphase(
-                            librosa.stft(inputs[j][0], n_fft=320, hop_length=160, win_length=320))
-                        outputs_mag, _ = librosa.magphase(
-                            librosa.stft(outputs[j][0], n_fft=320, hop_length=160, win_length=320))
-                        labels_mag, _ = librosa.magphase(
-                            librosa.stft(labels[j][0], n_fft=320, hop_length=160, win_length=320))
-
-                        fig2, axes2 = plt.subplots(3, 1, figsize=(6, 6))
-                        axes2[0].set_ylabel('mixed')
-                        axes2[1].set_ylabel('cleaned')
-                        axes2[2].set_ylabel('truth')
-                        for k, mag in enumerate([inputs_mag, outputs_mag, labels_mag]):
-                            librosa.display.specshow(librosa.amplitude_to_db(mag), cmap="magma", y_axis="linear",
-                                                     ax=axes2[k])
-                        self.writer.add_figure(str(j) + ' spectogram of batch', fig2, epoch)
 
             print('[Epoch %d] VAL loss: %.7f' % (epoch + 1, val_loss))
             self.val_loss_history.append(val_loss)
