@@ -1,7 +1,12 @@
-import tensorflow as tf
+
 import torch
-dists = torch.Tensor([[1,2,3],[1,2,3]])
+import numpy as np
 
-res = torch.Tensor([1e10]).expand(dists[..., :1].shape)
+b = torch.Tensor(
+    [[1, 2, 3],
+     [2, 3, 4]],
+)
 
-print(res)
+print(b.view(-1))
+print(b)
+

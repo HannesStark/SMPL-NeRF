@@ -8,7 +8,7 @@ import torchvision
 import librosa.display
 from torch.utils.tensorboard import SummaryWriter
 
-from utils import positional_encoding
+from utils import positional_encoding, raw2outputs, fine_sampling
 
 
 class Solver():
@@ -17,13 +17,16 @@ class Solver():
                          "eps": 1e-8,
                          "weight_decay": 0}
 
-    def __init__(self, optim=torch.optim.Adam, optim_args={},
-                 loss_func=torch.nn.MSELoss()):
+    def __init__(self, optim=torch.optim.Adam, optim_args={}, loss_func=torch.nn.MSELoss(), sigma_noise_std=1,
+                 white_background=False, number_fine_samples=128):
         optim_args_merged = self.default_adam_args.copy()
         optim_args_merged.update(optim_args)
         self.optim_args = optim_args_merged
         self.optim = optim
         self.loss_func = loss_func
+        self.sigma_noise_std = sigma_noise_std
+        self.white_background = white_background
+        self.number_fine_samples = number_fine_samples
         self.writer = SummaryWriter()
         self._reset_histories()
 
@@ -35,7 +38,7 @@ class Solver():
         self.train_loss_history_per_iter = []
         self.val_loss_history = []
 
-    def train(self, model, train_loader, val_loader, num_epochs=10, log_nth=0):
+    def train(self, model_coarse, model_fine, train_loader, val_loader, num_epochs=10, log_nth=0):
         """
         Train a given model with the provided data.
 
@@ -47,30 +50,56 @@ class Solver():
         - log_nth: log training accuracy and loss every nth iteration
         - num_plots: Number of plots that will be created for tensorboard (is batchsize if batchsize is lower)
         """
-        optim = self.optim(model.parameters(), **self.optim_args)
+
+        optim = self.optim(list(model_coarse.parameters()) + list(model_fine.parameters()))
         self._reset_histories()
         iter_per_epoch = len(train_loader)
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        model.to(device)
+        model_coarse.to(device)
+        model_fine.to(device)
 
         print('START TRAIN.')
 
         for epoch in range(num_epochs):  # loop over the dataset multiple times
-            model.train()
+            model_coarse.train()
+            model_fine.train()
             train_loss = 0
             for i, data in enumerate(train_loader):
-                ray_samples, samples_translations, samples_directions, z_vals, rgbs_for_samples = data
-                ray_samples = ray_samples.to(device)
-                samples_translations = samples_translations.to(device)
-                samples_directions = samples_directions.to(device)
-                z_vals = z_vals.to(device)
-                rgbs_for_samples = rgbs_for_samples.to(device)
+                ray_samples, samples_translations, samples_directions, z_vals, rgb_truth = data
+                ray_samples = ray_samples.to(device)  # [batchsize, number_coarse_samples, 3]
+                samples_translations = samples_translations.to(device)  # [batchsize, number_coarse_samples, 3]
+                samples_directions = samples_directions.to(device)  # [batchsize, number_coarse_samples, 3]
+                z_vals = z_vals.to(device)  # [batchsize, number_coarse_samples]
+                rgb_truth = rgb_truth.to(device)  # [batchsize, 3]
 
-                sample_encoding = positional_encoding(ray_samples, 10, True)
-                direction_encoding = positional_encoding(samples_directions, 4, False)
-                inputs = torch.cat([sample_encoding, direction_encoding], -1)
+                # get values for coarse network and run them through the coarse network
+                samples_encoding = positional_encoding(ray_samples, 10, True)
+                directions_encoding = positional_encoding(samples_directions, 4, False)
+                # flatten the encodings from [batchsize, number_coarse_samples, encoding_size] to [batchsize * number_coarse_samples, encoding_size] and concatenate
+                inputs = torch.cat([samples_encoding.view(-1, samples_encoding.shape[-1]),
+                                    directions_encoding.view(-1, directions_encoding.shape[-1])], -1)
                 optim.zero_grad()
-                outputs = model(inputs)
+                raw_outputs = model_coarse(inputs)  # [batchsize * number_coarse_samples, 4]
+                raw_outputs = raw_outputs.view(samples_encoding.shape[0], samples_encoding.shape[1],
+                                               raw_outputs.shape[-1])  # [batchsize, number_coarse_samples, 4]
+                rgb, weights = raw2outputs(raw_outputs, z_vals, directions_encoding, self.sigma_noise_std,
+                                           self.white_background)
+
+                # get values for the fine network and run them through the fine network
+                ray_samples_fine = fine_sampling(samples_translations, samples_directions, z_vals, weights,
+                                                 self.number_fine_samples)  # [batchsize, number_coarse_samples + number_fine_samples, 3]
+                samples_encoding_fine = positional_encoding(ray_samples_fine, 10, True)
+                # expand directions and translations to the number of coarse samples + fine_samples
+                directions_encoding_fine = directions_encoding[..., :1, :].expand(directions_encoding.shape[0],
+                                                                                  ray_samples_fine.shape[1],
+                                                                                  directions_encoding.shape[-1])
+                inputs_fine = torch.cat([samples_encoding_fine.view(-1, samples_encoding_fine.shape[-1]),
+                                         directions_encoding_fine.view(-1, samples_encoding_fine.shape[-1])], -1)
+                raw_outputs = model_coarse(inputs_fine)  # [batchsize * (number_coarse_samples + number_fine_samples), 4]
+                raw_outputs_fine = raw_outputs.view(samples_encoding_fine.shape[0], samples_encoding_fine.shape[1],
+                                                    raw_outputs_fine.shape[-1])  # [batchsize, number_coarse_samples + number_fine_samples, 4]
+                rgb_fine, _ = raw2outputs(raw_outputs_fine, z_vals, samples_directions, self.sigma_noise_std,
+                                          self.white_background)
 
                 loss = self.loss_func(outputs, labels)
                 loss.backward()

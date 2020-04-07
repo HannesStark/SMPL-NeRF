@@ -42,9 +42,9 @@ class Normalize():
         return ray_direction, ray_translation, rgb
 
 
-class RaySampling():
+class CoarseSampling():
 
-    def __init__(self, near: int, far: int, number_samples: int):
+    def __init__(self, near: int, far: int, number_samples: int = 64):
         self.near = near
         self.far = far
         self.number_samples = number_samples
@@ -64,5 +64,4 @@ class RaySampling():
 
         samples_directions = [ray_direction] * self.number_samples
         samples_translations = [ray_translation] * self.number_samples
-        rgbs_for_samples = [rgb] * self.number_samples
-        return ray_samples, samples_translations, samples_directions, z_vals, rgbs_for_samples
+        return ray_samples, samples_translations, samples_directions, z_vals, rgb

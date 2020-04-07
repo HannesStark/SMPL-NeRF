@@ -22,27 +22,44 @@ def positional_encoding(coordinate, number_frequencies, include_identity: bool):
 
     return torch.cat([fn(coordinate) for fn in embed_fns], -1)
 
-def raw2outputs(raw, z_vals, samples_directions, raw_noise_std=0.):
+
+def raw2outputs(raw, z_vals, samples_directions, sigma_noise_std=0., white_background=False):
     raw2alpha = lambda raw, dists: 1. - torch.exp(-torch.nn.functional.relu(raw) * dists)
 
     dists = z_vals[..., 1:] - z_vals[..., :-1]
-    dists = torch.cat([dists, torch.Tensor([1e10]).expand(dists[..., :1].shape)], -1)  # [N_rays, N_samples]
+    dists = torch.cat([dists, torch.Tensor([1e10]).expand(dists[..., :1].shape)], -1)  # [batchsize, number_samples]
 
     dists = dists * torch.norm(samples_directions[..., None, :], dim=-1)
 
-    rgb = torch.nn.functional.sigmoid(raw[..., :3])  # [N_rays, N_samples, 3]
+    rgb = torch.nn.functional.sigmoid(raw[..., :3])  # [batchsize, number_samples, 3]
     noise = 0.
-    if raw_noise_std > 0.:
-        !!!!!!!!!noise = torch.normal(0, raw_noise_std, raw[..., 3].shape)
-    alpha = raw2alpha(raw[..., 3] + noise, dists)  # [N_rays, N_samples]
-    weights = alpha * tf.math.cumprod(1. - alpha + 1e-10, -1, exclusive=True)
-    rgb_map = tf.reduce_sum(weights[..., None] * rgb, -2)  # [N_rays, 3]
+    if sigma_noise_std > 0.:
+        noise = torch.normal(0, sigma_noise_std, raw[..., 3].shape)
+    alpha = raw2alpha(raw[..., 3] + noise, dists)  # [batchsize, number_samples]
+    one_minus_alpha = 1. - alpha + 1e-10
 
-    depth_map = tf.reduce_sum(weights * z_vals, -1)
-    disp_map = 1. / tf.maximum(1e-10, depth_map / tf.reduce_sum(weights, -1))
-    acc_map = tf.reduce_sum(weights, -1)
+    # remove last column from one_minus_alhpa and add ones as first column so cumprod gives us the exclusive cumprod like tf.cumprod(exclusive=True)
+    ones = torch.ones(one_minus_alpha.shape[:-1]).unsqueeze(-1)
+    exclusive = torch.cat([ones, one_minus_alpha[..., :-1]], -1)
+    weights = alpha * torch.cumprod(exclusive, -1)
 
-    if white_bkgd:
-        rgb_map = rgb_map + (1. - acc_map[..., None])
+    rgb = torch.sum(weights[..., None] * rgb, -2)  # [batchsize, 3]
 
-    return rgb_map, disp_map, acc_map, weights, depth_map
+    depth_map = torch.sum(weights * z_vals, -1)
+    disp_map = 1. / torch.max(torch.full(depth_map.shape, 1e-10), depth_map / torch.sum(weights, -1))
+    acc_map = torch.sum(weights, -1)
+
+    if white_background:
+        rgb = rgb + (1. - acc_map[..., None])
+
+    return rgb, weights
+
+
+def fine_sampling(samples_translations, samples_directions, z_vals, weights, number_samples):
+    z_vals_mid = .5 * (z_vals[..., 1:] + z_vals[..., :-1])
+    z_samples = sample_pdf(z_vals_mid, weights[..., 1:-1], number_samples)
+    z_samples = tf.stop_gradient(z_samples)
+
+    z_vals = tf.sort(tf.concat([z_vals, z_samples], -1), -1)
+    return samples_translations[..., None, :] + samples_directions[..., None, :] * z_vals[..., :,
+                                                                                   None] # [batchsize, number_coarse_samples + number_fine_samples, 3]
