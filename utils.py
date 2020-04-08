@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from torchsearchsorted.src.torchsearchsorted import searchsorted
+from torchsearchsorted import searchsorted
 
 
 def get_rays(H, W, focal, camera_transform):
@@ -56,6 +56,7 @@ def raw2outputs(raw, z_vals, samples_directions, sigma_noise_std=0., white_backg
 
     return rgb, weights
 
+
 def sample_pdf(bins, weights, number_samples):
     # Get pdf
     weights = weights + 1e-5  # prevent nans
@@ -95,4 +96,41 @@ def fine_sampling(samples_translations, samples_directions, z_vals, weights, num
 
     z_vals, _ = torch.sort(torch.cat([z_vals, z_samples], -1), -1)
     return samples_translations[..., None, :] + samples_directions[..., None, :] * z_vals[..., :,
-                                                                                   None] # [batchsize, number_coarse_samples + number_fine_samples, 3]
+                                                                                   None]  # [batchsize, number_coarse_samples + number_fine_samples, 3]
+
+
+def run_nerf_pipeline(ray_samples, samples_translations, samples_directions, z_vals, model_coarse, model_fine,
+                      sigma_noise_std, number_fine_samples, white_background):
+    # get values for coarse network and run them through the coarse network
+    samples_encoding = positional_encoding(ray_samples, 10, True)
+    samples_directions_norm = samples_directions / torch.norm(samples_directions, dim=-1, keepdim=True)
+    directions_encoding = positional_encoding(samples_directions_norm, 4, False)
+    # flatten the encodings from [batchsize, number_coarse_samples, encoding_size] to [batchsize * number_coarse_samples, encoding_size] and concatenate
+    inputs = torch.cat([samples_encoding.view(-1, samples_encoding.shape[-1]),
+                        directions_encoding.view(-1, directions_encoding.shape[-1])], -1)
+    raw_outputs = model_coarse(inputs)  # [batchsize * number_coarse_samples, 4]
+    raw_outputs = raw_outputs.view(samples_encoding.shape[0], samples_encoding.shape[1],
+                                   raw_outputs.shape[-1])  # [batchsize, number_coarse_samples, 4]
+    rgb, weights = raw2outputs(raw_outputs, z_vals, samples_directions, sigma_noise_std, white_background)
+
+    # get values for the fine network and run them through the fine network
+    ray_samples_fine = fine_sampling(samples_translations, samples_directions, z_vals, weights,
+                                     number_fine_samples)  # [batchsize, number_coarse_samples + number_fine_samples, 3]
+    samples_encoding_fine = positional_encoding(ray_samples_fine, 10, True)
+    # expand directions and translations to the number of coarse samples + fine_samples
+    directions_encoding_fine = directions_encoding[..., :1, :].expand(directions_encoding.shape[0],
+                                                                      ray_samples_fine.shape[1],
+                                                                      directions_encoding.shape[-1])
+    inputs_fine = torch.cat([samples_encoding_fine.view(-1, samples_encoding_fine.shape[-1]),
+                             directions_encoding_fine.view(-1, samples_encoding_fine.shape[-1])], -1)
+    raw_outputs_fine = model_fine(inputs_fine)  # [batchsize * (number_coarse_samples + number_fine_samples), 4]
+    raw_outputs_fine = raw_outputs.view(samples_encoding_fine.shape[0], samples_encoding_fine.shape[1],
+                                        raw_outputs_fine.shape[
+                                            -1])  # [batchsize, number_coarse_samples + number_fine_samples, 4]
+    # expand directions and translations to the number of coarse samples + fine_samples
+    samples_directions_fine = samples_directions[..., :1, :].expand(samples_directions.shape[0],
+                                                                    ray_samples_fine.shape[1],
+                                                                    samples_directions.shape[-1])
+    rgb_fine, _ = raw2outputs(raw_outputs_fine, z_vals, samples_directions_fine, sigma_noise_std, white_background)
+
+    return rgb, rgb_fine

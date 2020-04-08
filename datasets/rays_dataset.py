@@ -1,12 +1,9 @@
 import os
 import pickle
-from typing import List, Tuple
 
 import cv2
-import librosa
 import numpy as np
 from torch.utils.data import Dataset
-import torch
 
 from utils import get_rays
 
