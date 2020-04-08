@@ -51,10 +51,12 @@ class Solver():
         - num_plots: Number of plots that will be created for tensorboard (is batchsize if batchsize is lower)
         """
 
-        optim = self.optim(list(model_coarse.parameters()) + list(model_fine.parameters()))
+        optim = self.optim(list(model_coarse.parameters()) + list(model_fine.parameters()), **self.optim_args)
         self._reset_histories()
         iter_per_epoch = len(train_loader)
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        if torch.cuda.is_available():
+            torch.set_default_tensor_type('torch.cuda.FloatTensor')
         model_coarse.to(device)
         model_fine.to(device)
 
@@ -74,7 +76,8 @@ class Solver():
 
                 # get values for coarse network and run them through the coarse network
                 samples_encoding = positional_encoding(ray_samples, 10, True)
-                directions_encoding = positional_encoding(samples_directions, 4, False)
+                samples_directions_norm = samples_directions / torch.norm(samples_directions, dim=-1, keepdim=True)
+                directions_encoding = positional_encoding(samples_directions_norm, 4, False)
                 # flatten the encodings from [batchsize, number_coarse_samples, encoding_size] to [batchsize * number_coarse_samples, encoding_size] and concatenate
                 inputs = torch.cat([samples_encoding.view(-1, samples_encoding.shape[-1]),
                                     directions_encoding.view(-1, directions_encoding.shape[-1])], -1)
@@ -82,7 +85,7 @@ class Solver():
                 raw_outputs = model_coarse(inputs)  # [batchsize * number_coarse_samples, 4]
                 raw_outputs = raw_outputs.view(samples_encoding.shape[0], samples_encoding.shape[1],
                                                raw_outputs.shape[-1])  # [batchsize, number_coarse_samples, 4]
-                rgb, weights = raw2outputs(raw_outputs, z_vals, directions_encoding, self.sigma_noise_std,
+                rgb, weights = raw2outputs(raw_outputs, z_vals, samples_directions, self.sigma_noise_std,
                                            self.white_background)
 
                 # get values for the fine network and run them through the fine network
@@ -95,10 +98,16 @@ class Solver():
                                                                                   directions_encoding.shape[-1])
                 inputs_fine = torch.cat([samples_encoding_fine.view(-1, samples_encoding_fine.shape[-1]),
                                          directions_encoding_fine.view(-1, samples_encoding_fine.shape[-1])], -1)
-                raw_outputs = model_coarse(inputs_fine)  # [batchsize * (number_coarse_samples + number_fine_samples), 4]
+                raw_outputs = model_coarse(
+                    inputs_fine)  # [batchsize * (number_coarse_samples + number_fine_samples), 4]
                 raw_outputs_fine = raw_outputs.view(samples_encoding_fine.shape[0], samples_encoding_fine.shape[1],
-                                                    raw_outputs_fine.shape[-1])  # [batchsize, number_coarse_samples + number_fine_samples, 4]
-                rgb_fine, _ = raw2outputs(raw_outputs_fine, z_vals, samples_directions, self.sigma_noise_std,
+                                                    raw_outputs_fine.shape[
+                                                        -1])  # [batchsize, number_coarse_samples + number_fine_samples, 4]
+                # expand directions and translations to the number of coarse samples + fine_samples
+                samples_directions_fine = samples_directions[..., :1, :].expand(samples_directions.shape[0],
+                                                                                ray_samples_fine.shape[1],
+                                                                                samples_directions.shape[-1])
+                rgb_fine, _ = raw2outputs(raw_outputs_fine, z_vals, samples_directions_fine, self.sigma_noise_std,
                                           self.white_background)
 
                 loss = self.loss_func(outputs, labels)

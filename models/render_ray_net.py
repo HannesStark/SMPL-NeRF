@@ -34,7 +34,6 @@ class RenderRayNet(nn.Module):
         self.rgb_out_layer = torch.nn.Linear(directional_width, 3)
 
     def forward(self, x):
-        print(x.shape)
         positions, directions = x[..., :self.positions_dim], x[..., -self.direcions_dim:]
         o = positions
         o = F.relu(self.positional_input(o))

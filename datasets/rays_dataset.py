@@ -45,11 +45,11 @@ class RaysDataset(Dataset):
         self.rays = np.concatenate(self.rays)
         print('Finish initializing rays')
 
-    def __getitem__(self, index: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def __getitem__(self, index: int):
         rays_translation, rays_direction, rgb = self.rays[index]
-        translation_list, direction_list, rgb_list = self.transform((rays_translation, rays_direction, rgb))
+        ray_samples, samples_translations, samples_directions, z_vals, rgb = self.transform((rays_translation, rays_direction, rgb))
 
-        return translation_list, direction_list, rgb_list
+        return ray_samples, samples_translations, samples_directions, z_vals, rgb
 
     def __len__(self) -> int:
         return len(self.rays)
