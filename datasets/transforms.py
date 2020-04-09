@@ -19,6 +19,16 @@ class ToTensor():
         return ray_samples, samples_translations, samples_directions, z_vals, rgb
 
 
+class NormalizeRGB():
+    def __init__(self):
+        pass
+
+    def __call__(self, ray):
+        ray_translation, ray_direction, rgb = ray
+        rgb = (np.array(rgb) / 255.).astype(np.float32)
+        return ray_translation, ray_direction, rgb
+
+
 class CoarseSampling():
 
     def __init__(self, near: int, far: int, number_samples: int = 64):
@@ -37,7 +47,4 @@ class CoarseSampling():
         # get coarse samples in each bin of the ray
         z_vals = lower + (upper - lower) * np.random.rand()
         ray_samples = ray_translation[None, :] + ray_direction[None, :] * z_vals[:, None]  # [N_samples, 3]
-
-        samples_directions = [ray_direction] * self.number_samples
-        samples_translations = [ray_translation] * self.number_samples
-        return ray_samples, samples_translations, samples_directions, z_vals, rgb
+        return ray_samples, ray_translation, ray_direction, z_vals, rgb
