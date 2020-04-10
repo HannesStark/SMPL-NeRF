@@ -133,7 +133,8 @@ class Solver():
 
                 rgb, rgb_fine = run_nerf_pipeline(ray_samples, ray_translation, ray_direction, z_vals,
                                                   model_coarse, model_fine, self.sigma_noise_std,
-                                                  self.number_fine_samples, self.white_background)
+                                                  self.number_fine_samples, self.white_background,
+                                                  self.positions_encoder, self.directions_encoder)
 
                 loss_coarse = self.loss_func(rgb, rgb_truth)
                 loss_fine = self.loss_func(rgb_fine, rgb_truth)

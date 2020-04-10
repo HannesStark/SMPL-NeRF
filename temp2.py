@@ -35,3 +35,6 @@ dict = {'camera_angle_x': 0.6911112070083618, 'image_transform_map': image_trans
 
 with open('testposes.pkl', 'wb') as handle:
     pickle.dump(dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+

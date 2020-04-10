@@ -1,7 +1,10 @@
+import pickle
+
 import numpy as np
 import torch
 
 from torchsearchsorted import searchsorted
+
 
 
 def get_rays(H, W, focal, camera_transform):
@@ -17,6 +20,8 @@ class PositionalEncoder():
         freq_bands = torch.pow(2, torch.linspace(0., number_frequencies - 1, number_frequencies))
         self.embed_fns = []
         self.output_dim = 0
+        self.number_frequencies = number_frequencies
+        self.include_identity = include_identity
         if include_identity:
             self.embed_fns.append(lambda x: x)
             self.output_dim += 1
@@ -142,3 +147,20 @@ def run_nerf_pipeline(ray_samples, ray_translation, ray_direction, z_vals, model
     rgb_fine, _ = raw2outputs(raw_outputs_fine, z_vals, fine_samples_directions, sigma_noise_std, white_background)
 
     return rgb, rgb_fine
+
+
+def save_run(run_name, model_coarse, model_fine, dataset, solver):
+    run = {'model_coarse': model_coarse,
+           'model_fine': model_fine,
+           'position_encoder': {'number_frequencies': solver.positions_encoder.number_frequencies,
+                                'include_identity': solver.positions_encoder.include_identity},
+           'direction_encoder': {'number_frequencies': solver.directions_encoder.number_frequencies,
+                                 'include_identity': solver.directions_encoder.include_identity},
+           'dataset_transform': dataset.transform,
+           'white_background': solver.white_background,
+           'number_fine_samples': solver.number_fine_samples,
+           'height': dataset.h,
+           'width': dataset.w,
+           'focal': dataset.focal}
+    with open(run_name + '.pkl', 'wb') as file:
+        pickle.dump(run, file, protocol=pickle.HIGHEST_PROTOCOL)

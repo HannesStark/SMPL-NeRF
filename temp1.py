@@ -5,13 +5,13 @@ from torchvision.transforms import transforms
 import ctypes
 ctypes.cdll.LoadLibrary('caffe2_nvrtc.dll')
 
-from datasets.rays_dataset import RaysDataset
+from datasets.rays_from_images_dataset import RaysFromImagesDataset
 from datasets.transforms import CoarseSampling, ToTensor
 from models.render_ray_net import RenderRayNet
 from utils import positional_encoding, raw2outputs
 
 
-dataset = RaysDataset('images', 'testposes.pkl', transform=transforms.Compose([CoarseSampling(2, 6, 64), ToTensor()]))
+dataset = RaysFromImagesDataset('images', 'testposes.pkl', transform=transforms.Compose([CoarseSampling(2, 6, 64), ToTensor()]))
 
 train_loader = torch.utils.data.DataLoader(dataset, batch_size=4096, shuffle=False, num_workers=0)
 

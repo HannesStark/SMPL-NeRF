@@ -5,3 +5,5 @@ model.fbx
 model.obj
 __pycache__/
 train
+renders
+runs
