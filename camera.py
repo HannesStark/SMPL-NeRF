@@ -34,32 +34,32 @@ def get_pose_matrix(x: float=0, y: float=0, z: float=0,
                            [[0, 0, 0, 1]]), axis=0)
     return pose
 
-def get_circle_pose(alpha: float, r: float) -> np.array:
-    """ Returns pose matrix for angle alpha in xz-circle with radius r around 
-        y-axis (alpha = 0 corresponds position (0, 0, r))
+def get_circle_pose(theta: float, r: float) -> np.array:
+    """ Returns pose matrix for angle theta in xz-circle with radius r around 
+        y-axis (theta = 0 corresponds position (0, 0, r))
     
         Args:
-            alpha (float): rotation around y axis in degrees
+            theta (float): rotation around y axis in degrees
             r (float): radius of circle 
     """
-    z = r*np.cos(np.radians(alpha))
-    x = r*np.sin(np.radians(alpha))
-    pose = get_pose_matrix(x=x, z=z, theta=alpha)
+    z = r*np.cos(np.radians(theta))
+    x = r*np.sin(np.radians(theta))
+    pose = get_pose_matrix(x=x, z=z, theta=theta)
     return pose
 
-def get_sphere_pose(alpha: float, beta: float, r: float) -> np.array:
-    """Returns pose matrix for angle alpha in xz-circle with radius r around
-        y-axis and angle beta in yz-circle around x-axis (spherical coordinates)
+def get_sphere_pose(phi: float, theta: float, r: float) -> np.array:
+    """Returns pose matrix for angle theta in xz-circle with radius r around
+        y-axis and angle phi in yz-circle around x-axis (spherical coordinates)
         
         Args:
-            alpha (float): rotation around y axis in degrees
-            beta (float): rotation around x axis in degrees
+            phi (float): rotation around x axis in degrees
+            theta (float): rotation around y axis in degrees
             r (float): radius of circle 
     """
-    z = r*np.cos(np.radians(beta))*np.cos(np.radians(alpha))
-    x = r*np.cos(np.radians(beta))*np.sin(np.radians(alpha))
-    y = r*np.sin(np.radians(beta))
-    pose = get_pose_matrix(x=x, y=y, z=z, theta=alpha, phi=-beta)
+    z = r*np.cos(np.radians(phi))*np.cos(np.radians(theta))
+    x = r*np.cos(np.radians(phi))*np.sin(np.radians(theta))
+    y = r*np.sin(np.radians(phi))
+    pose = get_pose_matrix(x=x, y=y, z=z, theta=theta, phi=-phi)
     return pose
 
 def camera_origin_direction(x: float, y: float, z: float) -> Tuple[float, float]:
