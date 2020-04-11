@@ -1,9 +1,10 @@
 SMPLs
 .idea
-images/
+data/images/
 model.fbx
 model.obj
 __pycache__/
 train
 renders
 runs
+data

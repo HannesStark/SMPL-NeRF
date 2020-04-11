@@ -21,7 +21,7 @@ def infer(run_name, camera_transforms, output_dir='renders', batch_size=128):
     h, w, f = run['height'], run['width'], run['focal']
     rays_dataset = RaysFromCamerasDataset(camera_transforms, h, w, f,
                                           transform=run['dataset_transform'])
-    rays_loader = torch.utils.data.DataLoader(rays_dataset, batch_size=batch_size, shuffle=False, num_workers=0, )
+    rays_loader = torch.utils.data.DataLoader(rays_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
     position_encoder = PositionalEncoder(run['position_encoder']['number_frequencies'],
                                          run['position_encoder']['include_identity'])
     direction_encoder = PositionalEncoder(run['direction_encoder']['number_frequencies'],

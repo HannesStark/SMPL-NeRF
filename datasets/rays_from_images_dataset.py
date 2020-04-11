@@ -1,3 +1,4 @@
+import glob
 import os
 import pickle
 
@@ -28,14 +29,15 @@ class RaysFromImagesDataset(Dataset):
             transforms_dict = pickle.load(transforms_file)
         camera_angle_x = transforms_dict['camera_angle_x']
         image_transform_map = transforms_dict.get('image_transform_map')
-        image_names = os.listdir(image_directory)
-        if not len(image_names) == len(image_transform_map):
+        image_paths = sorted(glob.glob(os.path.join(image_directory, '*.png')))
+        if not len(image_paths) == len(image_transform_map):
             raise ValueError('Number of images in image_directory is not the same as number of transforms')
-        for image_name in image_names:
-            image = cv2.imread(os.path.join(image_directory, image_name))
+        for image_path in image_paths:
+            image = cv2.imread(image_path)
             self.h, self.w = image.shape[:2]
             self.focal = .5 * self.w / np.tan(.5 * camera_angle_x)
-            rays_translation, rays_direction = get_rays(self.h, self.w, self.focal, image_transform_map[image_name])
+            rays_translation, rays_direction = get_rays(self.h, self.w, self.focal,
+                                                        image_transform_map[os.path.basename(image_path)])
             trans_dir_rgb_stack = np.stack([rays_translation, rays_direction, image], -2)
             trans_dir_rgb_list = trans_dir_rgb_stack.reshape((-1, 3, 3))
             self.rays.append(trans_dir_rgb_list)
@@ -44,7 +46,8 @@ class RaysFromImagesDataset(Dataset):
 
     def __getitem__(self, index: int):
         rays_translation, rays_direction, rgb = self.rays[index]
-        ray_samples, samples_translations, samples_directions, z_vals, rgb = self.transform((rays_translation, rays_direction, rgb))
+        ray_samples, samples_translations, samples_directions, z_vals, rgb = self.transform(
+            (rays_translation, rays_direction, rgb))
 
         return ray_samples, samples_translations, samples_directions, z_vals, rgb
 

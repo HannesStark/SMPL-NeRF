@@ -149,7 +149,7 @@ def run_nerf_pipeline(ray_samples, ray_translation, ray_direction, z_vals, model
     return rgb, rgb_fine
 
 
-def save_run(run_name, model_coarse, model_fine, dataset, solver):
+def save_run(file_location, model_coarse, model_fine, dataset, solver):
     run = {'model_coarse': model_coarse,
            'model_fine': model_fine,
            'position_encoder': {'number_frequencies': solver.positions_encoder.number_frequencies,
@@ -162,5 +162,7 @@ def save_run(run_name, model_coarse, model_fine, dataset, solver):
            'height': dataset.h,
            'width': dataset.w,
            'focal': dataset.focal}
-    with open(run_name + '.pkl', 'wb') as file:
+    with open(file_location, 'wb') as file:
         pickle.dump(run, file, protocol=pickle.HIGHEST_PROTOCOL)
+
+

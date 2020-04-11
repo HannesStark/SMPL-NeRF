@@ -1,6 +1,7 @@
 import torch
 from torch.utils.tensorboard import SummaryWriter
-
+import matplotlib.pyplot as plt
+import numpy as np
 from utils import run_nerf_pipeline, PositionalEncoder
 
 
@@ -35,7 +36,8 @@ class Solver():
         self.train_loss_history_per_iter = []
         self.val_loss_history = []
 
-    def train(self, model_coarse, model_fine, train_loader, val_loader, num_epochs=10, log_nth=0):
+    def train(self, model_coarse, model_fine, train_loader, val_loader, h, w, num_epochs=10, log_nth=0,
+              number_validation_images=0, early_validation=False):
         """
         Train a given model with the provided data.
 
@@ -89,29 +91,31 @@ class Solver():
                 if i % log_nth == log_nth - 1:
                     print('[Epoch %d, Iteration %5d/%5d] TRAIN loss: %.7f' %
                           (epoch + 1, i + 1, iter_per_epoch, loss_item))
-                    model_coarse.eval()
-                    model_fine.eval()
-                    val_loss = 0
-                    for j, data in enumerate(val_loader):
-                        ray_samples, ray_translation, ray_direction, z_vals, rgb_truth = data
-                        ray_samples = ray_samples.to(device)  # [batchsize, number_coarse_samples, 3]
-                        ray_translation = ray_translation.to(device)  # [batchsize, number_coarse_samples, 3]
-                        ray_direction = ray_direction.to(device)  # [batchsize, number_coarse_samples, 3]
-                        z_vals = z_vals.to(device)  # [batchsize, number_coarse_samples]
-                        rgb_truth = rgb_truth.to(device)  # [batchsize, 3]
+                    if early_validation:
+                        model_coarse.eval()
+                        model_fine.eval()
+                        val_loss = 0
+                        for j, data in enumerate(val_loader):
+                            ray_samples, ray_translation, ray_direction, z_vals, rgb_truth = data
+                            ray_samples = ray_samples.to(device)  # [batchsize, number_coarse_samples, 3]
+                            ray_translation = ray_translation.to(device)  # [batchsize, number_coarse_samples, 3]
+                            ray_direction = ray_direction.to(device)  # [batchsize, number_coarse_samples, 3]
+                            z_vals = z_vals.to(device)  # [batchsize, number_coarse_samples]
+                            rgb_truth = rgb_truth.to(device)  # [batchsize, 3]
 
-                        rgb, rgb_fine = run_nerf_pipeline(ray_samples, ray_translation, ray_direction, z_vals,
-                                                          model_coarse, model_fine, self.sigma_noise_std,
-                                                          self.number_fine_samples, self.white_background,
-                                                          self.positions_encoder, self.directions_encoder)
+                            rgb, rgb_fine = run_nerf_pipeline(ray_samples, ray_translation, ray_direction, z_vals,
+                                                              model_coarse, model_fine, self.sigma_noise_std,
+                                                              self.number_fine_samples, self.white_background,
+                                                              self.positions_encoder, self.directions_encoder)
 
-                        loss_coarse = self.loss_func(rgb, rgb_truth)
-                        loss_fine = self.loss_func(rgb_fine, rgb_truth)
-                        loss = loss_coarse + loss_fine
-                        val_loss += loss.item()
-                    self.writer.add_scalars('Loss curve every nth iteration', {'train loss': loss_item,
-                                                                               'val loss': val_loss / len(val_loader)},
-                                            i // log_nth + epoch * (iter_per_epoch // log_nth))
+                            loss_coarse = self.loss_func(rgb, rgb_truth)
+                            loss_fine = self.loss_func(rgb_fine, rgb_truth)
+                            loss = loss_coarse + loss_fine
+                            val_loss += loss.item()
+                        self.writer.add_scalars('Loss curve every nth iteration', {'train loss': loss_item,
+                                                                                   'val loss': val_loss / len(
+                                                                                       val_loader)},
+                                                i // log_nth + epoch * (iter_per_epoch // log_nth))
 
                 train_loss += loss_item
                 self.train_loss_history_per_iter.append(loss_item)
@@ -122,8 +126,11 @@ class Solver():
             model_coarse.eval()
             model_fine.eval()
             val_loss = 0
+            rerender_images = []
+            ground_truth_images = []
             for i, data in enumerate(val_loader):
                 ray_samples, ray_translation, ray_direction, z_vals, rgb_truth = data
+                ground_truth_images.append(rgb_truth)
                 ray_samples = ray_samples.to(device)  # [batchsize, number_coarse_samples, 3]
                 ray_translation = ray_translation.to(device)  # [batchsize, number_coarse_samples, 3]
                 ray_direction = ray_direction.to(device)  # [batchsize, number_coarse_samples, 3]
@@ -139,6 +146,29 @@ class Solver():
                 loss_fine = self.loss_func(rgb_fine, rgb_truth)
                 loss = loss_coarse + loss_fine
                 val_loss += loss.item()
+                rerender_images.append(rgb_fine)
+
+            rerender_images = torch.cat(rerender_images, 0).view(-1, h, w, 3).detach().numpy()
+            ground_truth_images = np.concatenate(ground_truth_images).reshape((-1, h, w, 3))
+            if number_validation_images > rerender_images.shape[0]:
+                print('there are only ', rerender_images.shape[0],
+                      ' in the validation directory which is less than the specified number_validation_images: ',
+                      number_validation_images, ' So instead ', rerender_images.shape[0],
+                      ' images are sent to tensorboard')
+                number_validation_images = rerender_images.shape[0]
+            else:
+                rerender_images = rerender_images[:number_validation_images]
+
+            print(ground_truth_images[0])
+            print(number_validation_images)
+            fig = plt.figure()
+            for i in range(number_validation_images):
+                fig.add_subplot(number_validation_images, 2, i +1)
+                plt.imshow(ground_truth_images[0])
+               #axarr[i][0].add_image(ground_truth_images[i])
+               #axarr[i][1].add_image(rerender_images[i])
+
+            self.writer.add_figure(str(epoch) + ' validation images', fig, epoch)
 
             print('[Epoch %d] VAL loss: %.7f' % (epoch + 1, val_loss))
             self.val_loss_history.append(val_loss)
