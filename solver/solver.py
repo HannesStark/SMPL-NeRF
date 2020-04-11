@@ -79,7 +79,6 @@ class Solver():
 
                 optim.zero_grad()
                 loss_coarse = self.loss_func(rgb, rgb_truth)
-                print(rgb)
                 loss_fine = self.loss_func(rgb_fine, rgb_truth)
                 loss = loss_coarse + loss_fine
 

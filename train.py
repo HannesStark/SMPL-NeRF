@@ -33,7 +33,7 @@ model_fine = RenderRayNet(positions_dim=position_encoder.output_dim * 3,
 
 solver = Solver(position_encoder, direction_encoder, optim_args={"lr": 1e-3, "weight_decay": 0},
                 loss_func=torch.nn.MSELoss(), white_background=True)
-solver.train(model_coarse, model_fine, train_loader, val_loader, log_nth=1, num_epochs=30)
+solver.train(model_coarse, model_fine, train_loader, val_loader, log_nth=1, num_epochs=100)
 
 save_run('first_experiment', model_coarse, model_fine, dataset, solver)
 
