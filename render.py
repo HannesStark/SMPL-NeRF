@@ -85,7 +85,6 @@ def save_render(render, f_name):
     plt.axis('off')
     plt.imshow(render)
     plt.imsave(f_name, render)
-    plt.show()
 
 def render(camera_phi, camera_theta, camera_radius=2.4, 
          human_phi=0, human_theta=0, 
