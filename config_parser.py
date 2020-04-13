@@ -27,7 +27,7 @@ def config_parser():
                         help='number of iterations to pass to run extra validation and logging')
     parser.add_argument("--early_validation", type=bool, default=False,
                         help='run extra validation loop every log_iterations')
-    parser.add_argument("--num_epochs", type=int, default=30, help='number of epochs to run')
+    parser.add_argument("--num_epochs", type=int, default=100, help='number of epochs to run')
     parser.add_argument("--near", type=int, default=2, help='near ray bound for coarse sampling')
     parser.add_argument("--far", type=int, default=6, help='far ray bound for coarse sampling')
     parser.add_argument("--number_coarse_samples", type=int, default=64, help='number of coarse samples per ray')

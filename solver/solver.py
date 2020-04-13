@@ -146,9 +146,9 @@ class Solver():
                 loss_fine = self.loss_func(rgb_fine, rgb_truth)
                 loss = loss_coarse + loss_fine
                 val_loss += loss.item()
-                rerender_images.append(rgb_fine)
+                rerender_images.append(rgb_fine.detach().numpy())
 
-            rerender_images = torch.cat(rerender_images, 0).view(-1, h, w, 3).detach().numpy()
+            rerender_images = torch.cat(rerender_images, 0).view(-1, h, w, 3)
             ground_truth_images = np.concatenate(ground_truth_images).reshape((-1, h, w, 3))
             if number_validation_images > rerender_images.shape[0]:
                 print('there are only ', rerender_images.shape[0],
@@ -161,13 +161,17 @@ class Solver():
 
             print(ground_truth_images[0])
             print(number_validation_images)
-            fig = plt.figure()
+            fig, axarr = plt.subplots(1, 2, sharex=True, sharey=True)
+            if len(axarr.shape) == 1:
+                axarr = axarr[None, :]
             for i in range(number_validation_images):
-                fig.add_subplot(number_validation_images, 2, i +1)
-                plt.imshow(ground_truth_images[0])
-               #axarr[i][0].add_image(ground_truth_images[i])
-               #axarr[i][1].add_image(rerender_images[i])
-
+                # strange indices after image because matplotlib wants bgr instead of rgb
+                axarr[i, 0].imshow(ground_truth_images[i][:, :, ::-1])
+                axarr[i, 0].axis('off')
+                axarr[i, 0].set_title('Ground Truth')
+                axarr[i, 1].imshow(rerender_images[i][:, :, ::-1])
+                axarr[i, 1].set_title('Rerender')
+                axarr[i, 1].axis('off')
             self.writer.add_figure(str(epoch) + ' validation images', fig, epoch)
 
             print('[Epoch %d] VAL loss: %.7f' % (epoch + 1, val_loss))
