@@ -22,8 +22,11 @@ def get_smpl_mesh():
                            0.5338, -0.0210]], dtype=torch.float32)
     expression = torch.tensor([[2.7228, -1.8139, 0.6270, -0.5565, 0.3251, 0.5643, -1.2158, 1.4149,
                                 0.4050, 0.6516]])
+    body_pose = torch.zeros(69).view(1, -1)
+    body_pose[0, 41] = 0 # right arm angle 
+    body_pose[0, 38] = 0 # left arm angle 
     output = model(betas=betas, expression=expression,
-                   return_verts=True)
+                   return_verts=True, body_pose=body_pose)
     vertices = output.vertices.detach().cpu().numpy().squeeze()
 
     with open('textures/texture.jpg', 'rb') as file:
@@ -61,8 +64,7 @@ def render_scene(camera_pose: np.array, human_pose: np.array,
                                 innerConeAngle=np.pi/16.0,
                                 outerConeAngle=np.pi/6.0)
     scene.add(light, pose=camera_pose)
-    
-    r = pyrender.OffscreenRenderer(1000, 1000)
+    r = pyrender.OffscreenRenderer(height, width)
     color, depth = r.render(scene)
     return color
 
@@ -106,5 +108,6 @@ def main(camera_phi, camera_theta, camera_radius=2.4,
     save_render(render, f_name)
    
 if __name__ == "__main__":
-    main(0, 0)   
+    main(camera_phi = 0, camera_theta = 0, height = 512, width = 512, 
+         camera_radius=2.4)   
     
