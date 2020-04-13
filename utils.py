@@ -5,6 +5,7 @@ import torch
 
 from torchsearchsorted import searchsorted
 
+from typing import Tuple
 
 
 def get_rays(H, W, focal, camera_transform):
@@ -164,5 +165,24 @@ def save_run(file_location, model_coarse, model_fine, dataset, solver):
            'focal': dataset.focal}
     with open(file_location, 'wb') as file:
         pickle.dump(run, file, protocol=pickle.HIGHEST_PROTOCOL)
+        
+def disjoint_indices(size: int, ratio: float, random=True) -> Tuple[np.ndarray, np.ndarray]:
+    """
+        Creates disjoint set of indices where all indices together are size many indices. The first set of the returned
+        tuple has size*ratio many indices and the second one has size*(ratio-1) many indices.
+
+        Args:
+            size (int): total number of indices returned. First and second array together
+            ratio (float): relative sizes between the returned index arrays
+            random (boolean): should the indices be randomly sampled
+    """
+    if random:
+        train_indices = np.random.choice(np.arange(size), int(size * ratio), replace=False)
+        val_indices = np.setdiff1d(np.arange(size), train_indices, assume_unique=True)
+        return train_indices, val_indices
+
+    indices = np.arange(size)
+    split_index = int(size * ratio)
+    return indices[:split_index], indices[split_index:]
 
 

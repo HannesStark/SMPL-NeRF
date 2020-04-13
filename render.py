@@ -3,15 +3,19 @@
 
 from io import BytesIO
 import pyrender
-from PIL import Image
 import numpy as np
 import os
 import torch
 import smplx
 import matplotlib.pyplot as plt
 import trimesh
+import pickle
+from PIL import Image
 
 from camera import get_pose_matrix, get_sphere_pose
+from utils import disjoint_indices
+
+np.random.seed(0)
 
 def get_smpl_mesh():
     """Load SMPL model and convert it to mesh
@@ -76,17 +80,16 @@ def save_render(render, f_name):
             render(np.array): rendered image
             f_name(string): file name
     """
+    
     plt.figure()
     plt.axis('off')
     plt.imshow(render)
     plt.imsave(f_name, render)
     plt.show()
 
-
-def main(camera_phi, camera_theta, camera_radius=2.4, 
+def render(camera_phi, camera_theta, camera_radius=2.4, 
          human_phi=0, human_theta=0, 
-         height=512, width=512, yfov=np.pi / 3,
-         save_dir="images"):
+         height=512, width=512, yfov=np.pi / 3):
     """ Compute human and camera pose, render scene and save render
         
         Args:
@@ -98,16 +101,54 @@ def main(camera_phi, camera_theta, camera_radius=2.4,
             height (int): height of rendered image
             width (int): width of rendered image
             yfov (float): vertical field of view in radians
-            save_dir (string): save directory
     """
     human_pose = get_pose_matrix(phi=human_phi, theta=human_theta)
     camera_pose = get_sphere_pose(camera_phi, camera_theta, camera_radius)
-    render = render_scene(camera_pose, human_pose, camera_pose, height, width,
+    rgb = render_scene(camera_pose, human_pose, camera_pose, height, width,
                           yfov)
-    f_name = os.path.join(save_dir, "img_{:03d}.png".format(1))
-    save_render(render, f_name)
+    return rgb, camera_pose
+    
+def render_sphere(start_angle, end_angle, number_steps, height, width, 
+                  camera_radius, yfov, save_dir, train_val_ratio=0.8):
+    camera_phis = np.linspace(start_angle, end_angle, number_steps)
+    camera_thetas = np.linspace(start_angle, end_angle, number_steps)
+    index = 0
+    train_image_transform_map = {}
+    val_image_transform_map = {}
+    size = number_steps ** 2
+    train_indices, val_indices = disjoint_indices(size, train_val_ratio)
+    train_dir, val_dir = os.path.join(save_dir, "train"), os.path.join(save_dir, "val")
+    if not os.path.exists(train_dir):
+        os.mkdir(train_dir)
+        os.mkdir(val_dir)
+    for camera_phi in camera_phis:
+        for camera_theta in camera_thetas:
+            image_name = "img_{:03d}.png".format(index)
+            rgb, camera_pose = render(camera_phi, camera_theta, camera_radius=camera_radius,
+                   height=height, width=width)
+            if index in train_indices:
+                img_file_name = os.path.join(train_dir, image_name)
+                train_image_transform_map[image_name] = camera_pose
+            else:
+                img_file_name = os.path.join(val_dir, image_name)
+                val_image_transform_map[image_name] = camera_pose
+            
+            save_render(rgb, img_file_name) 
+            index += 1
+    camera_angle_x = yfov / 2 # camera angle x is half field of view 
+    train_dict = {'camera_angle_x': camera_angle_x, 'image_transform_map': train_image_transform_map}
+    val_dict = {'camera_angle_x': camera_angle_x, 'image_transform_map': val_image_transform_map}
+    train_pkl_file_name = os.path.join(train_dir, 'transforms.pkl')
+    with open(train_pkl_file_name, 'wb') as handle:
+        pickle.dump(train_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    val_pkl_file_name = os.path.join(val_dir, 'transforms.pkl')
+    with open(val_pkl_file_name, 'wb') as handle:
+        pickle.dump(val_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
    
 if __name__ == "__main__":
-    main(camera_phi = 0, camera_theta = 0, height = 512, width = 512, 
-         camera_radius=2.4)   
+    save_dir = "data"
+    render_sphere(start_angle=-20, end_angle=20, number_steps=10, height=512, width=512, 
+                  camera_radius=2.4, yfov=np.pi / 3, save_dir=save_dir)
+    with open(os.path.join(save_dir, "train", 'transforms.pkl'), 'rb') as handle:
+        transforms_dict = pickle.load(handle)
     
