@@ -148,7 +148,7 @@ class Solver():
                 val_loss += loss.item()
                 rerender_images.append(rgb_fine.detach().numpy())
 
-            rerender_images = torch.cat(rerender_images, 0).view(-1, h, w, 3)
+            rerender_images = np.concatenate(rerender_images, 0).reshape((-1, h, w, 3))
             ground_truth_images = np.concatenate(ground_truth_images).reshape((-1, h, w, 3))
             if number_validation_images > rerender_images.shape[0]:
                 print('there are only ', rerender_images.shape[0],
@@ -159,8 +159,6 @@ class Solver():
             else:
                 rerender_images = rerender_images[:number_validation_images]
 
-            print(ground_truth_images[0])
-            print(number_validation_images)
             fig, axarr = plt.subplots(1, 2, sharex=True, sharey=True)
             if len(axarr.shape) == 1:
                 axarr = axarr[None, :]
