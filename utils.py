@@ -12,7 +12,7 @@ def get_rays(H: int, W: int, focal: float,
              camera_transform: np.array) -> [np.array, np.array]:
     """
     Returns direction and translations of camera rays going through image
-    plan.
+    plane.
 
     Parameters
     ----------
@@ -59,7 +59,33 @@ class PositionalEncoder():
         return torch.cat([fn(coordinate) for fn in self.embed_fns], -1)
 
 
-def raw2outputs(raw, z_vals, samples_directions, sigma_noise_std=0., white_background=False):
+def raw2outputs(raw: torch.Tensor, z_vals: torch.Tensor,
+                samples_directions: torch.Tensor, sigma_noise_std: float = 0.,
+                white_background: bool = False) -> Tuple[torch.Tensor, torch.Tensor]:
+    """
+    Transforms model's predictions to semantically meaningful values.
+
+    Parameters
+    ----------
+    raw : torch.Tensor ([batch_size, number_coarse_samples, 4])
+        Output from network.
+    z_vals : torch.Tensor ([batch_size, number_coarse_samples])
+        Depth of samples along ray.
+    samples_directions : torch.Tensor ([3])
+        Directions of samples.
+    sigma_noise_std : float, optional
+        Regularization: std of added noise to models prediction for density.
+        The default is 0.
+    white_background : bool, optional
+        If True, assume a white background. The default is False.
+
+    Returns
+    -------
+    rgb : torch.Tensor ([batch_size, 3])
+        Estimated RGB color of rays.
+    weights : torch.Tensor ([batch_size, 3])
+        Weights assigned to each sampled color.
+    """
     raw2alpha = lambda raw, dists: 1. - torch.exp(-torch.nn.functional.relu(raw) * dists)
 
     dists = z_vals[..., 1:] - z_vals[..., :-1]
@@ -92,6 +118,9 @@ def raw2outputs(raw, z_vals, samples_directions, sigma_noise_std=0., white_backg
 
 
 def sample_pdf(bins, weights, number_samples):
+    """
+    Hierarchical sampling
+    """
     # Get pdf
     weights = weights + 1e-5  # prevent nans
     pdf = weights / torch.sum(weights, -1, keepdim=True)
@@ -123,18 +152,55 @@ def sample_pdf(bins, weights, number_samples):
     return samples
 
 
-def fine_sampling(ray_translation, samples_directions, z_vals, weights, number_samples):
+def fine_sampling(ray_translation: torch.Tensor, samples_directions: torch.Tensor,
+                  z_vals: torch.Tensor, weights: torch.Tensor,
+                  number_samples: int) -> Tuple[torch.tensor, torch.tensor]:
+    """
+    Obtain additional samples using weights assigned to colors by the
+    coarse net.
+
+    Parameters
+    ----------
+    ray_translation : torch.Tensor ([batch_size, 3])
+        Translation of rays.
+    samples_directions : torch.Tensor ([batch_size, 3])
+        Directions of samples.
+    z_vals : torch.Tensor ([batch_size, number_coarse_samples])
+        Depth of coarse samples along ray.
+    weights : torch.Tensor ([batch_size, 3])
+        Weights assigned to each sampled color.
+    number_samples : int
+        Number of fine samples.
+
+    Returns
+    -------
+    z_vals : torch.Tensor ([batch_size, number_coarse_samples])
+        Depth of fine samples along ray.
+    ray_samples_fine : torch.Tensor ([batch_size, number_coarse_samples + number_fine_samples])
+        Fine samples along ray.
+    """
     z_vals_mid = .5 * (z_vals[..., 1:] + z_vals[..., :-1])
     z_samples = sample_pdf(z_vals_mid, weights[..., 1:-1], number_samples)
     z_samples = z_samples.detach()
     z_vals, _ = torch.sort(torch.cat([z_vals, z_samples], -1), -1)
-    return z_vals, ray_translation[..., None, :] + samples_directions[..., None, :] * z_vals[..., :,
+    ray_samples_fine = ray_translation[..., None, :] + samples_directions[..., None, :] * z_vals[..., :,
                                                                                       None]  # [batchsize, number_coarse_samples + number_fine_samples, 3]
+    return z_vals, ray_samples_fine
 
 
 def run_nerf_pipeline(ray_samples, ray_translation, ray_direction, z_vals, model_coarse, model_fine,
                       sigma_noise_std, number_fine_samples, white_background, position_encoder: PositionalEncoder,
                       direction_encoder: PositionalEncoder):
+    """
+    Volumetric rendering with NeRF.
+
+    Returns
+    -------
+    rgb : torch.Tensor ([batch_size, 3])
+        Estimated RGB color with coarse net.
+    rgb_fine : torch.Tensor ([batch_size, 3])
+        Estimated RGB color with fine net.
+    """
     # get values for coarse network and run them through the coarse network
     samples_encoding = position_encoder.encode(ray_samples)
     coarse_samples_directions = ray_direction[..., None, :].expand(ray_direction.shape[0], ray_samples.shape[1],
@@ -173,7 +239,11 @@ def run_nerf_pipeline(ray_samples, ray_translation, ray_direction, z_vals, model
     return rgb, rgb_fine
 
 
-def save_run(file_location, model_coarse, model_fine, dataset, solver, parser):
+def save_run(file_location: str, model_coarse, model_fine, dataset, solver,
+             parser):
+    """
+    Save coarse and fine model and training configuration
+    """
     run = {'model_coarse': model_coarse,
            'model_fine': model_fine,
            'position_encoder': {'number_frequencies': solver.positions_encoder.number_frequencies,
