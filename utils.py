@@ -6,9 +6,32 @@ import torch
 from torchsearchsorted import searchsorted
 
 from typing import Tuple
+import os
 
+def get_rays(H: int, W: int, focal: float,
+             camera_transform: np.array) -> [np.array, np.array]:
+    """
+    Returns direction and translations of camera rays going through image
+    plan.
 
-def get_rays(H, W, focal, camera_transform):
+    Parameters
+    ----------
+    H : int
+        Height of image.
+    W : int
+        Width of image.
+    focal : float
+        Focal lenght of camera.
+    camera_transform : np.array (4, 4)
+        Camera transformation matrix.
+
+    Returns
+    -------
+    rays_translation : np.array (H, W, 3)
+        Translational vector of camera transform dublicated HxW times.
+    rays_direction : np.array (H, W, 3)
+        Directions of rays going through camera plane.
+    """
     i, j = np.meshgrid(np.arange(W, dtype=np.float32), np.arange(H, dtype=np.float32), indexing='xy')
     dirs = np.stack([(i - W * .5) / focal, -(j - H * .5) / focal, -np.ones_like(i)], -1)
     rays_direction = np.sum(dirs[..., np.newaxis, :] * camera_transform[:3, :3], -1)  # dirs @ camera_transform
@@ -150,7 +173,7 @@ def run_nerf_pipeline(ray_samples, ray_translation, ray_direction, z_vals, model
     return rgb, rgb_fine
 
 
-def save_run(file_location, model_coarse, model_fine, dataset, solver):
+def save_run(file_location, model_coarse, model_fine, dataset, solver, parser):
     run = {'model_coarse': model_coarse,
            'model_fine': model_fine,
            'position_encoder': {'number_frequencies': solver.positions_encoder.number_frequencies,
@@ -165,7 +188,9 @@ def save_run(file_location, model_coarse, model_fine, dataset, solver):
            'focal': dataset.focal}
     with open(file_location, 'wb') as file:
         pickle.dump(run, file, protocol=pickle.HIGHEST_PROTOCOL)
-        
+    args = parser.parse_args()
+    parser.write_config_file(args, [os.path.join(os.path.dirname(file_location), 'config.txt')])
+
 def disjoint_indices(size: int, ratio: float, random=True) -> Tuple[np.ndarray, np.ndarray]:
     """
         Creates disjoint set of indices where all indices together are size many indices. The first set of the returned

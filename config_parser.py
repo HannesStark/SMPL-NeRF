@@ -2,8 +2,12 @@ import configargparse
 
 
 def config_parser():
+    """
+    Configuration parser for training.
+
+    """
     parser = configargparse.ArgumentParser()
-    parser.add_argument('--config', is_config_file=True, help='config file path')
+    parser.add_argument('--config', is_config_file=True, default="configs/config.txt", help='config file path')
     parser.add_argument("--experiment_name", type=str, default='default', help='experiment name')
     parser.add_argument("--train_directory", type=str, default='data/train', help='training images directory')
     parser.add_argument("--train_camera_transforms", type=str, default='data/train/transforms.pkl',
