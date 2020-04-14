@@ -15,7 +15,7 @@ from utils import PositionalEncoder, save_run
 
 np.random.seed(0)
 
-ctypes.cdll.LoadLibrary('caffe2_nvrtc.dll')
+# ctypes.cdll.LoadLibrary('caffe2_nvrtc.dll')
 
 
 def train():
@@ -46,7 +46,7 @@ def train():
                  args.early_validation)
 
     save_run(os.path.join(solver.writer.log_dir, args.experiment_name + '.pkl'), model_coarse, model_fine, dataset,
-             solver)
+             solver, parser)
 
 
 if __name__ == '__main__':

@@ -13,8 +13,26 @@ class Solver():
 
     def __init__(self, positions_encoder: PositionalEncoder, directions_encoder: PositionalEncoder,
                  optim=torch.optim.Adam, optim_args={},
-                 loss_func=torch.nn.MSELoss(), sigma_noise_std=1,
-                 white_background=False, number_fine_samples=128):
+                 loss_func=torch.nn.MSELoss(), sigma_noise_std: float=1,
+                 white_background: bool=False, number_fine_samples: int=128):
+        """
+        Parameters
+        ----------
+        positions_encoder : PositionalEncoder
+        directions_encoder : PositionalEncoder
+        optim : torch.optim, optional
+            used optimizer. The default is torch.optim.Adam.
+        optim_args : dict, optional
+            settings for optimizer. The default is {}.
+        loss_func : torch.nn, optional
+            loss for training. The default is torch.nn.MSELoss().
+        sigma_noise_std : float, optional
+            regularization. The default is 1.
+        white_background : bool, optional
+            The default is False.
+        number_fine_samples : int, optional
+            The default is 128.
+        """
         optim_args_merged = self.default_adam_args.copy()
         optim_args_merged.update(optim_args)
         self.optim_args = optim_args_merged
@@ -36,20 +54,33 @@ class Solver():
         self.train_loss_history_per_iter = []
         self.val_loss_history = []
 
-    def train(self, model_coarse, model_fine, train_loader, val_loader, h, w, num_epochs=10, log_nth=0,
-              number_validation_images=0, early_validation=False):
+    def train(self, model_coarse, model_fine, train_loader, val_loader,
+              h: int, w: int, num_epochs: int=10, log_nth: int=0,
+              number_validation_images: int=0, early_validation: bool=False):
         """
-        Train a given model with the provided data.
+        Train coarse and fine model on training data and run validation
 
-        Inputs:
-        - model: model object initialized from a torch.nn.Module
-        - train_loader: train data in torch.utils.data.DataLoader
-        - val_loader: val data in torch.utils.data.DataLoader
-        - num_epochs: total number of training epochs
-        - log_nth: log training accuracy and loss every nth iteration
-        - num_plots: Number of plots that will be created for tensorboard (is batchsize if batchsize is lower)
+        Parameters
+        ----------
+        model_coarse : coarse model object.
+        model_fine : fine model object.
+        train_loader : training data loader object.
+        val_loader : validation data loader object.
+        h : int
+            height of images.
+        w : int
+            width of images.
+        num_epochs : int, optional
+            total number of training epochs. The default is 10.
+        log_nth : int, optional
+            log train loss every nth iteration. The default is 0.
+        number_validation_images : int, optional
+            plot n validation images with groundtruth in tensorboard.
+            The default is 0.
+        early_validation : bool, optional
+            perform validation step every nth iteration. The default is False.
+
         """
-
         optim = self.optim(list(model_coarse.parameters()) + list(model_fine.parameters()), **self.optim_args)
         self._reset_histories()
         iter_per_epoch = len(train_loader)
