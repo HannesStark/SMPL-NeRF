@@ -3,7 +3,9 @@ import torch
 
 
 class ToTensor():
-    """Add channels dimension if there is none and turn np.array into torch.Tensor."""
+    """
+    Turn np.array into torch.Tensor.
+    """
 
     def __init__(self):
         pass
@@ -20,6 +22,9 @@ class ToTensor():
 
 
 class NormalizeRGB():
+    """
+    Normalize RGB image to [0, 1]
+    """
     def __init__(self):
         pass
 
@@ -30,13 +35,46 @@ class NormalizeRGB():
 
 
 class CoarseSampling():
-
+    """
+    Coarse sampling along a ray
+    """
     def __init__(self, near: int, far: int, number_samples: int = 64):
+        """
+        Parameters
+        ----------
+        near : int
+            Near bound for coarse sampling.
+        far : int
+            Far bound for coarse sampling.
+        number_samples : int, optional
+            Number of coarse samples along the ray. The default is 64.
+        """
         self.near = near
         self.far = far
         self.number_samples = number_samples
 
     def __call__(self, ray):
+        """
+        Performs coars sampling on ray
+
+        Parameters
+        ----------
+        ray : Tuple
+            Return of get_rays() and rgb value for ray.
+
+        Returns
+        -------
+        ray_samples : np.array (number_samples, 3)
+            Coarse samples along the ray between near and far bound.
+        ray_translation : np.array (3, )
+            Translation of ray.
+        ray_direction : np.array (3, )
+            Direction of ray.
+        z_vals : np.array (64, )
+            Depth of coarse samples along ray.
+        rgb : np.array (3, )
+            RGB values corresponding to ray.
+        """
         ray_translation, ray_direction, rgb = ray
         # get bins along the ray
         t_vals = np.linspace(0., 1., self.number_samples)

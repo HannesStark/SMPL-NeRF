@@ -3,22 +3,32 @@ import pickle
 
 import cv2
 import numpy as np
+import torch
 from torch.utils.data import Dataset
 
 from utils import get_rays
 
 
 class RaysFromCamerasDataset(Dataset):
-    """Dataset of rays from a directory of images and an images camera transforms mapping file.
+    """
+    Dataset of rays for without ground truth images (used for inference).
     """
 
-    def __init__(self, camera_transforms, height, widht, focal, transform) -> None:
+    def __init__(self, camera_transforms: np.array, height: int, widht: int,
+                 focal: float, transform) -> None:
         """
-        Args:
-            audio_dir (string): Path to .wav, .mp3, .flac and other files of audios.
-            sample_rate (int): SR to which the audio will be resampled. Using native SR if this is None.
-            transform (callable, optional): Optional transform to be applied
-                on a sample.
+        Parameters
+        ----------
+        camera_transforms : [np.array]
+            List of camera transformations for inference.
+        height : int
+            Height of image.
+        widht : int
+            Width of image.
+        focal : float
+            Focal length of camera.
+        transform :
+            List of callable transforms for preprocessing.
         """
         super().__init__()
         self.transform = transform
@@ -33,6 +43,9 @@ class RaysFromCamerasDataset(Dataset):
         print('Finish initializing rays')
 
     def __getitem__(self, index: int):
+        """
+        Takes ray of given index and returns transformed ray
+        """
         rays_translation, rays_direction = self.rays[index]
         ray_samples, samples_translations, samples_directions, z_vals, _ = self.transform(
             (rays_translation, rays_direction, []))
