@@ -87,6 +87,7 @@ class Solver():
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         if torch.cuda.is_available():
             torch.set_default_tensor_type('torch.cuda.FloatTensor')
+            torch.multiprocessing.set_start_method('spawn')
         model_coarse.to(device)
         model_fine.to(device)
 

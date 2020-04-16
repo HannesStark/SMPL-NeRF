@@ -23,7 +23,9 @@ def config_parser():
     parser.add_argument("--netwidth", type=int, default=256, help='channels per layer')
     parser.add_argument("--netdepth_fine", type=int, default=1, help='layers in fine network')
     parser.add_argument("--netwidth_fine", type=int, default=256, help='channels per layer in fine network')
-    parser.add_argument("--batchsize", type=int, default=30,
+    parser.add_argument("--batchsize", type=int, default=2048,
+                        help='batch size (number of random rays per gradient step)')
+    parser.add_argument("--batchsize_val", type=int, default=512,
                         help='batch size (number of random rays per gradient step)')
     parser.add_argument("--lrate", type=float, default=5e-4, help='learning rate')
     parser.add_argument("--weight_decay", type=int, default=0, help='adam weight decay')

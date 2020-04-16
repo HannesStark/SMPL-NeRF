@@ -1,4 +1,5 @@
 experiment_name = test
 number_validation_images = 5
 batchsize = 2048
+batchsize_val = 512
 num_epochs = 50
