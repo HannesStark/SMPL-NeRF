@@ -85,9 +85,8 @@ class Solver():
         self._reset_histories()
         iter_per_epoch = len(train_loader)
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        device = 'cpu'
-        # if torch.cuda.is_available():
-        #    torch.set_default_tensor_type('torch.cuda.FloatTensor')
+        if torch.cuda.is_available():
+            torch.set_default_tensor_type('torch.cuda.FloatTensor')
         model_coarse.to(device)
         model_fine.to(device)
 
@@ -177,7 +176,7 @@ class Solver():
                 loss_fine = self.loss_func(rgb_fine, rgb_truth)
                 loss = loss_coarse + loss_fine
                 val_loss += loss.item()
-                rerender_images.append(rgb_fine.detach().numpy())
+                rerender_images.append(rgb_fine.detach().cpu().numpy())
 
             rerender_images = np.concatenate(rerender_images, 0).reshape((-1, h, w, 3))
             ground_truth_images = np.concatenate(ground_truth_images).reshape((-1, h, w, 3))

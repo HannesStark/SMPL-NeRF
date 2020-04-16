@@ -36,9 +36,9 @@ def save_split(save_dir, camera_poses, indices, split,
 
 
 def create_dataset():
-    height, width, yfov = 64, 64, np.pi / 3
+    height, width, yfov = 128, 128, np.pi / 3
     camera_radius = 2.4
-    start_angle, end_angle, number_steps = -90, 90, 8
+    start_angle, end_angle, number_steps = -90, 90, 10
     
     train_val_ratio = 0.8
     dataset_size = number_steps ** 2
