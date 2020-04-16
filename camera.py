@@ -102,7 +102,7 @@ def get_sphere_poses(start_angle: float, end_angle: float,
     number_steps : int
         number of steps between start and end angle.
     r : float
-        radius of circle.
+        radius of sphere.
 
     Returns
     -------
@@ -111,11 +111,12 @@ def get_sphere_poses(start_angle: float, end_angle: float,
 
     """
     phis = np.linspace(start_angle, end_angle, number_steps)
+    print("Angle stepsize: {:.2f}°".format((end_angle - start_angle)/number_steps))
     thetas = np.linspace(start_angle, end_angle, number_steps)
     angles = np.transpose([np.tile(phis, len(thetas)),
                            np.repeat(thetas, len(phis))])
     poses = [get_sphere_pose(phi, theta, r) for (phi, theta) in angles]
-    return np.array(poses)
+    return np.array(poses), angles
 
 
 def camera_origin_direction(x: float, y: float, z: float) -> Tuple[float, float]:

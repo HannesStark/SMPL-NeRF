@@ -190,7 +190,7 @@ class Solver():
             else:
                 rerender_images = rerender_images[:number_validation_images]
 
-            fig, axarr = plt.subplots(1, 2, sharex=True, sharey=True)
+            fig, axarr = plt.subplots(number_validation_images, 2, sharex=True, sharey=True)
             if len(axarr.shape) == 1:
                 axarr = axarr[None, :]
             for i in range(number_validation_images):

@@ -36,9 +36,9 @@ def save_split(save_dir, camera_poses, indices, split,
 
 
 def create_dataset():
-    height, width, yfov = 512, 512, np.pi / 3
+    height, width, yfov = 64, 64, np.pi / 3
     camera_radius = 2.4
-    start_angle, end_angle, number_steps = -90, 90, 5
+    start_angle, end_angle, number_steps = -90, 90, 8
     
     train_val_ratio = 0.8
     dataset_size = number_steps ** 2
@@ -49,7 +49,7 @@ def create_dataset():
     uv_map_file_name = 'textures/smpl_uv_map.npy'
     mesh = get_smpl_mesh(smpl_file_name, texture_file_name, uv_map_file_name)
     
-    camera_poses = get_sphere_poses(start_angle, end_angle, number_steps, 
+    camera_poses, camera_angles = get_sphere_poses(start_angle, end_angle, number_steps,
                                     camera_radius)
     
     train_indices, val_indices = disjoint_indices(dataset_size, train_val_ratio)
