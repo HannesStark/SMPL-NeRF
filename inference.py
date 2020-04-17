@@ -16,7 +16,7 @@ from utils import run_nerf_pipeline, PositionalEncoder, get_rays
 
 
 def infer(run_file, camera_transforms, output_dir='renders', batch_size=128):
-    with open(run_file + '.pkl', 'rb') as file:
+    with open(run_file, 'rb') as file:
         run = pickle.load(file)
     model_coarse = run['model_coarse']
     model_fine = run['model_fine']
