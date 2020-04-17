@@ -25,7 +25,7 @@ def train():
 
     dataset = RaysFromImagesDataset(args.train_directory, args.train_camera_transforms, transform)
     val_data = RaysFromImagesDataset(args.val_directory, args.val_camera_transforms, transform)
-
+    print(len(val_data))
     train_loader = torch.utils.data.DataLoader(dataset, batch_size=args.batchsize, shuffle=True, num_workers=0)
     val_loader = torch.utils.data.DataLoader(val_data, batch_size=args.batchsize_val, shuffle=False, num_workers=0)
     position_encoder = PositionalEncoder(args.number_frequencies_postitional, args.use_identity_positional)
@@ -37,7 +37,7 @@ def train():
 
     solver = Solver(position_encoder, direction_encoder, torch.optim.Adam,
                     {"lr": args.lrate, "weight_decay": args.weight_decay},
-                    torch.nn.MSELoss(reduction="sum"), args.sigma_noise_std, args.white_background, args.number_fine_samples)
+                    torch.nn.MSELoss(), args.sigma_noise_std, args.white_background, args.number_fine_samples)
     solver.train(model_coarse, model_fine, train_loader, val_loader, dataset.h, dataset.w, args.num_epochs,
                  args.log_iterations, args.number_validation_images,
                  args.early_validation)
