@@ -48,7 +48,7 @@ def config_parser():
                         help='log2 of max freq for positional encoding (2D direction)')
     parser.add_argument("--sigma_noise_std", type=float, default=1,
                         help='std dev of noise added to regularize sigma_a output, 1e0 r ecommended')
-    parser.add_argument("--white_background", type=bool, default=True,
+    parser.add_argument("--white_background", type=bool, default=False,
                         help='set to render synthetic data on a white bkgd (always use for dvoxels)')
 
     return parser

@@ -13,8 +13,8 @@ class Solver():
 
     def __init__(self, positions_encoder: PositionalEncoder, directions_encoder: PositionalEncoder,
                  optim=torch.optim.Adam, optim_args={},
-                 loss_func=torch.nn.MSELoss(), sigma_noise_std: float=1,
-                 white_background: bool=False, number_fine_samples: int=128):
+                 loss_func=torch.nn.MSELoss(), sigma_noise_std: float = 1,
+                 white_background: bool = False, number_fine_samples: int = 128):
         """
         Parameters
         ----------
@@ -55,8 +55,8 @@ class Solver():
         self.val_loss_history = []
 
     def train(self, model_coarse, model_fine, train_loader, val_loader,
-              h: int, w: int, num_epochs: int=10, log_nth: int=0,
-              number_validation_images: int=0, early_validation: bool=False):
+              h: int, w: int, num_epochs: int = 10, log_nth: int = 0,
+              number_validation_images: int = 0, early_validation: bool = False):
         """
         Train coarse and fine model on training data and run validation
 
@@ -196,13 +196,14 @@ class Solver():
                 # strange indices after image because matplotlib wants bgr instead of rgb
                 axarr[i, 0].imshow(ground_truth_images[i][:, :, ::-1])
                 axarr[i, 0].axis('off')
-                axarr[i, 0].set_title('Ground Truth')
                 axarr[i, 1].imshow(rerender_images[i][:, :, ::-1])
-                axarr[i, 1].set_title('Rerender')
                 axarr[i, 1].axis('off')
+            axarr[0, 0].set_title('Ground Truth')
+            axarr[0, 1].set_title('Rerender')
+            fig.set_dpi(300)
             self.writer.add_figure(str(epoch) + ' validation images', fig, epoch)
 
-            print('[Epoch %d] VAL loss: %.7f' % (epoch + 1, val_loss))
+            print('[Epoch %d] VAL loss: %.7f' % (epoch + 1, val_loss / len(val_loader)))
             self.val_loss_history.append(val_loss)
             self.writer.add_scalars('Loss Curve', {'train loss': train_loss / iter_per_epoch,
                                                    'val loss': val_loss / len(val_loader)}, epoch)

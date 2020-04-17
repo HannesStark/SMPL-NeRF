@@ -8,14 +8,12 @@ from datasets.rays_from_images_dataset import RaysFromImagesDataset
 from datasets.transforms import CoarseSampling, ToTensor, NormalizeRGB
 from models.render_ray_net import RenderRayNet
 from solver.solver import Solver
-import ctypes
 import numpy as np
 
 from utils import PositionalEncoder, save_run
 
 np.random.seed(0)
 
-# ctypes.cdll.LoadLibrary('caffe2_nvrtc.dll')
 
 
 def train():
@@ -30,7 +28,6 @@ def train():
 
     train_loader = torch.utils.data.DataLoader(dataset, batch_size=args.batchsize, shuffle=True, num_workers=0)
     val_loader = torch.utils.data.DataLoader(val_data, batch_size=args.batchsize_val, shuffle=False, num_workers=0)
-
     position_encoder = PositionalEncoder(args.number_frequencies_postitional, args.use_identity_positional)
     direction_encoder = PositionalEncoder(args.number_frequencies_directional, args.use_identity_directional)
     model_coarse = RenderRayNet(args.netdepth, args.netwidth, position_encoder.output_dim * 3,

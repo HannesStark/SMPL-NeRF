@@ -60,4 +60,4 @@ if __name__ == '__main__':
     with open('data/val/transforms.pkl', 'rb') as transforms_file:
         transforms_dict = pickle.load(transforms_file)
     image_transform_map: Dict = transforms_dict.get('image_transform_map')
-    infer('runs/Apr16_17-24-53_hannes-MS-7721/test.pkl', list(image_transform_map.values()), batch_size=1000)
+    infer('runs/Apr17_09-09-36_DESKTOP-0HSPHBI/test.pkl', list(image_transform_map.values()), batch_size=1000)

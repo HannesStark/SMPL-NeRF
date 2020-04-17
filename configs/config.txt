@@ -1,5 +1,7 @@
-experiment_name = test
+experiment_name = small_angles
 number_validation_images = 5
+log_iterations = 5
 batchsize = 1800
 batchsize_val = 64
 num_epochs = 50
+white_background = True
