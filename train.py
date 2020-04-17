@@ -25,7 +25,7 @@ def train():
 
     dataset = RaysFromImagesDataset(args.train_directory, args.train_camera_transforms, transform)
     val_data = RaysFromImagesDataset(args.val_directory, args.val_camera_transforms, transform)
-    print(len(val_data))
+
     train_loader = torch.utils.data.DataLoader(dataset, batch_size=args.batchsize, shuffle=True, num_workers=0)
     val_loader = torch.utils.data.DataLoader(val_data, batch_size=args.batchsize_val, shuffle=False, num_workers=0)
     position_encoder = PositionalEncoder(args.number_frequencies_postitional, args.use_identity_positional)
