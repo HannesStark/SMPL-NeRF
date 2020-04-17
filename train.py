@@ -37,7 +37,7 @@ def train():
 
     solver = Solver(position_encoder, direction_encoder, torch.optim.Adam,
                     {"lr": args.lrate, "weight_decay": args.weight_decay},
-                    torch.nn.MSELoss(), args.sigma_noise_std, args.white_background, args.number_fine_samples)
+                    torch.nn.MSELoss(reduction="sum"), args.sigma_noise_std, args.white_background, args.number_fine_samples)
     solver.train(model_coarse, model_fine, train_loader, val_loader, dataset.h, dataset.w, args.num_epochs,
                  args.log_iterations, args.number_validation_images,
                  args.early_validation)
