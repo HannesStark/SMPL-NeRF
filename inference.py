@@ -13,8 +13,8 @@ from models.render_ray_net import RenderRayNet
 from utils import run_nerf_pipeline, PositionalEncoder, get_rays
 
 
-def infer(run_name, camera_transforms, output_dir='renders', batch_size=128):
-    with open(run_name + '.pkl', 'rb') as file:
+def infer(run_file, camera_transforms, output_dir='renders', batch_size=128):
+    with open(run_file + '.pkl', 'rb') as file:
         run = pickle.load(file)
     model_coarse = run['model_coarse']
     model_fine = run['model_fine']
@@ -28,9 +28,8 @@ def infer(run_name, camera_transforms, output_dir='renders', batch_size=128):
                                           run['direction_encoder']['include_identity'])
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    device = 'cpu'
-    # if torch.cuda.is_available():
-    #    torch.set_default_tensor_type('torch.cuda.FloatTensor')
+    if torch.cuda.is_available():
+        torch.set_default_tensor_type('torch.cuda.FloatTensor')
     model_coarse.to(device)
     model_fine.to(device)
     rgb_images = []
@@ -51,12 +50,12 @@ def infer(run_name, camera_transforms, output_dir='renders', batch_size=128):
     if not os.path.exists(output_dir):  # create directory if it does not already exist
         os.mkdir(output_dir)
     for i, image in enumerate(rgb_images):
-        print(image)
-        cv2.imwrite(os.path.join(output_dir, run_name + '_img_{:03d}.png'.format(i)), image*255)
+        basename = os.path.basename(run_file)
+        cv2.imwrite(os.path.join(output_dir, os.path.splitext(basename)[0] + '_img_{:03d}.png'.format(i)), image*255)
 
 
 if __name__ == '__main__':
-    infer('first_experiment', [np.array([[
+    infer('runs/Apr16_17-24-53_hannes-MS-7721/test.pkl', [np.array([[
         -0.9999021887779236,
         0.004192245192825794,
         -0.013345719315111637,
