@@ -46,9 +46,9 @@ def infer(run_file, camera_transforms, output_dir='renders', batch_size=128):
                                         model_coarse, model_fine, 0,
                                         run['number_fine_samples'], run['white_background'],
                                         position_encoder, direction_encoder)
-        rgb_images.append(rgb_fine)
+        rgb_images.append(rgb_fine.detach().cpu().numpy())
 
-    rgb_images = torch.cat(rgb_images, 0).view(len(camera_transforms), h, w, 3).detach().numpy()
+    rgb_images = np.concatenate(rgb_images, 0).reshape((len(camera_transforms), h, w, 3))
     if not os.path.exists(output_dir):  # create directory if it does not already exist
         os.mkdir(output_dir)
     for i, image in enumerate(rgb_images):
