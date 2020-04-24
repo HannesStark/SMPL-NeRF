@@ -7,13 +7,9 @@ import numpy as np
 import pickle
 
 import torch
-from torchvision.transforms import transforms
 
-from camera import get_sphere_poses
 from datasets.rays_from_cameras_dataset import RaysFromCamerasDataset
-from datasets.transforms import CoarseSampling, NormalizeRGB, ToTensor
-from models.render_ray_net import RenderRayNet
-from utils import run_nerf_pipeline, PositionalEncoder, get_rays
+from utils import run_nerf_pipeline, PositionalEncoder
 
 
 def inference(run_file, camera_transforms, output_dir='renders', batch_size=128):
