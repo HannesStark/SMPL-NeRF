@@ -33,6 +33,7 @@ def inference(run_file, camera_transforms, output_dir='renders', batch_size=128)
     model_fine.to(device)
     rgb_images = []
     for i, ray_batch in enumerate(rays_loader):
+        print('Working batch ', i, ' of ', len(rays_loader))
         ray_samples, ray_translation, ray_direction, z_vals = ray_batch
         ray_samples = ray_samples.to(device)  # [batchsize, number_coarse_samples, 3]
         ray_translation = ray_translation.to(device)  # [batchsize, 3]
