@@ -1,4 +1,5 @@
-experiment_name = small_angles
+experiment_name = 4_fine_layers
+netdepth_fine = 4
 number_validation_images = 5
 log_iterations = 5
 batchsize = 1800
