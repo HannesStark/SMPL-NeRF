@@ -1,8 +1,7 @@
-experiment_name = 4_fine_layers
-netdepth_fine = 4
+experiment_name = 128_-90_90_25
 number_validation_images = 5
 log_iterations = 5
 batchsize = 1800
 batchsize_val = 64
-num_epochs = 50
+num_epochs = 25
 white_background = True
