@@ -2,20 +2,17 @@ import os
 from typing import Dict
 
 import cv2
+import imageio
 import numpy as np
 import pickle
 
 import torch
-from torchvision.transforms import transforms
 
-from camera import get_sphere_poses
 from datasets.rays_from_cameras_dataset import RaysFromCamerasDataset
-from datasets.transforms import CoarseSampling, NormalizeRGB, ToTensor
-from models.render_ray_net import RenderRayNet
-from utils import run_nerf_pipeline, PositionalEncoder, get_rays
+from utils import run_nerf_pipeline, PositionalEncoder
 
 
-def infer(run_file, camera_transforms, output_dir='renders', batch_size=128):
+def inference(run_file, camera_transforms, batch_size=128):
     with open(run_file, 'rb') as file:
         run = pickle.load(file)
     model_coarse = run['model_coarse']
@@ -36,6 +33,7 @@ def infer(run_file, camera_transforms, output_dir='renders', batch_size=128):
     model_fine.to(device)
     rgb_images = []
     for i, ray_batch in enumerate(rays_loader):
+        print('Working batch ', i, ' of ', len(rays_loader))
         ray_samples, ray_translation, ray_direction, z_vals = ray_batch
         ray_samples = ray_samples.to(device)  # [batchsize, number_coarse_samples, 3]
         ray_translation = ray_translation.to(device)  # [batchsize, 3]
@@ -49,15 +47,26 @@ def infer(run_file, camera_transforms, output_dir='renders', batch_size=128):
         rgb_images.append(rgb_fine.detach().cpu().numpy())
 
     rgb_images = np.concatenate(rgb_images, 0).reshape((len(camera_transforms), h, w, 3))
+    rgb_images = np.clip(rgb_images, 0, 1) * 255
+
+    return rgb_images
+
+
+def save_rerenders(rgb_images, run_file, output_dir='renders'):
+    basename = os.path.basename(run_file)
+    output_dir = os.path.join(output_dir, os.path.splitext(basename)[0])
     if not os.path.exists(output_dir):  # create directory if it does not already exist
-        os.mkdir(output_dir)
+        os.makedirs(output_dir)
     for i, image in enumerate(rgb_images):
-        basename = os.path.basename(run_file)
-        cv2.imwrite(os.path.join(output_dir, os.path.splitext(basename)[0] + '_img_{:03d}.png'.format(i)), image * 255)
+        cv2.imwrite(os.path.join(output_dir, 'img_{:03d}.png'.format(i)), image)
+    imageio.mimwrite(os.path.join(output_dir, 'animated.mp4'), rgb_images.astype(np.uint8),
+                     fps=30, quality=8)
 
 
 if __name__ == '__main__':
+    run_file = 'runs/Apr17_09-09-36_DESKTOP-0HSPHBI/test.pkl'
     with open('data/val/transforms.pkl', 'rb') as transforms_file:
         transforms_dict = pickle.load(transforms_file)
     image_transform_map: Dict = transforms_dict.get('image_transform_map')
-    infer('runs/Apr17_09-09-36_DESKTOP-0HSPHBI/test.pkl', list(image_transform_map.values()), batch_size=1000)
+    rgb_images = inference(run_file, list(image_transform_map.values()), batch_size=900)
+    save_rerenders(rgb_images, run_file)

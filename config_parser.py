@@ -21,7 +21,7 @@ def config_parser():
     # training options
     parser.add_argument("--netdepth", type=int, default=8, help='layers in network')
     parser.add_argument("--netwidth", type=int, default=256, help='channels per layer')
-    parser.add_argument("--netdepth_fine", type=int, default=1, help='layers in fine network')
+    parser.add_argument("--netdepth_fine", type=int, default=8, help='layers in fine network')
     parser.add_argument("--netwidth_fine", type=int, default=256, help='channels per layer in fine network')
     parser.add_argument("--batchsize", type=int, default=2048,
                         help='batch size (number of random rays per gradient step)')
