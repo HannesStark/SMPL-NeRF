@@ -12,5 +12,6 @@ python create_dataset.py --dataset=pix2pix --save_dir=baseline/pytorch-CycleGAN-
 ```
 - Train Pix2Pix on datasets (set name for experiment, set gpu_ids=-1 for CPU)
 ```bash
-python train.py --gpu_ids=0 --model=pix2pix --dataroot=datasets/data_pix2pix --name=SMPL_pix2pix --direction=BtoA --save_epoch_freq=50
+cd baseline/pytorch-CycleGAN-and-pix2pix/
+python train.py --gpu_ids=0 --model=pix2pix --dataroot=datasets/smpl --name=SMPL_pix2pix --direction=BtoA --save_epoch_freq=50
 ```
