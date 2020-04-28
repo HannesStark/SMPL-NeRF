@@ -37,6 +37,28 @@ def get_pose_matrix(x: float=0, y: float=0, z: float=0,
     return pose
 
 
+def get_xyzphitheta(pose: np.array) -> np.array:
+    """
+    Computes the vector (x, y, z, phi, theta) given a pose matrix
+
+    Parameters
+    ----------
+    pose : np.array (4, 4)
+        pose matrix in homogeneous representation.
+
+    Returns
+    -------
+    xyzphitheta : np.array (5, )
+        camera transform vector
+
+    """
+    trans = pose[:3, 3]
+    rot = R.from_matrix(pose[:3, :3])
+    phi, theta = rot.as_euler('xyz', degrees=True)[:-1]
+    xyzphitheta = np.concatenate((trans, [-phi, theta]))
+    return xyzphitheta
+
+
 def get_circle_pose(theta: float, r: float) -> np.array:
     """
     Compute pose matrix for angle theta in xz-circle with radius r around
