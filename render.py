@@ -60,7 +60,7 @@ def get_smpl_mesh(smpl_file_name: str, texture_file_name: str,
 
 def render_scene(mesh: pyrender.Mesh, camera_pose: np.array,
                  human_pose: np.array, light_pose: np.array,
-                 height: int, width: int, yfov: float):
+                 height: int, width: int, yfov: float, return_depth=False):
     """
     Add mesh, camera and light to scene at desired poses and return rendered
     image.
@@ -81,6 +81,8 @@ def render_scene(mesh: pyrender.Mesh, camera_pose: np.array,
         width of image plane of camera in pixels.
     yfov : float
         vertical field of view of camera in radians.
+    return_depth: bool
+        if true the function returns a depth map as well
 
     Returns
     -------
@@ -98,6 +100,8 @@ def render_scene(mesh: pyrender.Mesh, camera_pose: np.array,
     scene.add(light, pose=camera_pose)
     r = pyrender.OffscreenRenderer(height, width)
     img, depth = r.render(scene)
+    if return_depth:
+        return img, depth
     return img
 
 
