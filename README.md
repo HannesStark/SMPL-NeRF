@@ -8,7 +8,7 @@ cd ..
 ```
 - Create Dataset with (RGB, depth)-pairs
 ```bash
-python create_dataset_pix2pix.py --dataset=pix2pix --save_dir=baseline/pytorch-CycleGAN-and-pix2pix/datasets/smpl --resolution=128 --start_angle=-90 --end_angle=90 --number_steps=10
+python create_dataset.py --dataset=pix2pix --save_dir=baseline/pytorch-CycleGAN-and-pix2pix/datasets/smpl --resolution=128 --start_angle=-90 --end_angle=90 --number_steps=10
 ```
 - Train Pix2Pix on datasets (set name for experiment, set gpu_ids=-1 for CPU)
 ```bash
