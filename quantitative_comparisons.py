@@ -25,7 +25,10 @@ def l1_val_rerender(run_file, val_folder='data/val', batchsize=128):
         val_images.append(cv2.imread(image_path))
         camera_transforms_list.append(image_transform_map[os.path.basename(image_path)])
     rerenders = inference(run_file, camera_transforms_list, batch_size=batchsize)
-    return np.linalg.norm(np.concatenate([rerenders, val_images]), ord=1, axis=0)
+    val_images = np.array(val_images)
+    renders = val_images.reshape((len(val_images), -1))
+    rerenders = rerenders.reshape((len(rerenders), -1))
+    return np.mean(np.abs(renders - rerenders), axis=-1)
 
 
 def render_vs_rerender(run_file, camera_transforms, height, width, yfov, output_dir, degrees, batchsize=128):
@@ -62,13 +65,12 @@ if __name__ == '__main__':
     if not os.path.exists(output_dir):  # create directory if it does not already exist
         os.makedirs(output_dir)
 
-    # l1_val_diffs = l1_val_rerender(run_file, val_folder='data/val', batchsize=900)
+    l1_val_diffs = l1_val_rerender(run_file, val_folder='data/val', batchsize=900)
 
-    height, width, yfov = 8, 8, np.pi / 3
+    height, width, yfov = 128, 128, np.pi / 3
     camera_radius = 2.4
     camera_transforms = []
-    # degrees = np.arange(90, 110, 2)
-    degrees = [0, 10]
+    degrees = np.arange(90, 110, 2)
     for i in degrees:
         camera_pose = get_circle_pose(i, camera_radius)
         camera_transforms.append(camera_pose)
