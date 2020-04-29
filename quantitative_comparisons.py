@@ -58,7 +58,7 @@ def render_vs_rerender(run_file, camera_transforms, height, width, yfov, output_
 
 
 if __name__ == '__main__':
-    run_file = 'runs/Apr17_09-42-28_DESKTOP-0HSPHBI/test.pkl'
+    run_file = 'runs/Apr16_17-24-53_hannes-MS-7721/128_-90_90_100.pkl'
     output_dir = 'results'
     basename = os.path.basename(run_file)
     output_dir = os.path.join(output_dir, os.path.splitext(basename)[0])
@@ -66,6 +66,8 @@ if __name__ == '__main__':
         os.makedirs(output_dir)
 
     l1_val_diffs = l1_val_rerender(run_file, val_folder='data/val', batchsize=900)
+    stat_file = open(os.path.join(output_dir,'statistics.txt'), 'w+')
+    stat_file.write('Mean L1 Val Loss: ' + str(np.mean(l1_val_diffs)))
 
     height, width, yfov = 128, 128, np.pi / 3
     camera_radius = 2.4

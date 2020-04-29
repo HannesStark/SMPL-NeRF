@@ -5,6 +5,7 @@ import cv2
 import imageio
 import numpy as np
 import pickle
+from tqdm import tqdm
 
 import torch
 
@@ -33,8 +34,7 @@ def inference(run_file, camera_transforms, batch_size=128):
     model_coarse.to(device)
     model_fine.to(device)
     rgb_images = []
-    for i, ray_batch in enumerate(rays_loader):
-        print('Working batch ', i, ' of ', len(rays_loader))
+    for i, ray_batch in enumerate(tqdm(rays_loader)):
         ray_samples, ray_translation, ray_direction, z_vals = ray_batch
         ray_samples = ray_samples.to(device)  # [batchsize, number_coarse_samples, 3]
         ray_translation = ray_translation.to(device)  # [batchsize, 3]
