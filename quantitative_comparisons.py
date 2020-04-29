@@ -33,7 +33,6 @@ def render_vs_rerender(run_file, camera_transforms, height, width, yfov, output_
     texture_file_name = 'textures/texture.jpg'
     uv_map_file_name = 'textures/smpl_uv_map.npy'
     rerenders = inference(run_file, camera_transforms, batchsize)
-    print(np.min(rerenders))
     mesh = get_smpl_mesh(smpl_file_name, texture_file_name, uv_map_file_name)
     renders = []
     for camera_transform in camera_transforms:
@@ -54,27 +53,31 @@ def render_vs_rerender(run_file, camera_transforms, height, width, yfov, output_
         plt.savefig(os.path.join(output_dir, 'render_rerender_{:03d}.png'.format(i)))
     return np.array(renders), rerenders
 
-	
+
 if __name__ == '__main__':
-    run_file = 'runs/Apr16_17-24-53_hannes-MS-7721/128_-90_90_100.pkl'
+    run_file = 'runs/Apr17_09-42-28_DESKTOP-0HSPHBI/test.pkl'
     output_dir = 'results'
     basename = os.path.basename(run_file)
     output_dir = os.path.join(output_dir, os.path.splitext(basename)[0])
     if not os.path.exists(output_dir):  # create directory if it does not already exist
         os.makedirs(output_dir)
 
-    #l1_val_diffs = l1_val_rerender(run_file, val_folder='data/val', batchsize=900)
+    # l1_val_diffs = l1_val_rerender(run_file, val_folder='data/val', batchsize=900)
 
-    height, width, yfov = 128, 128, np.pi / 3
+    height, width, yfov = 8, 8, np.pi / 3
     camera_radius = 2.4
     camera_transforms = []
-    #degrees = np.arange(90, 110, 2)
+    # degrees = np.arange(90, 110, 2)
     degrees = [0, 10]
     for i in degrees:
         camera_pose = get_circle_pose(i, camera_radius)
         camera_transforms.append(camera_pose)
 
     renders, rerenders = render_vs_rerender(run_file, camera_transforms, height, width, yfov, output_dir, batchsize=900)
-    l1_diffs = np.linalg.norm(renders-rerenders, ord=1, axis=0)
+    renders = renders.reshape((len(renders), -1))
+    rerenders = rerenders.reshape((len(rerenders), -1))
+
+    l1_diffs = np.mean(np.abs(renders - rerenders), axis=-1)
+    print('average L1 distance: ', np.mean(l1_diffs))
     plt.plot(degrees, l1_diffs)
     plt.savefig(os.path.join(output_dir, 'degrees_l1_plot.png'))

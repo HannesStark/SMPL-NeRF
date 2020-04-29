@@ -48,9 +48,9 @@ def inference(run_file, camera_transforms, batch_size=128):
         rgb_images.append(rgb_fine.detach().cpu().numpy())
 
     rgb_images = np.concatenate(rgb_images, 0).reshape((len(camera_transforms), h, w, 3))
-    rgb_images = np.clip(rgb_images, 0, 1)
+    rgb_images = np.clip(rgb_images, 0, 1) * 255
 
-    return rgb_images
+    return rgb_images.astype(np.uint8)
 
 
 def save_rerenders(rgb_images, run_file, output_dir='renders'):
@@ -59,17 +59,17 @@ def save_rerenders(rgb_images, run_file, output_dir='renders'):
     if not os.path.exists(output_dir):  # create directory if it does not already exist
         os.makedirs(output_dir)
     for i, image in enumerate(rgb_images):
-        cv2.imwrite(os.path.join(output_dir, 'img_{:03d}.png'.format(i)), image* 255)
-    imageio.mimwrite(os.path.join(output_dir, 'animated.mp4'), rgb_images.astype(np.uint8),
+        cv2.imwrite(os.path.join(output_dir, 'img_{:03d}.png'.format(i)), image)
+    imageio.mimwrite(os.path.join(output_dir, 'animated.mp4'), rgb_images,
                      fps=30, quality=8)
 
 
 if __name__ == '__main__':
     run_file = 'runs/Apr16_17-24-53_hannes-MS-7721/128_-90_90_100.pkl'
-    #with open('data/val/transforms.pkl', 'rb') as transforms_file:
-     #   transforms_dict = pickle.load(transforms_file)
-    #image_transform_map: Dict = transforms_dict.get('image_transform_map')
-    #transforms_list = list(image_transform_map.values())
+    # with open('data/val/transforms.pkl', 'rb') as transforms_file:
+    #   transforms_dict = pickle.load(transforms_file)
+    # image_transform_map: Dict = transforms_dict.get('image_transform_map')
+    # transforms_list = list(image_transform_map.values())
     degrees = [0, 10]
     transforms_list = []
     height, width, yfov = 128, 128, np.pi / 3
