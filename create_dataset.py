@@ -3,7 +3,7 @@ import numpy as np
 import os
 from render import get_smpl_mesh, render_scene, save_render
 from utils import disjoint_indices
-from camera import get_sphere_poses, get_pose_matrix
+from camera import get_sphere_poses, get_pose_matrix, get_circle_poses
 import pickle
 from skimage.color import gray2rgb
 import configargparse
@@ -25,11 +25,11 @@ def config_parser():
     parser.add_argument('--start_angle', default=-90, type=int, help='Start angle for phi and theta on sphere')
     parser.add_argument('--end_angle', default=90, type=int, help='End angle for phi and theta on sphere')
     parser.add_argument('--number_steps', default=10, type=int, help='Number of angles inbetween start and end angle')
-
+    parser.add_argument('--camera_path', default="sphere", help='Geometric object along which the camera is moved [sphere, circle]')
     return parser
 
 def save_split(save_dir, camera_poses, indices, split,
-               height, width, yfov, mesh, far, dataset_type):
+               height, width, camera_angle_x, mesh, far, dataset_type):
     if dataset_type not in ["smplnerf", "pix2pix"]:
         raise Exception("This dataset type is unknown")
     directory = os.path.join(save_dir, split)
@@ -41,16 +41,15 @@ def save_split(save_dir, camera_poses, indices, split,
     print("Length of {} set: {}".format(split, len(image_names)))
     image_transform_map = {image_name: camera_pose
                            for (image_name, camera_pose) in zip(image_names, camera_poses)}
-    camera_angle_x = yfov / 2 # camera angle x is half field of view  
     dict = {'camera_angle_x': camera_angle_x, 
             'image_transform_map': image_transform_map} 
     for image_name, camera_pose in image_transform_map.items():
         if dataset_type == "smplnerf":
             img = render_scene(mesh, camera_pose, get_pose_matrix(), camera_pose,
-                           height, width, yfov)
+                           height, width, camera_angle_x)
         if dataset_type == "pix2pix":
             rgb, depth = render_scene(mesh, camera_pose, get_pose_matrix(), camera_pose,
-                           height, width, yfov, return_depth=True)
+                           height, width, camera_angle_x, return_depth=True)
 
             depth = (depth / far * 255).astype(np.uint8)
             img = np.concatenate([rgb, gray2rgb(depth)], 1)
@@ -65,8 +64,14 @@ def save_split(save_dir, camera_poses, indices, split,
 def create_dataset():
     parser = config_parser()
     args = parser.parse_args()
-    yfov = np.pi / 3
-    dataset_size = args.number_steps ** 2
+    camera_angle_x = np.pi / 3
+    if args.camera_path == "sphere":
+        dataset_size = args.number_steps ** 2
+    elif args.camera_path == "circle":
+        dataset_size = args.number_steps
+    else:
+        raise Exception("This camera path is unknown")
+    print("Dataset size: ",dataset_size)
     far = args.camera_radius * 2 # For depth normalization
     
     smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
@@ -74,17 +79,19 @@ def create_dataset():
     uv_map_file_name = 'textures/smpl_uv_map.npy'
     mesh = get_smpl_mesh(smpl_file_name, texture_file_name, uv_map_file_name)
     
-    camera_poses, camera_angles = get_sphere_poses(args.start_angle, args.end_angle, args.number_steps,
+    if args.camera_path == "sphere":
+        camera_poses, camera_angles = get_sphere_poses(args.start_angle, args.end_angle, args.number_steps,
                                     args.camera_radius)
-    
+    elif args.camera_path == "circle":
+        camera_poses, camera_angles = get_circle_poses(args.start_angle, args.end_angle, args.number_steps,
+                                    args.camera_radius)
     train_indices, val_indices = disjoint_indices(dataset_size, args.train_val_ratio)
     train_indices, val_indices = sorted(train_indices), sorted(val_indices)
-        
     save_split(args.save_dir, camera_poses, train_indices, "train",
-               args.resolution, args.resolution, yfov, mesh, far,
+               args.resolution, args.resolution, camera_angle_x, mesh, far,
                args.dataset_type)
     save_split(args.save_dir, camera_poses, val_indices, "val",
-               args.resolution, args.resolution, yfov, mesh, far,
+               args.resolution, args.resolution, camera_angle_x, mesh, far,
                args.dataset_type)
     
 if __name__ == "__main__":
