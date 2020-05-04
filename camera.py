@@ -141,6 +141,34 @@ def get_sphere_poses(start_angle: float, end_angle: float,
     return np.array(poses), angles
 
 
+def get_circle_poses(start_angle: float, end_angle: float,
+                     number_steps: int, r: float) -> np.array:
+    """
+    Compute poses on a circle between start and end angle (for theta)
+
+    Parameters
+    ----------
+    start_angle : float
+        start angle for theta in degrees.
+    end_angle : float
+        end angle for theta in degrees.
+    number_steps : int
+        number of steps between start and end angle.
+    r : float
+        radius of circle.
+
+    Returns
+    -------
+    poses : np.array (number_steps, 4, 4)
+        pose matrices in homogeneous representation.
+
+    """
+    print("Angle stepsize: {:.2f}°".format((end_angle - start_angle)/number_steps))
+    thetas = np.linspace(start_angle, end_angle, number_steps)
+    poses = [get_circle_pose(theta, r) for theta in thetas]
+    return np.array(poses), thetas
+
+
 def camera_origin_direction(x: float, y: float, z: float) -> Tuple[float, float]:
     """
     Calculate phi and theta in degrees for a camera to face the origin
