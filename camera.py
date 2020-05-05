@@ -54,8 +54,8 @@ def get_xyzphitheta(pose: np.array) -> np.array:
     """
     trans = pose[:3, 3]
     rot = R.from_matrix(pose[:3, :3])
-    phi, theta = rot.as_euler('xyz', degrees=True)[:-1]
-    xyzphitheta = np.concatenate((trans, [-phi, theta]))
+    phi, theta, psi = rot.as_euler('xyz', degrees=True)
+    xyzphitheta = np.concatenate((trans, [-phi, theta, psi]))
     return xyzphitheta
 
 

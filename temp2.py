@@ -7,7 +7,8 @@ import smplx
 import torch
 import trimesh
 
-from camera import get_pose_matrix, get_circle_pose
+from scipy.spatial.transform import Rotation as R
+from camera import get_pose_matrix, get_circle_pose, get_sphere_pose
 from inference import inference
 from trimesh.ray.ray_triangle import RayMeshIntersector
 
@@ -21,11 +22,15 @@ def get_dependent_rays(ray_translation, ray_direction, canonical, goal, camera_t
     if len(intersection_faces) == 0:
         return []  # Return  empty list if there are no dependent rays
 
-    rvec = cv2.Rodrigues(camera_transform[:3, :3])
-    rvec = np.array(rvec[0], dtype=float)
-    tvec = np.array(camera_transform[:3, 3], dtype=float)
+    rot = R.from_matrix(camera_transform[:3, :3])
+    phi, theta, psi = rot.as_euler('xyz')
+    rvec = cv2.Rodrigues(camera_transform[:3, :3])[0]
     print(rvec)
-    print(tvec)
+    rvec[0][0] *= -1
+    rvec = np.array(rvec, dtype=float)
+    print('rodribu', )
+    print('rvec', rvec)
+    tvec = np.array(camera_transform[:3, 3], dtype=float)
     camera_matrix = np.array([[f, 0.0, w / 2],
                               [0.0, f, h / 2],
                               [0.0, 0.0, 1.0]])
@@ -71,12 +76,14 @@ direction = [[-1, 0, 0.0]]
 
 h, w = 128, 128
 f = .5 * w / np.tan(.5 * np.pi / 3)
-camera_transform = get_circle_pose(90, 2.4)
+camera_transform = get_sphere_pose(45, 45, 2.4)
 rays_translation, rays_direction = get_rays(h, w, f, camera_transform)
 print(rays_translation.shape)
 
-image_coordinates1, vertices1 = get_dependent_rays(rays_translation[64][64], rays_direction[64][64], mesh_canonical, mesh_canonical, camera_transform, h, w, f)
-image_coordinates2, vertices2 = get_dependent_rays(rays_translation[64][67], rays_direction[64][67], mesh_canonical, mesh_canonical, camera_transform, h, w, f)
+image_coordinates1, vertices1 = get_dependent_rays(rays_translation[64][64], rays_direction[64][64], mesh_canonical,
+                                                   mesh_canonical, camera_transform, h, w, f)
+image_coordinates2, vertices2 = get_dependent_rays(rays_translation[64][67], rays_direction[64][67], mesh_canonical,
+                                                   mesh_canonical, camera_transform, h, w, f)
 print(image_coordinates1)
 print(image_coordinates2)
 
