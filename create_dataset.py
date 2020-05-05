@@ -3,7 +3,7 @@ import numpy as np
 import os
 from render import get_smpl_mesh, render_scene, save_render
 from utils import disjoint_indices
-from camera import get_sphere_poses, get_pose_matrix, get_circle_poses
+from camera import get_sphere_poses, get_pose_matrix, get_circle_poses, get_circle_on_sphere_poses
 import pickle
 from skimage.color import gray2rgb
 import configargparse
@@ -69,6 +69,8 @@ def create_dataset():
         dataset_size = args.number_steps ** 2
     elif args.camera_path == "circle":
         dataset_size = args.number_steps
+    elif args.camera_path == "circle_on_sphere":
+        dataset_size = args.number_steps
     else:
         raise Exception("This camera path is unknown")
     print("Dataset size: ",dataset_size)
@@ -84,6 +86,9 @@ def create_dataset():
                                     args.camera_radius)
     elif args.camera_path == "circle":
         camera_poses, camera_angles = get_circle_poses(args.start_angle, args.end_angle, args.number_steps,
+                                    args.camera_radius)
+    elif args.camera_path == "circle_on_sphere":
+        camera_poses, camera_angles = get_circle_on_sphere_poses(args.number_steps,20,
                                     args.camera_radius)
     train_indices, val_indices = disjoint_indices(dataset_size, args.train_val_ratio)
     train_indices, val_indices = sorted(train_indices), sorted(val_indices)

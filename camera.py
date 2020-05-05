@@ -169,6 +169,38 @@ def get_circle_poses(start_angle: float, end_angle: float,
     return np.array(poses), thetas
 
 
+def get_circle_on_sphere_poses(number_steps: int, circle_radius: float,
+                               sphere_radius) -> np.array:
+    """
+    Compute poses on a circle with radius circle_radius on a sphere with
+    radius sphere_radius
+
+    Parameters
+    ----------
+    number_steps : int
+        number of steps inbetween the circle.
+    circle_radius : float
+        radius of circle.
+    sphere_radius : float
+        radius of sphere.
+
+    Returns
+    -------
+    poses : np.array (number_steps, 4, 4)
+        pose matrices in homogeneous representation.
+
+    """
+    angles = np.linspace(0, np.pi*2, number_steps)
+    print("Angle stepsize: {:.2f}°".format(360/number_steps))
+    poses = []
+    for angle in angles:
+        phi = circle_radius*np.cos(angle)
+        theta = circle_radius*np.sin(angle)
+        camera_pose = get_sphere_pose(phi, theta, sphere_radius)
+        poses.append(camera_pose)
+    return np.array(poses), angles
+
+
 def camera_origin_direction(x: float, y: float, z: float) -> Tuple[float, float]:
     """
     Calculate phi and theta in degrees for a camera to face the origin
