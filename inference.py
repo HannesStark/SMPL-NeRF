@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 import torch
 
-from camera import get_circle_pose
+from camera import get_circle_pose, get_sphere_pose
 from datasets.rays_from_cameras_dataset import RaysFromCamerasDataset
 from utils import run_nerf_pipeline, PositionalEncoder
 
@@ -66,16 +66,31 @@ def save_rerenders(rgb_images, run_file, output_dir='renders'):
 
 if __name__ == '__main__':
     run_file = 'runs/Apr16_17-24-53_hannes-MS-7721/128_-90_90_100.pkl'
+    # Option 1: Use transforms.pkl
     # with open('data/val/transforms.pkl', 'rb') as transforms_file:
     #   transforms_dict = pickle.load(transforms_file)
     # image_transform_map: Dict = transforms_dict.get('image_transform_map')
     # transforms_list = list(image_transform_map.values())
-    degrees = [0, 10]
+    #
+    # Option 2: Use get_circle_pose to create path on circle
+    # degrees = [0, 10]
+    # transforms_list = []
+    # height, width, yfov = 128, 128, np.pi / 3
+    # camera_radius = 2.4
+    # for i in degrees:
+    #    camera_pose = get_circle_pose(i, camera_radius)
+    #    transforms_list.append(camera_pose)
+    #
+    # Option 3: Use circle path on sphere
+    angles = np.linspace(0, np.pi*2, 25)
+    radius = 45
     transforms_list = []
-    height, width, yfov = 128, 128, np.pi / 3
+    height, width, yfov = 512, 512, np.pi / 3
     camera_radius = 2.4
-    for i in degrees:
-        camera_pose = get_circle_pose(i, camera_radius)
+    for angle in angles:
+        phi = radius*np.cos(angle)
+        theta = radius*np.sin(angle)
+        camera_pose = get_sphere_pose(phi, theta, camera_radius)
         transforms_list.append(camera_pose)
     rgb_images = inference(run_file, transforms_list, batch_size=900)
     save_rerenders(rgb_images, run_file)
