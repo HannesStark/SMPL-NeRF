@@ -30,25 +30,33 @@ class DependentRaysFromImagesDataset(Dataset):
         super().__init__()
         self.transform = transform
         self.rays = []  # list of arrays with ray translation, ray direction and rgb
+        self.human_poses = [] # list of corresponding human poses
+        self.dependencies_index = []
         print('Start initializing all rays of all images')
         with open(transforms_file, 'rb') as transforms_file:
             transforms_dict = pickle.load(transforms_file)
         camera_angle_x = transforms_dict['camera_angle_x']
         image_transform_map = transforms_dict.get('image_transform_map')
+        image_pose_map = transforms_dict.get('image_pose_map')
+
         image_paths = sorted(glob.glob(os.path.join(image_directory, '*.png')))
         if not len(image_paths) == len(image_transform_map):
             raise ValueError('Number of images in image_directory is not the same as number of transforms')
         for image_path in image_paths:
             camera_transform = image_transform_map[os.path.basename(image_path)]
+            human_pose = image_pose_map[os.path.basename(image_path)]
+            self.human_poses.append(human_pose)
+
             image = cv2.imread(image_path)
             self.h, self.w = image.shape[:2]
+            # should we append a list of the different h, w of all images? right now referencing only the last h, w
             self.focal = .5 * self.w / np.tan(.5 * camera_angle_x)
             rays_translation, rays_direction = get_rays(self.h, self.w, self.focal, camera_transform)
             for i in range(self.w):
                 for j in range(self.h):
                     index_list = get_dependent_rays_indices(rays_translation[i][j], rays_direction[i][j], canonical,
                                                             goal, camera_transform, self.h, self.w, self.focal)
-
+                    self.dependencies_index.append(index_list)
             trans_dir_rgb_stack = np.stack([rays_translation, rays_direction, image], -2)
             trans_dir_rgb_list = trans_dir_rgb_stack.reshape((-1, 3, 3))
             self.rays.append(trans_dir_rgb_list)
@@ -74,12 +82,28 @@ class DependentRaysFromImagesDataset(Dataset):
             Depth of coarse samples along ray.
         rgb : torch.Tensor ([3])
             RGB value corresponding to ray.
+
+        # dependency_rays{Ray_samples [samples, 3],ray_trans[3], ray_direction[3],
+        # z_vals[samples], ray_w[1], ray_h[1]} x [Number_of_dependent_rays],
+        # goal_pose[69]
         """
+
         rays_translation, rays_direction, rgb = self.rays[index]
+
         ray_samples, samples_translations, samples_directions, z_vals, rgb = self.transform(
             (rays_translation, rays_direction, rgb))
 
-        return ray_samples, samples_translations, samples_directions, z_vals, rgb
+          # all dependend rays, indexed
+        dependency_ray = []
+        for i in self.dependencies_index[index]:
+            rt, rd, rgb_i = self.rays[i]
+            rs, st, sd, zv, _ = self.transform((rt, rd, rgb_i))
+            dependency_ray.append([rs, st, sd, zv, self.w, self.h])
+        dependency_rays = {index: dependency_ray}
+
+        return ray_samples, samples_translations, samples_directions, z_vals, rgb, \
+        dependency_rays, self.human_poses[index]
+
 
     def __len__(self) -> int:
         return len(self.rays)
