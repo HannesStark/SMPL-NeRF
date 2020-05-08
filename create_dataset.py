@@ -20,7 +20,7 @@ def config_parser():
     parser.add_argument('--save_dir', default="data", help='save directory for dataset')
     parser.add_argument('--resolution', default=128, type=int, help='height and width of renders')
     parser.add_argument('--camera_radius', default=2.4, type=float, help='radius of sphere on which camera moves')
-    parser.add_argument('--dataset_type', default="smplnerf", type=str, help='choose dataset type for model [smplnerf, pix2pix]')
+    parser.add_argument('--dataset_type', default="nerf", type=str, help='choose dataset type for model [nerf, pix2pix]')
     parser.add_argument('--train_val_ratio', default=0.8, type=float, help='train validation ratio')
     parser.add_argument('--start_angle', default=-90, type=int, help='Start angle for phi and theta on sphere')
     parser.add_argument('--end_angle', default=90, type=int, help='End angle for phi and theta on sphere')
@@ -28,23 +28,24 @@ def config_parser():
     parser.add_argument('--camera_path', default="sphere", help='Geometric object along which the camera is moved [sphere, circle]')
     return parser
 
-def save_split(save_dir, camera_poses, indices, split,
-               height, width, camera_angle_x, mesh, far, dataset_type):
-    if dataset_type not in ["smplnerf", "pix2pix"]:
+def save_split(save_dir, camera_transform, indices, split,
+               height, width, camera_angle_x, mesh, far, dataset_type, human_poses=None):
+    if dataset_type not in ["nerf", "pix2pix", "smpl_nerf"]:
         raise Exception("This dataset type is unknown")
     directory = os.path.join(save_dir, split)
     if not os.path.exists(directory):
         os.makedirs(directory)
-    camera_poses = camera_poses[indices]
+    camera_transform = camera_transform[indices]
     
     image_names = ["img_{:03d}.png".format(index) for index in indices]
     print("Length of {} set: {}".format(split, len(image_names)))
     image_transform_map = {image_name: camera_pose
-                           for (image_name, camera_pose) in zip(image_names, camera_poses)}
+                           for (image_name, camera_pose) in zip(image_names, camera_transform)}
     dict = {'camera_angle_x': camera_angle_x, 
-            'image_transform_map': image_transform_map} 
+            'image_transform_map': image_transform_map,
+            }
     for image_name, camera_pose in image_transform_map.items():
-        if dataset_type == "smplnerf":
+        if dataset_type == "nerf":
             img = render_scene(mesh, camera_pose, get_pose_matrix(), camera_pose,
                            height, width, camera_angle_x)
         if dataset_type == "pix2pix":
@@ -82,20 +83,20 @@ def create_dataset():
     mesh = get_smpl_mesh(smpl_file_name, texture_file_name, uv_map_file_name)
     
     if args.camera_path == "sphere":
-        camera_poses, camera_angles = get_sphere_poses(args.start_angle, args.end_angle, args.number_steps,
+        camera_transform, camera_angles = get_sphere_poses(args.start_angle, args.end_angle, args.number_steps,
                                     args.camera_radius)
     elif args.camera_path == "circle":
-        camera_poses, camera_angles = get_circle_poses(args.start_angle, args.end_angle, args.number_steps,
+        camera_transform, camera_angles = get_circle_poses(args.start_angle, args.end_angle, args.number_steps,
                                     args.camera_radius)
     elif args.camera_path == "circle_on_sphere":
-        camera_poses, camera_angles = get_circle_on_sphere_poses(args.number_steps,20,
+        camera_transform, camera_angles = get_circle_on_sphere_poses(args.number_steps,20,
                                     args.camera_radius)
     train_indices, val_indices = disjoint_indices(dataset_size, args.train_val_ratio)
     train_indices, val_indices = sorted(train_indices), sorted(val_indices)
-    save_split(args.save_dir, camera_poses, train_indices, "train",
+    save_split(args.save_dir, camera_transform, train_indices, "train",
                args.resolution, args.resolution, camera_angle_x, mesh, far,
                args.dataset_type)
-    save_split(args.save_dir, camera_poses, val_indices, "val",
+    save_split(args.save_dir, camera_transform, val_indices, "val",
                args.resolution, args.resolution, camera_angle_x, mesh, far,
                args.dataset_type)
     

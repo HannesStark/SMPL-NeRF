@@ -2,11 +2,16 @@ import pickle
 
 import numpy as np
 import torch
+import trimesh
 
 from torchsearchsorted import searchsorted
 
 from typing import Tuple
 import os
+
+from trimesh.ray.ray_triangle import RayMeshIntersector
+from scipy.spatial.transform import Rotation as R
+
 
 def get_rays(H: int, W: int, focal: float,
              camera_transform: np.array) -> [np.array, np.array]:
@@ -281,3 +286,70 @@ def disjoint_indices(size: int, ratio: float, random=True) -> Tuple[np.ndarray, 
     return indices[:split_index], indices[split_index:]
 
 
+def get_dependent_rays_indices(ray_translation: np.array, ray_direction: np.array,
+                               canonical: trimesh.base.Trimesh, goal: trimesh.base.Trimesh,
+                               camera_transform: np.array, h: int, w: int, f: float) -> np.array:
+    """
+    Takes one ray (with translation + direction) and returns all dependent
+    rays (as camera pixels) and an empty list if there is no dependent ray.
+
+
+    Parameters
+    ----------
+    ray_translation : np.array
+        Point on orgin of ray.
+    ray_direction : np.array
+        Direction of ray.
+    canonical : trimesh.base.Trimesh
+        Trimesh of SMPL in canonical pose.
+    goal : trimesh.base.Trimesh
+        Trimesh of SMPL in goal pose.
+    camera_transform : np.array
+        World to Camera transformation.
+    h : int
+        Height of image.
+    w : int
+        Width of image.
+    f : float
+        Focal length of camera.
+
+    Returns
+    -------
+    list(np.array)
+        Camera pixels of dependent rays.
+
+    """
+
+    intersector = RayMeshIntersector(canonical)
+    intersections = intersector.intersects_location([ray_translation], [ray_direction])
+    intersections_points = intersections[0]  # (N_intersects, 3)
+    intersections_face_indices = intersections[2]  # (N_intersects, )
+    if len(intersections_face_indices) == 0:
+        return []  # Return  empty list if there are no dependent rays
+
+    goal_intersections = []
+    vertices = []
+    for i, face_idx in enumerate(intersections_face_indices):
+        vertex_indices = canonical.faces[face_idx]
+        canonical_vertices = canonical.vertices[vertex_indices]
+        goal_vertices = goal.vertices[vertex_indices]
+        lin_coeffs_vertices = np.linalg.solve(canonical_vertices.T, intersections_points[i])
+        goal_intersection = goal_vertices.T.dot(lin_coeffs_vertices)
+        goal_intersections.append(goal_intersection)
+        vertices.append(vertex_indices)  # For painting human
+    goal_intersections = np.array(goal_intersections)
+    rot_1 = R.from_euler('xyz', [0, 180, 0], degrees=True).as_matrix()
+    rot_2 = R.from_euler('xyz', [0, 0, 180], degrees=True).as_matrix()
+    goal_intersections = goal_intersections - camera_transform[:3,
+                                              3]  # This translates the intersections  --> Now the intersections are in the camera frame
+    world2camera = rot_2.dot(rot_1.dot(camera_transform[:3, :3].T))  # rot_2 after rot_1 after camera_transform
+    goal_intersections = np.dot(world2camera,
+                                goal_intersections.T).T  # This rotates the intersections with the camera rotation matrix
+
+    rvec, tvec = np.zeros(3), np.zeros(3)  # Now no further trafo is needed
+    camera_matrix = np.array([[f, 0.0, w / 2],
+                              [0.0, f, h / 2],
+                              [0.0, 0.0, 1.0]])
+    distortion_coeffs = np.array([0.0, 0.0, 0.0, 0.0])
+    camera_coords = cv2.projectPoints(goal_intersections, rvec, tvec, camera_matrix, distortion_coeffs)[0]
+    return np.round(camera_coords.reshape(-1, 2)), vertices
