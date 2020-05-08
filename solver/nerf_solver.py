@@ -5,7 +5,7 @@ import numpy as np
 from utils import run_nerf_pipeline, PositionalEncoder
 
 
-class Solver():
+class NerfSolver():
     default_adam_args = {"lr": 1e-4,
                          "betas": (0.9, 0.999),
                          "eps": 1e-8,

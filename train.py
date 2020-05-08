@@ -7,7 +7,7 @@ from config_parser import config_parser
 from datasets.rays_from_images_dataset import RaysFromImagesDataset
 from datasets.transforms import CoarseSampling, ToTensor, NormalizeRGB
 from models.render_ray_net import RenderRayNet
-from solver.solver import Solver
+from solver.nerf_solver import NerfSolver
 import numpy as np
 
 from utils import PositionalEncoder, save_run
@@ -35,9 +35,9 @@ def train():
     model_fine = RenderRayNet(args.netdepth_fine, args.netwidth_fine, position_encoder.output_dim * 3,
                               direction_encoder.output_dim * 3)
 
-    solver = Solver(position_encoder, direction_encoder, torch.optim.Adam,
-                    {"lr": args.lrate, "weight_decay": args.weight_decay},
-                    torch.nn.MSELoss(), args.sigma_noise_std, args.white_background, args.number_fine_samples)
+    solver = NerfSolver(position_encoder, direction_encoder, torch.optim.Adam,
+                        {"lr": args.lrate, "weight_decay": args.weight_decay},
+                        torch.nn.MSELoss(), args.sigma_noise_std, args.white_background, args.number_fine_samples)
     solver.train(model_coarse, model_fine, train_loader, val_loader, dataset.h, dataset.w, args.num_epochs,
                  args.log_iterations, args.number_validation_images,
                  args.early_validation)

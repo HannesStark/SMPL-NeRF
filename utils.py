@@ -1,5 +1,6 @@
 import pickle
 
+import cv2
 import numpy as np
 import torch
 import trimesh
@@ -189,7 +190,7 @@ def fine_sampling(ray_translation: torch.Tensor, samples_directions: torch.Tenso
     z_samples = z_samples.detach()
     z_vals, _ = torch.sort(torch.cat([z_vals, z_samples], -1), -1)
     ray_samples_fine = ray_translation[..., None, :] + samples_directions[..., None, :] * z_vals[..., :,
-                                                                                      None]  # [batchsize, number_coarse_samples + number_fine_samples, 3]
+                                                                                          None]  # [batchsize, number_coarse_samples + number_fine_samples, 3]
     return z_vals, ray_samples_fine
 
 
@@ -265,6 +266,7 @@ def save_run(file_location: str, model_coarse, model_fine, dataset, solver,
         pickle.dump(run, file, protocol=pickle.HIGHEST_PROTOCOL)
     args = parser.parse_args()
     parser.write_config_file(args, [os.path.join(os.path.dirname(file_location), 'config.txt')])
+
 
 def disjoint_indices(size: int, ratio: float, random=True) -> Tuple[np.ndarray, np.ndarray]:
     """
@@ -353,3 +355,54 @@ def get_dependent_rays_indices(ray_translation: np.array, ray_direction: np.arra
     distortion_coeffs = np.array([0.0, 0.0, 0.0, 0.0])
     camera_coords = cv2.projectPoints(goal_intersections, rvec, tvec, camera_matrix, distortion_coeffs)[0]
     return np.round(camera_coords.reshape(-1, 2)), vertices
+
+
+def run_smpl_nerf_pipeline(ray_samples, ray_translation, ray_direction, z_vals,
+                           dependency_rays, goal_pose,
+                           model_coarse, model_fine, model_smpl,
+                           sigma_noise_std, number_fine_samples, white_background, position_encoder: PositionalEncoder,
+                           direction_encoder: PositionalEncoder):
+    """
+    Volumetric rendering with NeRF.
+
+    Returns
+    -------
+    rgb : torch.Tensor ([batch_size, 3])
+        Estimated RGB color with coarse net.
+    rgb_fine : torch.Tensor ([batch_size, 3])
+        Estimated RGB color with fine net.
+    """
+    # get values for coarse network and run them through the coarse network
+    samples_encoding = position_encoder.encode(ray_samples)
+    coarse_samples_directions = ray_direction[..., None, :].expand(ray_direction.shape[0], ray_samples.shape[1],
+                                                                   ray_direction.shape[
+                                                                       -1])  # [batchsize, number_coarse_samples, 3]
+    samples_directions_norm = coarse_samples_directions / torch.norm(coarse_samples_directions, dim=-1, keepdim=True)
+    directions_encoding = direction_encoder.encode(samples_directions_norm)
+    # flatten the encodings from [batchsize, number_coarse_samples, encoding_size] to [batchsize * number_coarse_samples, encoding_size] and concatenate
+    inputs = torch.cat([samples_encoding.view(-1, samples_encoding.shape[-1]),
+                        directions_encoding.view(-1, directions_encoding.shape[-1])], -1)
+    raw_outputs = model_coarse(inputs)  # [batchsize * number_coarse_samples, 4]
+    raw_outputs = raw_outputs.view(samples_encoding.shape[0], samples_encoding.shape[1],
+                                   raw_outputs.shape[-1])  # [batchsize, number_coarse_samples, 4]
+    rgb, weights = raw2outputs(raw_outputs, z_vals, coarse_samples_directions, sigma_noise_std, white_background)
+
+    # get values for the fine network and run them through the fine network
+    z_vals, ray_samples_fine = fine_sampling(ray_translation, ray_direction, z_vals, weights,
+                                             number_fine_samples)  # [batchsize, number_coarse_samples + number_fine_samples, 3]
+    samples_encoding_fine = position_encoder.encode(ray_samples_fine)
+    # expand directions and translations to the number of coarse samples + fine_samples
+    directions_encoding_fine = directions_encoding[..., :1, :].expand(directions_encoding.shape[0],
+                                                                      ray_samples_fine.shape[1],
+                                                                      directions_encoding.shape[-1])
+    inputs_fine = torch.cat([samples_encoding_fine.view(-1, samples_encoding_fine.shape[-1]),
+                             directions_encoding_fine.reshape(-1, directions_encoding_fine.shape[-1])], -1)
+    raw_outputs_fine = model_fine(inputs_fine)  # [batchsize * (number_coarse_samples + number_fine_samples), 4]
+    raw_outputs_fine = raw_outputs_fine.reshape(samples_encoding_fine.shape[0], samples_encoding_fine.shape[1],
+                                                raw_outputs_fine.shape[
+                                                    -1])  # [batchsize, number_coarse_samples + number_fine_samples, 4]
+    # expand directions and translations to the number of coarse samples + fine_samples
+    fine_samples_directions = ray_direction[..., None, :].expand(ray_direction.shape[0],
+                                                                 ray_samples_fine.shape[1],
+                                                                 ray_direction.shape[-1])
+    rgb_fine, _ = raw2outputs(raw_outputs_fine, z_vals, fine_samples_directions, sigma_noise_std, white_background)
