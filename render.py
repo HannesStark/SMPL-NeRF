@@ -8,11 +8,12 @@ import smplx
 import matplotlib.pyplot as plt
 import trimesh
 from PIL import Image
+import numpy as np
 
 
-def get_smpl_mesh(smpl_file_name: str, texture_file_name: str,
-                  uv_map_file_name: str, right_arm_angle: float = 0.,
-                  left_arm_angle: float = 0) -> pyrender.Mesh:
+def get_smpl_mesh(smpl_file_name: str = None, texture_file_name: str = None,
+                  uv_map_file_name: str = None, body_pose: torch.Tensor = None,
+                  return_betas_exps=False) -> pyrender.Mesh:
     """
     Load SMPL model, texture file and uv-map.
     Set arm angles and convert to mesh.
@@ -29,6 +30,8 @@ def get_smpl_mesh(smpl_file_name: str, texture_file_name: str,
         desired right arm angle in radians. The default is 0..
     left_arm_angle : float, optional
         desired left arm angle in radians. The default is 0.
+    body_pose : torch.Tensor[1, 69]
+        Body poses for SMPL
 
     Returns
     -------
@@ -36,15 +39,19 @@ def get_smpl_mesh(smpl_file_name: str, texture_file_name: str,
         SMPL mesh with texture and desired body pose.
 
     """
+    if smpl_file_name is None:
+        smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
+    if texture_file_name is None:
+        texture_file_name = "textures/texture.jpg"
+    if uv_map_file_name is None:
+        uv_map_file_name = "textures/smpl_uv_map.npy"
     model = smplx.create(smpl_file_name, model_type='smpl')
     # set betas and expression to fixed values
     betas = torch.tensor([[-0.3596, -1.0232, -1.7584, -2.0465, 0.3387,
                            -0.8562, 0.8869, 0.5013, 0.5338, -0.0210]])
     expression = torch.tensor([[2.7228, -1.8139, 0.6270, -0.5565, 0.3251,
                                 0.5643, -1.2158, 1.4149, 0.4050, 0.6516]])
-    body_pose = torch.zeros(69).view(1, -1)
-    body_pose[0, 41] = right_arm_angle
-    body_pose[0, 38] = left_arm_angle
+    
     output = model(betas=betas, expression=expression,
                    return_verts=True, body_pose=body_pose)
     vertices = output.vertices.detach().cpu().numpy().squeeze()
@@ -55,8 +62,43 @@ def get_smpl_mesh(smpl_file_name: str, texture_file_name: str,
                 visual=trimesh.visual.TextureVisuals(uv=uv, image=texture),
                                 process=False)
     mesh = pyrender.Mesh.from_trimesh(smpl_mesh)
+    if return_betas_exps:
+        return mesh, betas, expression
     return mesh
 
+
+def get_human_poses(joints: list, start_angle: list, end_angle: list,
+                    number_steps: list) -> list:
+    """
+    Returns human poses for varying joints in the range [start_angle, end_angle, number_angle]
+
+    Parameters
+    ----------
+    joints : list
+        Joints to vary.
+    start_angles : list
+        Start angle all joints in degrees.
+    end_angles : list
+        End angle for all joints in degrees.
+    number_steps : list
+        Number of angles between start and end for all joints in degrees.
+
+    Returns
+    -------
+    human_poses : [torch.Tensor[1, 69]] * len(joints)
+        Body poses for SMPL with different joint angles
+
+    """
+    body_pose = torch.zeros(69).view(1, -1)
+    angles = np.linspace(start_angle, end_angle, number_steps)
+    human_poses = []
+    for i, angle in enumerate(angles):
+        body_pose = torch.zeros(69).view(1, -1)
+        for joint in joints:
+            body_pose[0, joint] = np.deg2rad(angle)
+        human_poses.append(body_pose)
+    return torch.stack(human_poses)
+    
 
 def render_scene(mesh: pyrender.Mesh, camera_pose: np.array,
                  human_pose: np.array, light_pose: np.array,
