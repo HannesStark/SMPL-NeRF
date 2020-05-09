@@ -8,7 +8,6 @@ from torch.utils.data import Dataset
 
 from utils import get_rays, get_dependent_rays_indices
 
-
 class DependentRaysFromImagesDataset(Dataset):
     """
     Dataset of rays from a directory of images and an images camera transforms
@@ -32,6 +31,7 @@ class DependentRaysFromImagesDataset(Dataset):
         self.rays = []  # list of arrays with ray translation, ray direction and rgb
         self.human_poses = [] # list of corresponding human poses
         self.dependencies_index = []
+        self.dependencies_hw = []
         print('Start initializing all rays of all images')
         with open(transforms_file, 'rb') as transforms_file:
             transforms_dict = pickle.load(transforms_file)
@@ -49,6 +49,7 @@ class DependentRaysFromImagesDataset(Dataset):
 
             image = cv2.imread(image_path)
             self.h, self.w = image.shape[:2]
+
             # should we append a list of the different h, w of all images? right now referencing only the last h, w
             self.focal = .5 * self.w / np.tan(.5 * camera_angle_x)
             rays_translation, rays_direction = get_rays(self.h, self.w, self.focal, camera_transform)
@@ -57,6 +58,8 @@ class DependentRaysFromImagesDataset(Dataset):
                     index_list = get_dependent_rays_indices(rays_translation[i][j], rays_direction[i][j], canonical,
                                                             goal, camera_transform, self.h, self.w, self.focal)
                     self.dependencies_index.append(index_list)
+                    self.dependencies_hw.append((i, j))
+
             trans_dir_rgb_stack = np.stack([rays_translation, rays_direction, image], -2)
             trans_dir_rgb_list = trans_dir_rgb_stack.reshape((-1, 3, 3))
             self.rays.append(trans_dir_rgb_list)
@@ -98,7 +101,8 @@ class DependentRaysFromImagesDataset(Dataset):
         for i in self.dependencies_index[index]:
             rt, rd, rgb_i = self.rays[i]
             rs, st, sd, zv, _ = self.transform((rt, rd, rgb_i))
-            dependency_ray.append([rs, st, sd, zv, self.w, self.h])
+            w_i, h_i = self.dependencies_hw[index]
+            dependency_ray.append([rs, st, sd, zv, w_i, h_i])
         dependency_rays = {index: dependency_ray}
 
         return ray_samples, samples_translations, samples_directions, z_vals, rgb, \
