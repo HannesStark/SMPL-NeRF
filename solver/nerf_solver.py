@@ -88,7 +88,8 @@ class NerfSolver():
                 rgb, rgb_fine = run_nerf_pipeline(ray_samples, ray_translation, ray_direction, z_vals,
                                                   model_coarse, model_fine, args,
                                                   self.positions_encoder, self.directions_encoder)
-
+                print("Output net: \n",rgb)
+                print("Ground Truth: \n", rgb_truth)
                 optim.zero_grad()
                 loss_coarse = self.loss_func(rgb, rgb_truth)
                 loss_fine = self.loss_func(rgb_fine, rgb_truth)
