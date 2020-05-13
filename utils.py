@@ -100,9 +100,11 @@ def raw2outputs(raw: torch.Tensor, z_vals: torch.Tensor,
     dists = dists * torch.norm(samples_directions, dim=-1)
 
     rgb = torch.sigmoid(raw[..., :3])  # [batchsize, number_samples, 3]
+    #print("RGB after sigmoid: \n", rgb-130/255)
     noise = 0.
     if sigma_noise_std > 0.:
         noise = torch.normal(0, sigma_noise_std, raw[..., 3].shape)
+    print("Raw \n", raw[..., 3])
     alpha = raw2alpha(raw[..., 3] + noise, dists)  # [batchsize, number_samples]
     one_minus_alpha = 1. - alpha + 1e-10
 
@@ -110,15 +112,17 @@ def raw2outputs(raw: torch.Tensor, z_vals: torch.Tensor,
     ones = torch.ones(one_minus_alpha.shape[:-1]).unsqueeze(-1)
     exclusive = torch.cat([ones, one_minus_alpha[..., :-1]], -1)
     weights = alpha * torch.cumprod(exclusive, -1)
-
-    rgb = torch.sum(weights[..., None] * rgb, -2)  # [batchsize, 3]
-
+    weights = torch.ones_like(weights)
+    #rgb = torch.sum(weights[..., None] * rgb, -2)  # [batchsize, 3]
+    rgb = torch.mean(rgb, -2)
+    print(rgb.shape)
     depth_map = torch.sum(weights * z_vals, -1)
     disp_map = 1. / torch.max(torch.full(depth_map.shape, 1e-10), depth_map / torch.sum(weights, -1))
     acc_map = torch.sum(weights, -1)
 
     if white_background:
         rgb = rgb + (1. - acc_map[..., None])
+    #print("FInal rgb: \n", rgb-130/255)
 
     return rgb, weights
 
@@ -195,7 +199,7 @@ def fine_sampling(ray_translation: torch.Tensor, samples_directions: torch.Tenso
 
 
 def run_nerf_pipeline(ray_samples, ray_translation, ray_direction, z_vals, model_coarse, model_fine,
-                      sigma_noise_std, number_fine_samples, white_background, position_encoder: PositionalEncoder,
+                      args, position_encoder: PositionalEncoder,
                       direction_encoder: PositionalEncoder):
     """
     Volumetric rendering with NeRF.
@@ -220,11 +224,12 @@ def run_nerf_pipeline(ray_samples, ray_translation, ray_direction, z_vals, model
     raw_outputs = model_coarse(inputs)  # [batchsize * number_coarse_samples, 4]
     raw_outputs = raw_outputs.view(samples_encoding.shape[0], samples_encoding.shape[1],
                                    raw_outputs.shape[-1])  # [batchsize, number_coarse_samples, 4]
-    rgb, weights = raw2outputs(raw_outputs, z_vals, coarse_samples_directions, sigma_noise_std, white_background)
-
+    rgb, weights = raw2outputs(raw_outputs, z_vals, coarse_samples_directions, args.sigma_noise_std, args.white_background)
+    if not args.run_fine:
+        return rgb, rgb
     # get values for the fine network and run them through the fine network
     z_vals, ray_samples_fine = fine_sampling(ray_translation, ray_direction, z_vals, weights,
-                                             number_fine_samples)  # [batchsize, number_coarse_samples + number_fine_samples, 3]
+                                             args.number_fine_samples)  # [batchsize, number_coarse_samples + number_fine_samples, 3]
     samples_encoding_fine = position_encoder.encode(ray_samples_fine)
     # expand directions and translations to the number of coarse samples + fine_samples
     directions_encoding_fine = directions_encoding[..., :1, :].expand(directions_encoding.shape[0],
@@ -240,7 +245,7 @@ def run_nerf_pipeline(ray_samples, ray_translation, ray_direction, z_vals, model
     fine_samples_directions = ray_direction[..., None, :].expand(ray_direction.shape[0],
                                                                  ray_samples_fine.shape[1],
                                                                  ray_direction.shape[-1])
-    rgb_fine, _ = raw2outputs(raw_outputs_fine, z_vals, fine_samples_directions, sigma_noise_std, white_background)
+    rgb_fine, _ = raw2outputs(raw_outputs_fine, z_vals, fine_samples_directions, args.sigma_noise_std, args.white_background)
 
     return rgb, rgb_fine
 
@@ -250,6 +255,7 @@ def save_run(file_location: str, model_coarse, model_fine, dataset, solver,
     """
     Save coarse and fine model and training configuration
     """
+    args = parser.parse_args()
     run = {'model_coarse': model_coarse,
            'model_fine': model_fine,
            'position_encoder': {'number_frequencies': solver.positions_encoder.number_frequencies,
@@ -257,14 +263,14 @@ def save_run(file_location: str, model_coarse, model_fine, dataset, solver,
            'direction_encoder': {'number_frequencies': solver.directions_encoder.number_frequencies,
                                  'include_identity': solver.directions_encoder.include_identity},
            'dataset_transform': dataset.transform,
-           'white_background': solver.white_background,
-           'number_fine_samples': solver.number_fine_samples,
+           'white_background': args.white_background,
+           'number_fine_samples': args.number_fine_samples,
            'height': dataset.h,
            'width': dataset.w,
            'focal': dataset.focal}
     with open(file_location, 'wb') as file:
         pickle.dump(run, file, protocol=pickle.HIGHEST_PROTOCOL)
-    args = parser.parse_args()
+    
     parser.write_config_file(args, [os.path.join(os.path.dirname(file_location), 'config.txt')])
 
 

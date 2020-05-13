@@ -9,6 +9,7 @@ from datasets.transforms import CoarseSampling, ToTensor, NormalizeRGB
 from models.render_ray_net import RenderRayNet
 from solver.nerf_solver import NerfSolver
 import numpy as np
+from torchsummary import summary
 
 from utils import PositionalEncoder, save_run
 
@@ -34,13 +35,10 @@ def train():
                                 direction_encoder.output_dim * 3)
     model_fine = RenderRayNet(args.netdepth_fine, args.netwidth_fine, position_encoder.output_dim * 3,
                               direction_encoder.output_dim * 3)
-
-    solver = NerfSolver(position_encoder, direction_encoder, torch.optim.Adam,
-                        {"lr": args.lrate, "weight_decay": args.weight_decay},
-                        torch.nn.MSELoss(), args.sigma_noise_std, args.white_background, args.number_fine_samples)
-    solver.train(model_coarse, model_fine, train_loader, val_loader, dataset.h, dataset.w, args.num_epochs,
-                 args.log_iterations, args.number_validation_images,
-                 args.early_validation)
+    print(model_coarse)
+    solver = NerfSolver(position_encoder, direction_encoder, args, torch.optim.Adam,
+                        torch.nn.MSELoss())
+    solver.train(model_coarse, model_fine, train_loader, val_loader, dataset.h, dataset.w)
 
     save_run(os.path.join(solver.writer.log_dir, args.experiment_name + '.pkl'), model_coarse, model_fine, dataset,
              solver, parser)

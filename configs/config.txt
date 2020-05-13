@@ -1,7 +1,9 @@
-experiment_name = 128_-90_90_25
-number_validation_images = 5
+experiment_name = overfit
+number_validation_images = 0
 log_iterations = 5
-batchsize = 1800
-batchsize_val = 64
-num_epochs = 25
-white_background = True
+batchsize = 1000
+batchsize_val = 1000
+num_epochs = 100
+white_background = False
+sigma_noise_std = 1
+run_fine = 0

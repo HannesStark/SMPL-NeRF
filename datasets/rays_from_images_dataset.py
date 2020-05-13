@@ -47,7 +47,8 @@ class RaysFromImagesDataset(Dataset):
             trans_dir_rgb_stack = np.stack([rays_translation, rays_direction, image], -2)
             trans_dir_rgb_list = trans_dir_rgb_stack.reshape((-1, 3, 3))
             self.rays.append(trans_dir_rgb_list)
-        self.rays = np.concatenate(self.rays)
+        if self.rays:
+            self.rays = np.concatenate(self.rays)
         print('Finish initializing rays')
 
     def __getitem__(self, index: int):
