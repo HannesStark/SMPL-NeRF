@@ -12,11 +12,7 @@ from camera import get_pose_matrix, get_circle_pose, get_sphere_pose, get_xyzphi
 from inference import inference
 from trimesh.ray.ray_triangle import RayMeshIntersector
 
-from utils import get_rays
-
-
-
-
+from utils import get_rays, get_dependent_rays_indices
 
 smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
 
@@ -35,6 +31,7 @@ goal = model(betas=betas, expression=expression,
              return_verts=True, body_pose=body_pose)
 vertices_canonical = canonical.vertices.detach().cpu().numpy().squeeze()
 vertices_goal = goal.vertices.detach().cpu().numpy().squeeze()
+
 
 mesh_canonical = trimesh.Trimesh(vertices_canonical, model.faces, process=False)
 mesh_goal = trimesh.Trimesh(vertices_goal, model.faces, process=False)

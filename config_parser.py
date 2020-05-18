@@ -9,21 +9,25 @@ def config_parser():
     parser = configargparse.ArgumentParser()
     parser.add_argument('--config', is_config_file=True, default="configs/config.txt", help='config file path')
     parser.add_argument("--experiment_name", type=str, default='default', help='experiment name')
-    parser.add_argument("--train_directory", type=str, default='data/train', help='training images directory')
-    parser.add_argument("--train_camera_transforms", type=str, default='data/train/transforms.pkl',
-                        help='Pickle file with dictionary of image name keys and camera transform values')
-    parser.add_argument("--val_directory", type=str, default='data/val', help='validation images directory')
-    parser.add_argument("--val_camera_transforms", type=str, default='data/val/transforms.pkl',
-                        help='Pickle file with dictionary of image name keys and camera transform values')
+    parser.add_argument('--model_type', default="nerf", type=str, help='choose model type for model [smpl_nerf, nerf]')
+    parser.add_argument("--dataset_dir", type=str, default='data', help='directory with specific dataset structure')
     parser.add_argument("--number_validation_images", type=int, default=1,
                         help='number of images to take from the validation images directory and use to render validation images')
 
     # training options
     parser.add_argument("--netdepth", type=int, default=8, help='layers in network')
     parser.add_argument("--netwidth", type=int, default=256, help='channels per layer')
+    parser.add_argument("--skips", type=int, default=[4], help='layers with concateneted positional input',
+                        action="append")
     parser.add_argument("--netdepth_fine", type=int, default=8, help='layers in fine network')
     parser.add_argument("--netwidth_fine", type=int, default=256, help='channels per layer in fine network')
+    parser.add_argument("--skips_fine", type=int, default=[4],
+                        help='layers with concateneted positional input of fine net', action="append")
     parser.add_argument("--run_fine", type=int, default=1, help='If 1 use fine network else only coarse')
+
+    parser.add_argument("--netdepth_warp", type=int, default=8, help='layers in fine network')
+    parser.add_argument("--netwidth_warp", type=int, default=256, help='channels per layer in fine network')
+
     parser.add_argument("--batchsize", type=int, default=2048,
                         help='batch size (number of random rays per gradient step)')
     parser.add_argument("--batchsize_val", type=int, default=512,
@@ -43,6 +47,10 @@ def config_parser():
                         help='add identity function to positional encoding functions')
     parser.add_argument("--use_identity_directional", type=int, default=0,
                         help='add identity function to directional encoding functions')
+    parser.add_argument("--use_identity_pose", type=int, default=0,
+                        help='add identity function to directional encoding functions')
+    parser.add_argument("--number_frequencies_pose", type=int, default=10,
+                        help='log2 of max freq for positional encoding (3D location)')
     parser.add_argument("--number_frequencies_postitional", type=int, default=10,
                         help='log2 of max freq for positional encoding (3D location)')
     parser.add_argument("--number_frequencies_directional", type=int, default=4,
