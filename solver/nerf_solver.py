@@ -131,10 +131,10 @@ class NerfSolver():
             rerender_images = []
             ground_truth_images = []
             for i, data in enumerate(val_loader):
-                for j, element in enumerate(data):
-                    data[j] = element.to(self.device)
                 rgb_truth = data[-1]
                 ground_truth_images.append(rgb_truth)
+                for j, element in enumerate(data):
+                    data[j] = element.to(self.device)
 
                 rgb, rgb_fine = self.pipeline(data)
 
