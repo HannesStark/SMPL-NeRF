@@ -109,16 +109,13 @@ def raw2outputs(raw: torch.Tensor, z_vals: torch.Tensor,
     ones = torch.ones(one_minus_alpha.shape[:-1]).unsqueeze(-1)
     exclusive = torch.cat([ones, one_minus_alpha[..., :-1]], -1)
     weights = alpha * torch.cumprod(exclusive, -1)
-    weights = torch.ones_like(weights)
     rgb = torch.sum(weights[..., None] * rgb, -2)  # [batchsize, 3]
 
     depth_map = torch.sum(weights * z_vals, -1)
     disp_map = 1. / torch.max(torch.full(depth_map.shape, 1e-10), depth_map / torch.sum(weights, -1))
     acc_map = torch.sum(weights, -1)
-
     if args.white_background:
         rgb = rgb + (1. - acc_map[..., None])
-
     return rgb, weights
 
 
