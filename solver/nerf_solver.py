@@ -131,10 +131,9 @@ class NerfSolver():
             rerender_images = []
             ground_truth_images = []
             for i, data in enumerate(val_loader):
-                rgb_truth = data[-1]
-                ground_truth_images.append(rgb_truth)
                 for j, element in enumerate(data):
                     data[j] = element.to(self.device)
+                rgb_truth = data[-1]
 
                 rgb, rgb_fine = self.pipeline(data)
 
@@ -142,6 +141,7 @@ class NerfSolver():
                 loss_fine = self.loss_func(rgb_fine, rgb_truth)
                 loss = loss_coarse + loss_fine
                 val_loss += loss.item()
+                ground_truth_images.append(rgb_truth.detach().cpu().numpy())
                 rerender_images.append(rgb_fine.detach().cpu().numpy())
             if len(val_loader) != 0:
                 rerender_images = np.concatenate(rerender_images, 0).reshape((-1, h, w, 3))
