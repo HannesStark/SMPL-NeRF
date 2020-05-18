@@ -38,12 +38,12 @@ class NerfSolver():
         self.writer = SummaryWriter()
         self._reset_histories()
         self.args = args
-        self.pipeline = self.init_pipeline()
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         if torch.cuda.is_available():
             torch.set_default_tensor_type('torch.cuda.FloatTensor')
         self.model_coarse = model_coarse.to(self.device)
         self.model_fine = model_fine.to(self.device)
+        self.pipeline = self.init_pipeline()
 
     def init_pipeline(self):
         return NerfPipeline(self.model_coarse, self.model_fine, self.args, self.positions_encoder,
