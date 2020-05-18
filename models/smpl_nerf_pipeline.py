@@ -10,7 +10,7 @@ class SmplNerfPipeline(NerfPipeline):
                  direction_encoder: PositionalEncoder, human_pose_encoder: PositionalEncoder):
         super(SmplNerfPipeline, self).__init__(model_coarse, model_fine, args, position_encoder, direction_encoder)
         self.human_pose_encoder = human_pose_encoder
-        self.model_warp_field = model_warp_field
+        self.model_warp_field = model_warp_field.to(self.device)
 
     def forward(self, data):
         """
