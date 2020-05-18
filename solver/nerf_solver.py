@@ -85,8 +85,8 @@ class NerfSolver():
             self.model_fine.train()
             train_loss = 0
             for i, data in enumerate(train_loader):
-                for i, element in enumerate(data):
-                    data[i] = element.to(self.device)
+                for j, element in enumerate(data):
+                    data[j] = element.to(self.device)
                 rgb_truth = data[-1]
 
                 rgb, rgb_fine = self.pipeline(data)
@@ -107,8 +107,8 @@ class NerfSolver():
                         self.model_fine.eval()
                         val_loss = 0
                         for j, data in enumerate(val_loader):
-                            for i, element in enumerate(data):
-                                data[i] = element.to(self.device)
+                            for j, element in enumerate(data):
+                                data[j] = element.to(self.device)
                             rgb_truth = data[-1]
 
                             rgb, rgb_fine = self.pipeline(data)
@@ -135,8 +135,8 @@ class NerfSolver():
             rerender_images = []
             ground_truth_images = []
             for i, data in enumerate(val_loader):
-                for i, element in enumerate(data):
-                    data[i] = element.to(self.device)
+                for j, element in enumerate(data):
+                    data[j] = element.to(self.device)
                 rgb_truth = data[-1]
                 ground_truth_images.append(rgb_truth)
 

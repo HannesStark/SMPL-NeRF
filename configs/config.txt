@@ -1,12 +1,11 @@
-experiment_name = overfit
-number_validation_images = 0
+experiment_name = firstDynamicOverfit
+number_validation_images = 2
 model_type = smpl_nerf
 run_fine = 0
 log_iterations = 5
 batchsize = 1000
 batchsize_val = 1000
-num_epochs = 150
+num_epochs = 20
 white_background = 1
 sigma_noise_std = 1
-netdepth = 0
 lrate = 5e-4
