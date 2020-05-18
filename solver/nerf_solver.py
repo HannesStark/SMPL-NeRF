@@ -83,14 +83,16 @@ class NerfSolver():
         for epoch in range(args.num_epochs):  # loop over the dataset multiple times
             self.model_coarse.train()
             self.model_fine.train()
+            print('chpk1')
             train_loss = 0
             for i, data in enumerate(train_loader):
+                print('chp2')
                 for j, element in enumerate(data):
                     data[j] = element.to(self.device)
                 rgb_truth = data[-1]
-
+                print(3)
                 rgb, rgb_fine = self.pipeline(data)
-
+                print(4)
                 self.optim.zero_grad()
                 loss_coarse = self.loss_func(rgb, rgb_truth)
                 loss_fine = self.loss_func(rgb_fine, rgb_truth)
