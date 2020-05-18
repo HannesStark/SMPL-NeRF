@@ -85,9 +85,9 @@ class NerfSolver():
             self.model_fine.train()
             train_loss = 0
             for i, data in enumerate(train_loader):
+                for i, element in enumerate(data):
+                    data[i] = element.to(self.device)
                 rgb_truth = data[-1]
-                for element in data:
-                    element.to(self.device)
 
                 rgb, rgb_fine = self.pipeline(data)
 
@@ -107,9 +107,9 @@ class NerfSolver():
                         self.model_fine.eval()
                         val_loss = 0
                         for j, data in enumerate(val_loader):
+                            for i, element in enumerate(data):
+                                data[i] = element.to(self.device)
                             rgb_truth = data[-1]
-                            for element in data:
-                                element.to(self.device)
 
                             rgb, rgb_fine = self.pipeline(data)
 
@@ -135,10 +135,10 @@ class NerfSolver():
             rerender_images = []
             ground_truth_images = []
             for i, data in enumerate(val_loader):
+                for i, element in enumerate(data):
+                    data[i] = element.to(self.device)
                 rgb_truth = data[-1]
                 ground_truth_images.append(rgb_truth)
-                for element in data:
-                    element.to(self.device)
 
                 rgb, rgb_fine = self.pipeline(data)
 
@@ -159,7 +159,6 @@ class NerfSolver():
                 number_validation_images = len(rerender_images)
             else:
                 rerender_images = rerender_images[:number_validation_images]
-
 
             if number_validation_images > 0:
                 fig, axarr = plt.subplots(number_validation_images, 2, sharex=True, sharey=True)
