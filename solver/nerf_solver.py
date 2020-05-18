@@ -37,15 +37,13 @@ class NerfSolver():
         self.directions_encoder = directions_encoder
         self.writer = SummaryWriter()
         self._reset_histories()
-        self.model_coarse = model_coarse
-        self.model_fine = model_fine
         self.args = args
-        self.pipeline = self.init_pipeline()
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         if torch.cuda.is_available():
             torch.set_default_tensor_type('torch.cuda.FloatTensor')
-        self.model_coarse.to(self.device)
-        self.model_fine.to(self.device)
+        self.model_coarse = model_coarse.to(self.device)
+        self.model_fine = model_fine.to(self.device)
+        self.pipeline = self.init_pipeline()
 
     def init_pipeline(self):
         return NerfPipeline(self.model_coarse, self.model_fine, self.args, self.positions_encoder,
@@ -85,12 +83,10 @@ class NerfSolver():
             self.model_fine.train()
             train_loss = 0
             for i, data in enumerate(train_loader):
+                for j, element in enumerate(data):
+                    data[j] = element.to(self.device)
                 rgb_truth = data[-1]
-                for element in data:
-                    element.to(self.device)
-
                 rgb, rgb_fine = self.pipeline(data)
-
                 self.optim.zero_grad()
                 loss_coarse = self.loss_func(rgb, rgb_truth)
                 loss_fine = self.loss_func(rgb_fine, rgb_truth)
@@ -107,9 +103,9 @@ class NerfSolver():
                         self.model_fine.eval()
                         val_loss = 0
                         for j, data in enumerate(val_loader):
+                            for j, element in enumerate(data):
+                                data[j] = element.to(self.device)
                             rgb_truth = data[-1]
-                            for element in data:
-                                element.to(self.device)
 
                             rgb, rgb_fine = self.pipeline(data)
 
@@ -135,10 +131,9 @@ class NerfSolver():
             rerender_images = []
             ground_truth_images = []
             for i, data in enumerate(val_loader):
+                for j, element in enumerate(data):
+                    data[j] = element.to(self.device)
                 rgb_truth = data[-1]
-                ground_truth_images.append(rgb_truth)
-                for element in data:
-                    element.to(self.device)
 
                 rgb, rgb_fine = self.pipeline(data)
 
@@ -146,6 +141,7 @@ class NerfSolver():
                 loss_fine = self.loss_func(rgb_fine, rgb_truth)
                 loss = loss_coarse + loss_fine
                 val_loss += loss.item()
+                ground_truth_images.append(rgb_truth.detach().cpu().numpy())
                 rerender_images.append(rgb_fine.detach().cpu().numpy())
             if len(val_loader) != 0:
                 rerender_images = np.concatenate(rerender_images, 0).reshape((-1, h, w, 3))
@@ -159,7 +155,6 @@ class NerfSolver():
                 number_validation_images = len(rerender_images)
             else:
                 rerender_images = rerender_images[:number_validation_images]
-
 
             if number_validation_images > 0:
                 fig, axarr = plt.subplots(number_validation_images, 2, sharex=True, sharey=True)

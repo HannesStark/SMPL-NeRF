@@ -10,7 +10,8 @@ class SmplNerfSolver(NerfSolver):
     def __init__(self, model_coarse, model_fine, model_warp_field, positions_encoder: PositionalEncoder,
                  directions_encoder: PositionalEncoder, human_pose_encoder: PositionalEncoder, args,
                  optim=torch.optim.Adam, loss_func=torch.nn.MSELoss()):
-        self.model_warp_field = model_warp_field
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.model_warp_field = model_warp_field.to(self.device)
         self.human_pose_encoder = human_pose_encoder
         super(SmplNerfSolver, self).__init__(model_coarse, model_fine, positions_encoder, directions_encoder, args,
                                              optim, loss_func)

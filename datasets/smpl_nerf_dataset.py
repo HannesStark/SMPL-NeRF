@@ -44,8 +44,7 @@ class SmplNerfDataset(Dataset):
             raise ValueError('Number of images in image_directory is not the same as number of transforms')
         for image_path in image_paths:
             camera_transform = image_transform_map[os.path.basename(image_path)]
-            human_pose = image_pose_map[os.path.basename(image_path)][
-                0]  # TODO: Do not forget the 0 here from smpl fromatting
+            human_pose = image_pose_map[os.path.basename(image_path)]
 
             image = cv2.imread(image_path)
             self.h, self.w = image.shape[:2]
@@ -56,10 +55,10 @@ class SmplNerfDataset(Dataset):
 
             trans_dir_rgb_stack = np.stack([rays_translation, rays_direction, image], -2)
             trans_dir_rgb_list = trans_dir_rgb_stack.reshape((-1, 3, 3))
-            self.human_poses.append(human_pose.expand(trans_dir_rgb_list.shape[0], len(human_pose)))
+            self.human_poses.append(np.repeat(human_pose[np.newaxis,:], trans_dir_rgb_list.shape[0], axis=0))
             self.rays.append(trans_dir_rgb_list)
         self.rays = np.concatenate(self.rays)
-        self.human_poses = torch.cat(self.human_poses)
+        self.human_poses = np.concatenate(self.human_poses)
         print(len(self.rays))
         print(len(self.human_poses))
         print('Finish initializing rays')

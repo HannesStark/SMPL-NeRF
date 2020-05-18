@@ -50,7 +50,7 @@ def save_split(save_dir, camera_transforms, indices, split,
     image_transform_map = {image_name: camera_transform
                            for (image_name, camera_transform) in zip(image_names, camera_transforms)}
     if dataset_type == "smpl_nerf":
-        image_pose_map = {image_name: human_pose
+        image_pose_map = {image_name: human_pose[0].numpy()
                                for (image_name, human_pose) in zip(image_names, human_poses)}
         dict = {'camera_angle_x': camera_angle_x,
             'image_transform_map': image_transform_map,
