@@ -59,8 +59,6 @@ class SmplNerfDataset(Dataset):
             self.rays.append(trans_dir_rgb_list)
         self.rays = np.concatenate(self.rays)
         self.human_poses = np.concatenate(self.human_poses)
-        print(len(self.rays))
-        print(len(self.human_poses))
         print('Finish initializing rays')
 
     def __getitem__(self, index: int):
