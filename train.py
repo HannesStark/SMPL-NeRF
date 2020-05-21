@@ -7,6 +7,7 @@ from config_parser import config_parser
 from datasets.rays_from_images_dataset import RaysFromImagesDataset
 from datasets.smpl_nerf_dataset import SmplNerfDataset
 from datasets.transforms import CoarseSampling, ToTensor, NormalizeRGB
+from models.debug_model import DebugModel
 from models.render_ray_net import RenderRayNet
 from models.warp_field_net import WarpFieldNet
 from solver.nerf_solver import NerfSolver

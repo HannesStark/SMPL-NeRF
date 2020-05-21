@@ -99,6 +99,7 @@ def raw2outputs(raw: torch.Tensor, z_vals: torch.Tensor,
     dists = dists * torch.norm(samples_directions, dim=-1)
 
     rgb = torch.sigmoid(raw[..., :3])  # [batchsize, number_samples, 3]
+
     noise = 0.
     if args.sigma_noise_std > 0.:
         noise = torch.normal(0, args.sigma_noise_std, raw[..., 3].shape)

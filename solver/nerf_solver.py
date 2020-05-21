@@ -29,9 +29,9 @@ class NerfSolver():
             loss for training. The default is torch.nn.MSELoss().
         """
 
-        optim_args_merged = self.default_adam_args.copy()
-        optim_args_merged.update({"lr": args.lrate, "weight_decay": args.weight_decay})
-        self.optim = optim(list(model_coarse.parameters()) + list(model_fine.parameters()), **optim_args_merged)
+        self.optim_args_merged = self.default_adam_args.copy()
+        self.optim_args_merged.update({"lr": args.lrate, "weight_decay": args.weight_decay})
+        self.optim = optim(list(model_coarse.parameters()) + list(model_fine.parameters()), **self.optim_args_merged)
         self.loss_func = loss_func
         self.positions_encoder = positions_encoder
         self.directions_encoder = directions_encoder
@@ -86,11 +86,18 @@ class NerfSolver():
                 for j, element in enumerate(data):
                     data[j] = element.to(self.device)
                 rgb_truth = data[-1]
-                rgb, rgb_fine = self.pipeline(data)
+
+                rgb, rgb_fine, warp = self.pipeline(data)
+
                 self.optim.zero_grad()
                 loss_coarse = self.loss_func(rgb, rgb_truth)
                 loss_fine = self.loss_func(rgb_fine, rgb_truth)
+
                 loss = loss_coarse + loss_fine
+                #if warp != None:
+                #    norm = 10*torch.mean(torch.norm(warp, p=1, dim=-1))
+                #    print(norm)
+                #    loss += norm
                 loss.backward()
                 self.optim.step()
 
@@ -107,11 +114,13 @@ class NerfSolver():
                                 data[j] = element.to(self.device)
                             rgb_truth = data[-1]
 
-                            rgb, rgb_fine = self.pipeline(data)
+                            rgb, rgb_fine, warp = self.pipeline(data)
 
                             loss_coarse = self.loss_func(rgb, rgb_truth)
                             loss_fine = self.loss_func(rgb_fine, rgb_truth)
                             loss = loss_coarse + loss_fine
+                            #if warp != None:
+                            #    loss += 0.5 * torch.mean(torch.norm(warp, p=1, dim=-1))
                             val_loss += loss.item()
                         self.writer.add_scalars('Loss curve every nth iteration', {'train loss': loss_item,
                                                                                    'val loss': val_loss / len(
@@ -135,11 +144,13 @@ class NerfSolver():
                     data[j] = element.to(self.device)
                 rgb_truth = data[-1]
 
-                rgb, rgb_fine = self.pipeline(data)
+                rgb, rgb_fine, warp = self.pipeline(data)
 
                 loss_coarse = self.loss_func(rgb, rgb_truth)
                 loss_fine = self.loss_func(rgb_fine, rgb_truth)
                 loss = loss_coarse + loss_fine
+                #if warp != None:
+                #    loss += 0.5 * torch.mean(torch.norm(warp, p=1, dim=-1))
                 val_loss += loss.item()
                 ground_truth_images.append(rgb_truth.detach().cpu().numpy())
                 rerender_images.append(rgb_fine.detach().cpu().numpy())

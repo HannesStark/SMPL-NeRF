@@ -45,7 +45,8 @@ class NerfPipeline(nn.Module):
                                        raw_outputs.shape[-1])  # [batchsize, number_coarse_samples, 4]
         rgb, weights = raw2outputs(raw_outputs, z_vals, coarse_samples_directions, self.args)
         if not self.args.run_fine:
-            return rgb, rgb
+            return rgb, rgb, None
+
         # get values for the fine network and run them through the fine network
         z_vals, ray_samples_fine = fine_sampling(ray_translation, ray_direction, z_vals, weights,
                                                  self.args.number_fine_samples)  # [batchsize, number_coarse_samples + number_fine_samples, 3]
@@ -67,4 +68,4 @@ class NerfPipeline(nn.Module):
                                                                      ray_direction.shape[-1])
         rgb_fine, _ = raw2outputs(raw_outputs_fine, z_vals, fine_samples_directions, self.args)
 
-        return rgb, rgb_fine
+        return rgb, rgb_fine, None

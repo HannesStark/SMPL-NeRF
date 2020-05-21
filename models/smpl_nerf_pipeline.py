@@ -1,4 +1,5 @@
 import torch
+from torch.utils.tensorboard import SummaryWriter
 
 from models.nerf_pipeline import NerfPipeline
 from utils import PositionalEncoder, raw2outputs, fine_sampling
@@ -7,10 +8,11 @@ from utils import PositionalEncoder, raw2outputs, fine_sampling
 class SmplNerfPipeline(NerfPipeline):
 
     def __init__(self, model_coarse, model_fine, model_warp_field, args, position_encoder: PositionalEncoder,
-                 direction_encoder: PositionalEncoder, human_pose_encoder: PositionalEncoder):
+                 direction_encoder: PositionalEncoder, human_pose_encoder: PositionalEncoder, writer: SummaryWriter):
         super(SmplNerfPipeline, self).__init__(model_coarse, model_fine, args, position_encoder, direction_encoder)
         self.human_pose_encoder = human_pose_encoder
         self.model_warp_field = model_warp_field
+        self.writer = writer
 
     def forward(self, data):
         """
@@ -35,7 +37,6 @@ class SmplNerfPipeline(NerfPipeline):
         warp_field_inputs = torch.cat([samples_encoding.reshape(-1, samples_encoding.shape[-1]),
                                        goal_pose_encoding.reshape(-1, goal_pose_encoding.shape[-1])], -1)
         warp = self.model_warp_field(warp_field_inputs).view(ray_samples.shape)
-
         warped_samples = ray_samples + warp
         samples_encoding = self.position_encoder.encode(warped_samples)
 
@@ -52,7 +53,7 @@ class SmplNerfPipeline(NerfPipeline):
                                        raw_outputs.shape[-1])  # [batchsize, number_coarse_samples, 4]
         rgb, weights = raw2outputs(raw_outputs, z_vals, coarse_samples_directions, self.args)
         if not self.args.run_fine:
-            return rgb, rgb
+            return rgb, rgb, warp
 
 
         # get values for the fine network and run them through the fine network
@@ -88,4 +89,4 @@ class SmplNerfPipeline(NerfPipeline):
                                                                      ray_direction.shape[-1])
         rgb_fine, _ = raw2outputs(raw_outputs_fine, z_vals, fine_samples_directions, self.args)
 
-        return rgb, rgb_fine
+        return rgb, rgb_fine, warp
