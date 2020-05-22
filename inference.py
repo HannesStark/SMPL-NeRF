@@ -4,7 +4,7 @@ from typing import Dict
 import cv2
 import imageio
 import numpy as np
-import pickle
+import json
 from tqdm import tqdm
 
 import torch
@@ -15,8 +15,8 @@ from utils import run_nerf_pipeline, PositionalEncoder
 
 
 def inference(run_file, camera_transforms, batch_size=128):
-    with open(run_file, 'rb') as file:
-        run = pickle.load(file)
+    with open(run_file, 'r') as file:
+        run = json.load(file)
     model_coarse = run['model_coarse']
     model_fine = run['model_fine']
     h, w, f = run['height'], run['width'], run['focal']

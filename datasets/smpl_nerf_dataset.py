@@ -1,6 +1,6 @@
 import glob
 import os
-import pickle
+import json
 
 import cv2
 import numpy as np
@@ -33,8 +33,8 @@ class SmplNerfDataset(Dataset):
         self.rays = []  # list of arrays with ray translation, ray direction and rgb
         self.human_poses = []  # list of corresponding human poses
         print('Start initializing all rays of all images')
-        with open(transforms_file, 'rb') as transforms_file:
-            transforms_dict = pickle.load(transforms_file)
+        with open(transforms_file, 'r') as transforms_file:
+            transforms_dict = json.load(transforms_file)
         camera_angle_x = transforms_dict['camera_angle_x']
         image_transform_map = transforms_dict.get('image_transform_map')
         image_pose_map = transforms_dict.get('image_pose_map')
@@ -43,8 +43,8 @@ class SmplNerfDataset(Dataset):
         if not len(image_paths) == len(image_transform_map):
             raise ValueError('Number of images in image_directory is not the same as number of transforms')
         for image_path in image_paths:
-            camera_transform = image_transform_map[os.path.basename(image_path)]
-            human_pose = image_pose_map[os.path.basename(image_path)]
+            camera_transform = np.array(image_transform_map[os.path.basename(image_path)])
+            human_pose = np.array(image_pose_map[os.path.basename(image_path)])
 
             image = cv2.imread(image_path)
             self.h, self.w = image.shape[:2]

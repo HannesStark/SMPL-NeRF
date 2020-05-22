@@ -4,10 +4,9 @@ import os
 from render import get_smpl_mesh, render_scene, save_render, get_human_poses
 from utils import disjoint_indices
 from camera import get_sphere_poses, get_pose_matrix, get_circle_poses, get_circle_on_sphere_poses
-import pickle
+import json
 from skimage.color import gray2rgb
 import configargparse
-
 
 np.random.seed(0)
 
@@ -47,16 +46,16 @@ def save_split(save_dir, camera_transforms, indices, split,
     camera_transforms = camera_transforms[indices]
     image_names = ["img_{:03d}.png".format(index) for index in indices]
     print("Length of {} set: {}".format(split, len(image_names)))
-    image_transform_map = {image_name: camera_transform
+    image_transform_map = {image_name: camera_transform.tolist()
                            for (image_name, camera_transform) in zip(image_names, camera_transforms)}
     if dataset_type == "smpl_nerf":
-        image_pose_map = {image_name: human_pose[0].numpy()
+        image_pose_map = {image_name: human_pose[0].numpy().tolist()
                                for (image_name, human_pose) in zip(image_names, human_poses)}
         dict = {'camera_angle_x': camera_angle_x,
             'image_transform_map': image_transform_map,
             'image_pose_map': image_pose_map,
-            'betas': betas,
-            'expressions': expression}
+            'betas': betas[0].numpy().tolist(),
+            'expressions': expression[0].numpy().tolist()}
     elif dataset_type == "nerf" or dataset_type == "pix2pix":
         dict = {'camera_angle_x': camera_angle_x,
                 'image_transform_map': image_transform_map}
@@ -75,10 +74,10 @@ def save_split(save_dir, camera_transforms, indices, split,
                            height, width, camera_angle_x)
         save_render(img, os.path.join(directory, image_name))
     print("Saved {} images under: {}".format(split, directory))
-    pkl_file_name = os.path.join(directory, 'transforms.pkl')
-    with open(pkl_file_name, 'wb') as handle:
-        pickle.dump(dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    print("Saved {} images to transforms map under: {} \n".format(split, pkl_file_name))
+    json_file_name = os.path.join(directory, 'transforms.json')
+    with open(json_file_name, 'w') as fp:
+        json.dump(dict, fp)
+    print("Saved {} images to transforms map under: {} \n".format(split, json_file_name))
 
 
 def create_dataset():
