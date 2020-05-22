@@ -4,12 +4,12 @@ model_type = smpl_nerf
 
 netdepth = 3
 
-run_fine = 0
+run_fine = 1
 netdepth_fine = 8
 
 log_iterations = 5
 batchsize = 1
-batchsize_val = 1000
+batchsize_val = 30
 num_epochs = 50
 
 white_background = 1

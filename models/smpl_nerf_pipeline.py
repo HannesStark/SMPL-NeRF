@@ -30,8 +30,9 @@ class SmplNerfPipeline(NerfPipeline):
 
         # get values for coarse network and run them through the coarse network
         goal_pose_encoding_flat = self.human_pose_encoder.encode(goal_pose)
-        goal_pose_encoding = goal_pose_encoding_flat[..., None, :].expand(goal_pose_encoding_flat.shape[0], ray_samples.shape[1],
-                                                                     goal_pose_encoding_flat.shape[-1])
+        goal_pose_encoding = goal_pose_encoding_flat[..., None, :].expand(goal_pose_encoding_flat.shape[0],
+                                                                          ray_samples.shape[1],
+                                                                          goal_pose_encoding_flat.shape[-1])
 
         samples_encoding = self.position_encoder.encode(ray_samples)
         warp_field_inputs = torch.cat([samples_encoding.reshape(-1, samples_encoding.shape[-1]),
@@ -53,8 +54,7 @@ class SmplNerfPipeline(NerfPipeline):
                                        raw_outputs.shape[-1])  # [batchsize, number_coarse_samples, 4]
         rgb, weights = raw2outputs(raw_outputs, z_vals, coarse_samples_directions, self.args)
         if not self.args.run_fine:
-            return rgb, rgb, warp
-
+            return rgb, rgb, warp, ray_samples
 
         # get values for the fine network and run them through the fine network
         z_vals, ray_samples_fine = fine_sampling(ray_translation, ray_direction, z_vals, weights,
@@ -65,16 +65,16 @@ class SmplNerfPipeline(NerfPipeline):
                                                                           ray_samples_fine.shape[1],
                                                                           goal_pose_encoding_flat.shape[-1])
         warp_field_inputs_fine = torch.cat([samples_encoding_fine.reshape(-1, samples_encoding_fine.shape[-1]),
-                                       goal_pose_encoding.reshape(-1, goal_pose_encoding.shape[-1])], -1)
+                                            goal_pose_encoding.reshape(-1, goal_pose_encoding.shape[-1])], -1)
         warp_fine = self.model_warp_field(warp_field_inputs_fine).view(ray_samples_fine.shape)
 
         warped_samples_fine = ray_samples_fine + warp_fine
         samples_encoding_fine = self.position_encoder.encode(warped_samples_fine)
 
         fine_samples_directions = warped_samples_fine - ray_translation[:, None,
-                                                     :]  # [batchsize, number_coarse_samples, 3]
+                                                        :]  # [batchsize, number_coarse_samples, 3]
         samples_directions_norm_fine = fine_samples_directions / torch.norm(fine_samples_directions, dim=-1,
-                                                                         keepdim=True)
+                                                                            keepdim=True)
         directions_encoding_fine = self.direction_encoder.encode(samples_directions_norm_fine)
         inputs_fine = torch.cat([samples_encoding_fine.view(-1, samples_encoding_fine.shape[-1]),
                                  directions_encoding_fine.reshape(-1, directions_encoding_fine.shape[-1])], -1)
@@ -89,4 +89,4 @@ class SmplNerfPipeline(NerfPipeline):
                                                                      ray_direction.shape[-1])
         rgb_fine, _ = raw2outputs(raw_outputs_fine, z_vals, fine_samples_directions, self.args)
 
-        return rgb, rgb_fine, warp
+        return rgb, rgb_fine, warp_fine, ray_samples_fine

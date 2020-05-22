@@ -1,9 +1,11 @@
 import pickle
 
+import matplotlib.pyplot as plt
 import cv2
 import numpy as np
 import torch
 import trimesh
+from torch.utils.tensorboard import SummaryWriter
 
 from torchsearchsorted import searchsorted
 
@@ -305,5 +307,38 @@ def get_dependent_rays_indices(ray_translation: np.array, ray_direction: np.arra
     camera_coords = cv2.projectPoints(goal_intersections, rvec, tvec, camera_matrix, distortion_coeffs)[0]
     return np.round(camera_coords.reshape(-1, 2)), vertices
 
+def tensorboard_rerenders(writer: SummaryWriter, number_validation_images, rerender_images, ground_truth_images, step):
+    if number_validation_images > len(rerender_images):
+        print('there are only ', len(rerender_images),
+              ' in the validation directory which is less than the specified number_validation_images: ',
+              number_validation_images, ' So instead ', len(rerender_images),
+              ' images are sent to tensorboard')
+        number_validation_images = len(rerender_images)
+    else:
+        rerender_images = rerender_images[:number_validation_images]
 
+    if number_validation_images > 0:
+        fig, axarr = plt.subplots(number_validation_images, 2, sharex=True, sharey=True)
+        if len(axarr.shape) == 1:
+            axarr = axarr[None, :]
+        for i in range(number_validation_images):
+            # strange indices after image because matplotlib wants bgr instead of rgb
+            axarr[i, 0].imshow(ground_truth_images[i][:, :, ::-1])
+            axarr[i, 0].axis('off')
+            axarr[i, 1].imshow(rerender_images[i][:, :, ::-1])
+            axarr[i, 1].axis('off')
+        axarr[0, 0].set_title('Ground Truth')
+        axarr[0, 1].set_title('Rerender')
+        fig.set_dpi(300)
+        writer.add_figure(str(step) + ' validation images', fig, step)
+        plt.close()
 
+def tensorboard_warps(writer: SummaryWriter, number_validation_images, samples, warps, step):
+    if number_validation_images <= len(samples):
+        samples = samples[:number_validation_images]
+        warps = warps[:number_validation_images]
+
+    colors = np.linalg.norm(warps, axis=-1, keepdims=True)
+    colors = np.max(colors, axis=1)
+
+    writer.add_mesh('my_mesh', vertices=samples, colors=warps,global_step=step)
