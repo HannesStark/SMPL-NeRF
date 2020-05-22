@@ -31,11 +31,11 @@ def train():
     train_dir = os.path.join(args.dataset_dir, 'train')
     val_dir = os.path.join(args.dataset_dir, 'val')
     if args.model_type == "nerf":
-        dataset = RaysFromImagesDataset(train_dir, os.path.join(train_dir, 'transforms.pkl'), transform)
-        val_data = RaysFromImagesDataset(val_dir, os.path.join(val_dir, 'transforms.pkl'), transform)
+        dataset = RaysFromImagesDataset(train_dir, os.path.join(train_dir, 'transforms.json'), transform)
+        val_data = RaysFromImagesDataset(val_dir, os.path.join(val_dir, 'transforms.json'), transform)
     elif args.model_type == "smpl_nerf":
-        dataset = SmplNerfDataset(train_dir, os.path.join(train_dir, 'transforms.pkl'), transform)
-        val_data = SmplNerfDataset(val_dir, os.path.join(val_dir, 'transforms.pkl'), transform)
+        dataset = SmplNerfDataset(train_dir, os.path.join(train_dir, 'transforms.json'), transform)
+        val_data = SmplNerfDataset(val_dir, os.path.join(val_dir, 'transforms.json'), transform)
 
     train_loader = torch.utils.data.DataLoader(dataset, batch_size=args.batchsize, shuffle=True, num_workers=0)
     val_loader = torch.utils.data.DataLoader(val_data, batch_size=args.batchsize_val, shuffle=False, num_workers=0)

@@ -1,6 +1,6 @@
 import glob
 import os
-import pickle
+import json
 
 import cv2
 import numpy as np
@@ -33,8 +33,8 @@ class DependentRaysFromImagesDataset(Dataset):
         self.dependencies_index = []
         self.dependencies_hw = []
         print('Start initializing all rays of all images')
-        with open(transforms_file, 'rb') as transforms_file:
-            transforms_dict = pickle.load(transforms_file)
+        with open(transforms_file, 'r') as transforms_file:
+            transforms_dict = json.load(transforms_file)
         camera_angle_x = transforms_dict['camera_angle_x']
         image_transform_map = transforms_dict.get('image_transform_map')
         image_pose_map = transforms_dict.get('image_pose_map')

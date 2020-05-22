@@ -3,22 +3,22 @@ import os
 import numpy as np
 import operator
 import shutil
-import pickle
+import json
 
 def nearest_neighbor():
 
-    # take transforms from RaysFromCameraDataset and calculate the nearest transform out of the transform pickle for training images
+    # take transforms from RaysFromCameraDataset and calculate the nearest transform out of the transform json for training images
     # we have a dict with image names and corresponding transformations
     # calculate nearest neighbor from input transform vs list of transformation matrices: frobenius norm
     # copy images with nearest transforms in new directory
 
-    with open('data/train/transforms.pkl', 'rb') as transforms_file:
-        transforms_dict = pickle.load(transforms_file)
+    with open('data/train/transforms.json', 'r') as transforms_file:
+        transforms_dict = json.load(transforms_file)
     image_transform_map = transforms_dict.get('image_transform_map')
     train_transforms = list(image_transform_map.items())
 
-    with open('data/val/transforms.pkl', 'rb') as transforms_file:
-        transforms_dict = pickle.load(transforms_file)
+    with open('data/val/transforms.json', 'r') as transforms_file:
+        transforms_dict = json.load(transforms_file)
     image_transform_map = transforms_dict.get('image_transform_map')
     val_transforms = list(image_transform_map.items())
 

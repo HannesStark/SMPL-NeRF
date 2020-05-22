@@ -5,7 +5,7 @@ from typing import Dict
 import matplotlib.pyplot as plt
 import cv2
 import numpy as np
-import pickle
+import json
 
 from camera import get_pose_matrix, get_circle_pose
 from inference import inference
@@ -13,8 +13,8 @@ from render import get_smpl_mesh, render_scene
 
 
 def l1_val_rerender(run_file, val_folder='data/val', batchsize=128):
-    with open(os.path.join(val_folder, 'transforms.pkl'), 'rb') as transforms_file:
-        transforms_dict = pickle.load(transforms_file)
+    with open(os.path.join(val_folder, 'transforms.json'), 'r') as transforms_file:
+        transforms_dict = json.load(transforms_file)
     image_transform_map: Dict = transforms_dict.get('image_transform_map')
     camera_transforms_list = []
     val_images = []
