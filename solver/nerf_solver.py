@@ -1,10 +1,9 @@
 import torch
 from torch.utils.tensorboard import SummaryWriter
-import matplotlib.pyplot as plt
 import numpy as np
 
 from models.nerf_pipeline import NerfPipeline
-from utils import PositionalEncoder
+from utils import PositionalEncoder, tensorboard_rerenders
 
 
 class NerfSolver():
@@ -36,7 +35,6 @@ class NerfSolver():
         self.positions_encoder = positions_encoder
         self.directions_encoder = directions_encoder
         self.writer = SummaryWriter()
-        self._reset_histories()
         self.args = args
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         if torch.cuda.is_available():
@@ -49,13 +47,11 @@ class NerfSolver():
         return NerfPipeline(self.model_coarse, self.model_fine, self.args, self.positions_encoder,
                             self.directions_encoder)
 
-    def _reset_histories(self):
-        """
-        Resets train and val histories for the accuracy and the loss.
-        """
-        self.train_loss_history = []
-        self.train_loss_history_per_iter = []
-        self.val_loss_history = []
+    def nerf_loss(self, rgb, rgb_fine, rgb_truth):
+        loss_coarse = self.loss_func(rgb, rgb_truth)
+        loss_fine = self.loss_func(rgb_fine, rgb_truth)
+        loss = loss_coarse + loss_fine
+        return loss
 
     def train(self, train_loader, val_loader, h: int, w: int):
         """
@@ -63,8 +59,6 @@ class NerfSolver():
 
         Parameters
         ----------
-        model_coarse : coarse model object.
-        model_fine : fine model object.
         train_loader : training data loader object.
         val_loader : validation data loader object.
         h : int
@@ -73,7 +67,6 @@ class NerfSolver():
             width of images.
         """
         args = self.args
-        self._reset_histories()
         iter_per_epoch = len(train_loader)
 
         print('START TRAIN.')
@@ -87,17 +80,11 @@ class NerfSolver():
                     data[j] = element.to(self.device)
                 rgb_truth = data[-1]
 
-                rgb, rgb_fine, warp = self.pipeline(data)
+                rgb, rgb_fine = self.pipeline(data)
 
                 self.optim.zero_grad()
-                loss_coarse = self.loss_func(rgb, rgb_truth)
-                loss_fine = self.loss_func(rgb_fine, rgb_truth)
 
-                loss = loss_coarse + loss_fine
-                #if warp != None:
-                #    norm = 10*torch.mean(torch.norm(warp, p=1, dim=-1))
-                #    print(norm)
-                #    loss += norm
+                loss = self.nerf_loss(rgb, rgb_fine, rgb_truth)
                 loss.backward()
                 self.optim.step()
 
@@ -114,23 +101,16 @@ class NerfSolver():
                                 data[j] = element.to(self.device)
                             rgb_truth = data[-1]
 
-                            rgb, rgb_fine, warp = self.pipeline(data)
+                            rgb, rgb_fine = self.pipeline(data)
 
-                            loss_coarse = self.loss_func(rgb, rgb_truth)
-                            loss_fine = self.loss_func(rgb_fine, rgb_truth)
-                            loss = loss_coarse + loss_fine
-                            #if warp != None:
-                            #    loss += 0.5 * torch.mean(torch.norm(warp, p=1, dim=-1))
+                            loss = self.nerf_loss(rgb, rgb_fine, rgb_truth)
                             val_loss += loss.item()
                         self.writer.add_scalars('Loss curve every nth iteration', {'train loss': loss_item,
                                                                                    'val loss': val_loss / len(
                                                                                        val_loader)},
                                                 i // args.log_iterations + epoch * (
                                                         iter_per_epoch // args.log_iterations))
-
                 train_loss += loss_item
-                self.train_loss_history_per_iter.append(loss_item)
-            self.train_loss_history.append(train_loss / iter_per_epoch)
             print('[Epoch %d] Average loss of Epoch: %.7f' %
                   (epoch + 1, train_loss / iter_per_epoch))
 
@@ -144,46 +124,20 @@ class NerfSolver():
                     data[j] = element.to(self.device)
                 rgb_truth = data[-1]
 
-                rgb, rgb_fine, warp = self.pipeline(data)
+                rgb, rgb_fine = self.pipeline(data)
 
-                loss_coarse = self.loss_func(rgb, rgb_truth)
-                loss_fine = self.loss_func(rgb_fine, rgb_truth)
-                loss = loss_coarse + loss_fine
-                #if warp != None:
-                #    loss += 0.5 * torch.mean(torch.norm(warp, p=1, dim=-1))
+                loss = self.nerf_loss(rgb, rgb_fine, rgb_truth)
                 val_loss += loss.item()
                 ground_truth_images.append(rgb_truth.detach().cpu().numpy())
                 rerender_images.append(rgb_fine.detach().cpu().numpy())
             if len(val_loader) != 0:
                 rerender_images = np.concatenate(rerender_images, 0).reshape((-1, h, w, 3))
                 ground_truth_images = np.concatenate(ground_truth_images).reshape((-1, h, w, 3))
-            number_validation_images = args.number_validation_images
-            if args.number_validation_images > len(rerender_images):
-                print('there are only ', len(rerender_images),
-                      ' in the validation directory which is less than the specified number_validation_images: ',
-                      args.number_validation_images, ' So instead ', len(rerender_images),
-                      ' images are sent to tensorboard')
-                number_validation_images = len(rerender_images)
-            else:
-                rerender_images = rerender_images[:number_validation_images]
 
-            if number_validation_images > 0:
-                fig, axarr = plt.subplots(number_validation_images, 2, sharex=True, sharey=True)
-                if len(axarr.shape) == 1:
-                    axarr = axarr[None, :]
-                for i in range(number_validation_images):
-                    # strange indices after image because matplotlib wants bgr instead of rgb
-                    axarr[i, 0].imshow(ground_truth_images[i][:, :, ::-1])
-                    axarr[i, 0].axis('off')
-                    axarr[i, 1].imshow(rerender_images[i][:, :, ::-1])
-                    axarr[i, 1].axis('off')
-                axarr[0, 0].set_title('Ground Truth')
-                axarr[0, 1].set_title('Rerender')
-                fig.set_dpi(300)
-                self.writer.add_figure(str(epoch) + ' validation images', fig, epoch)
-                plt.close()
+            tensorboard_rerenders(self.writer, args.number_validation_images, rerender_images, ground_truth_images,
+                                  step=epoch)
+
             print('[Epoch %d] VAL loss: %.7f' % (epoch + 1, val_loss / (len(val_loader) or not len(val_loader))))
-            self.val_loss_history.append(val_loss)
             self.writer.add_scalars('Loss Curve', {'train loss': train_loss / iter_per_epoch,
                                                    'val loss': val_loss / (len(val_loader) or not len(val_loader))},
                                     epoch)
