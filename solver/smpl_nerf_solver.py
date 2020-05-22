@@ -29,7 +29,7 @@ class SmplNerfSolver(NerfSolver):
         loss_coarse = self.loss_func(rgb, rgb_truth)
         loss_fine = self.loss_func(rgb_fine, rgb_truth)
         loss = loss_coarse + loss_fine
-        # loss += 0.5 * torch.mean(torch.norm(warp, p=1, dim=-1))
+        loss += 0.5 * torch.mean(torch.norm(warp, p=1, dim=-1))
         return loss
 
     def train(self, train_loader, val_loader, h: int, w: int):
