@@ -338,7 +338,9 @@ def tensorboard_warps(writer: SummaryWriter, number_validation_images, samples, 
         samples = samples[:number_validation_images]
         warps = warps[:number_validation_images]
 
-    colors = np.linalg.norm(warps, axis=-1, keepdims=True)
-    colors = np.max(colors, axis=1)
+    colors = np.sum(warps, axis=-1,keepdims=True)
+    max = np.max(colors, axis=-1, keepdims=True)
+    colors = colors/max
+    colors = colors.repeat(3, axis=-1)
 
-    writer.add_mesh('my_mesh', vertices=samples, colors=warps,global_step=step)
+    writer.add_mesh('my_mesh', vertices=samples, colors=colors, global_step=step)
