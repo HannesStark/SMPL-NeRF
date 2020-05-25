@@ -8,5 +8,6 @@ train
 renders
 runs
 data
+data*
 baseline/*
 results
