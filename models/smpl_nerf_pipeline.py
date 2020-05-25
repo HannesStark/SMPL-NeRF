@@ -27,7 +27,6 @@ class SmplNerfPipeline(NerfPipeline):
             """
         ray_samples, ray_translation, ray_direction, z_vals, goal_pose, _ = data
         goal_pose = torch.stack([goal_pose[:, 38], goal_pose[:, 41]], axis=-1)
-
         # get values for coarse network and run them through the coarse network
         goal_pose_encoding_flat = self.human_pose_encoder.encode(goal_pose)
         goal_pose_encoding = goal_pose_encoding_flat[..., None, :].expand(goal_pose_encoding_flat.shape[0],

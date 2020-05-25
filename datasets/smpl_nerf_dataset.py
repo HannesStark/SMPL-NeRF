@@ -8,6 +8,8 @@ import torch
 from torch.utils.data import Dataset
 
 from utils import get_rays
+import smplx
+from render import get_smpl_vertices
 
 
 class SmplNerfDataset(Dataset):
@@ -38,7 +40,8 @@ class SmplNerfDataset(Dataset):
         camera_angle_x = transforms_dict['camera_angle_x']
         image_transform_map = transforms_dict.get('image_transform_map')
         image_pose_map = transforms_dict.get('image_pose_map')
-
+        self.expression = [transforms_dict['expression']]
+        self.betas = [transforms_dict['betas']]
         image_paths = sorted(glob.glob(os.path.join(image_directory, '*.png')))
         if not len(image_paths) == len(image_transform_map):
             raise ValueError('Number of images in image_directory is not the same as number of transforms')
@@ -59,6 +62,8 @@ class SmplNerfDataset(Dataset):
             self.rays.append(trans_dir_rgb_list)
         self.rays = np.concatenate(self.rays)
         self.human_poses = np.concatenate(self.human_poses)
+        self.canonical_smpl = get_smpl_vertices(self.betas, self.expression)
+        print(type(self.canonical_smpl))
         print('Finish initializing rays')
 
     def __getitem__(self, index: int):
