@@ -66,6 +66,49 @@ def get_smpl_mesh(smpl_file_name: str = None, texture_file_name: str = None,
         return mesh, betas, expression
     return mesh
 
+def get_smpl_vertices(betas, expression, 
+                  smpl_file_name: str = None, texture_file_name: str = None,
+                  uv_map_file_name: str = None, body_pose: torch.Tensor = None,
+                  return_betas_exps=False) -> pyrender.Mesh:
+    """
+    Load SMPL model, texture file and uv-map.
+    Set arm angles and convert to mesh.
+
+    Parameters
+    ----------
+    smpl_file_name : str
+        file name of smpl model (.pkl).
+    texture_file_name : str
+        file name of texture for smpl (.jpg).
+    uv_map_file_name : str
+        file name of uv-map for smpl (.npy).
+    right_arm_angle : float, optional
+        desired right arm angle in radians. The default is 0..
+    left_arm_angle : float, optional
+        desired left arm angle in radians. The default is 0.
+    body_pose : torch.Tensor[1, 69]
+        Body poses for SMPL
+
+    Returns
+    -------
+    vertices : pyrender.Mesh
+        SMPL mesh with texture and desired body pose.
+
+    """
+    if smpl_file_name is None:
+        smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
+    if texture_file_name is None:
+        texture_file_name = "textures/texture.jpg"
+    if uv_map_file_name is None:
+        uv_map_file_name = "textures/smpl_uv_map.npy"
+    model = smplx.create(smpl_file_name, model_type='smpl')
+    # set betas and expression to fixed values
+    betas = torch.tensor(betas)
+    expression = torch.tensor(expression)
+    output = model(betas=betas, expression=expression,
+                   return_verts=True, body_pose=body_pose)
+    vertices = output.vertices.detach().cpu().numpy().squeeze()
+    return vertices
 
 def get_human_poses(joints: list, start_angle: list, end_angle: list,
                     number_steps: list) -> list:
