@@ -125,7 +125,9 @@ class SmplNerfSolver(NerfSolver):
                 warps = warps.reshape(
                     (-1, h * w * warps.shape[-2], 3))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
 
-            tensorboard_warps(self.writer, args.number_validation_images, samples, warps, epoch)
+            if epoch == 1 or epoch == args.num_epochs or epoch == args.num_epochs // 2:  # bc it takes too much storage
+                tensorboard_warps(self.writer, args.number_validation_images, samples, warps, epoch)
+
             tensorboard_rerenders(self.writer, args.number_validation_images, rerender_images, ground_truth_images,
                                   step=epoch)
 
