@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from sklearn.mixture import GaussianMixture
 
 from models.smpl_nerf_pipeline import SmplNerfPipeline
 from solver.nerf_solver import NerfSolver
@@ -8,11 +9,12 @@ from utils import PositionalEncoder, tensorboard_rerenders, tensorboard_warps
 
 class SmplNerfSolver(NerfSolver):
     def __init__(self, model_coarse, model_fine, model_warp_field, positions_encoder: PositionalEncoder,
-                 directions_encoder: PositionalEncoder, human_pose_encoder: PositionalEncoder, args,
+                 directions_encoder: PositionalEncoder, human_pose_encoder: PositionalEncoder, canonical_smpl, args,
                  optim=torch.optim.Adam, loss_func=torch.nn.MSELoss()):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.model_warp_field = model_warp_field.to(self.device)
         self.human_pose_encoder = human_pose_encoder
+        self.gaussian_mixture = GaussianMixture()
         super(SmplNerfSolver, self).__init__(model_coarse, model_fine, positions_encoder, directions_encoder, args,
                                              optim, loss_func)
 
@@ -59,7 +61,7 @@ class SmplNerfSolver(NerfSolver):
                     data[j] = element.to(self.device)
                 rgb_truth = data[-1]
 
-                rgb, rgb_fine, warp, ray_samples = self.pipeline(data)
+                rgb, rgb_fine, warp, ray_samples, densities = self.pipeline(data)
 
                 self.optim.zero_grad()
                 loss = self.smpl_nerf_loss(rgb, rgb_fine, rgb_truth, warp)
@@ -79,7 +81,7 @@ class SmplNerfSolver(NerfSolver):
                                 data[j] = element.to(self.device)
                             rgb_truth = data[-1]
 
-                            rgb, rgb_fine, warp, ray_samples = self.pipeline(data)
+                            rgb, rgb_fine, warp, ray_samples, densities = self.pipeline(data)
 
                             loss = self.smpl_nerf_loss(rgb, rgb_fine, rgb_truth, warp)
                             val_loss += loss.item()
@@ -105,7 +107,7 @@ class SmplNerfSolver(NerfSolver):
                     data[j] = element.to(self.device)
                 rgb_truth = data[-1]
 
-                rgb, rgb_fine, warp, ray_samples = self.pipeline(data)
+                rgb, rgb_fine, warp, ray_samples, densities = self.pipeline(data)
 
                 loss = self.smpl_nerf_loss(rgb, rgb_fine, rgb_truth, warp)
                 val_loss += loss.item()

@@ -4,7 +4,7 @@ model_type = smpl_nerf
 
 netdepth = 3
 
-run_fine = 0
+run_fine = 1
 netdepth_fine = 8
 
 log_iterations = 5
