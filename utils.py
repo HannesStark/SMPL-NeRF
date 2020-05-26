@@ -14,6 +14,7 @@ import os
 
 from trimesh.ray.ray_triangle import RayMeshIntersector
 from scipy.spatial.transform import Rotation as R
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 def get_rays(H: int, W: int, focal: float,
@@ -307,7 +308,7 @@ def get_dependent_rays_indices(ray_translation: np.array, ray_direction: np.arra
     camera_coords = cv2.projectPoints(goal_intersections, rvec, tvec, camera_matrix, distortion_coeffs)[0]
     return np.round(camera_coords.reshape(-1, 2)), vertices
 
-def tensorboard_rerenders(writer: SummaryWriter, number_validation_images, rerender_images, ground_truth_images, step):
+def tensorboard_rerenders(writer: SummaryWriter, number_validation_images, rerender_images, ground_truth_images, step, warps=None):
     if number_validation_images > len(rerender_images):
         print('there are only ', len(rerender_images),
               ' in the validation directory which is less than the specified number_validation_images: ',
@@ -318,7 +319,13 @@ def tensorboard_rerenders(writer: SummaryWriter, number_validation_images, reren
         rerender_images = rerender_images[:number_validation_images]
 
     if number_validation_images > 0:
-        fig, axarr = plt.subplots(number_validation_images, 2, sharex=True, sharey=True)
+
+        if warps is not None:
+            image_col = 3
+        else:
+            image_col = 2
+        fig, axarr = plt.subplots(number_validation_images, image_col, sharex=True, sharey=True)
+
         if len(axarr.shape) == 1:
             axarr = axarr[None, :]
         for i in range(number_validation_images):
@@ -327,8 +334,24 @@ def tensorboard_rerenders(writer: SummaryWriter, number_validation_images, reren
             axarr[i, 0].axis('off')
             axarr[i, 1].imshow(rerender_images[i][:, :, ::-1])
             axarr[i, 1].axis('off')
+            if warps is not None:
+                w = axarr[i, 2].imshow(warps[i])
+                axarr[i, 2].axis('off')
+
+                last_axes = plt.gca()
+                ax = w.axes
+                fig = ax.figure
+                divider = make_axes_locatable(ax)
+                cax = divider.append_axes("right", size="5%", pad=0.05)
+                fig.colorbar(w, cax=cax)
+                plt.sca(last_axes)
+
         axarr[0, 0].set_title('Ground Truth')
         axarr[0, 1].set_title('Rerender')
+        if warps is not None:
+            axarr[0, 2].set_title('Warp Intensity')
+
+
         fig.set_dpi(300)
         writer.add_figure(str(step) + ' validation images', fig, step)
         plt.close()

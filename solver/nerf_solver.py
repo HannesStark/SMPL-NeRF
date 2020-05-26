@@ -135,7 +135,7 @@ class NerfSolver():
                 ground_truth_images = np.concatenate(ground_truth_images).reshape((-1, h, w, 3))
 
             tensorboard_rerenders(self.writer, args.number_validation_images, rerender_images, ground_truth_images,
-                                  step=epoch)
+                                  step=epoch, warps=None)
 
             print('[Epoch %d] VAL loss: %.7f' % (epoch + 1, val_loss / (len(val_loader) or not len(val_loader))))
             self.writer.add_scalars('Loss Curve', {'train loss': train_loss / iter_per_epoch,

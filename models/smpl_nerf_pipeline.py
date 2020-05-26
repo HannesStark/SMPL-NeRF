@@ -47,7 +47,6 @@ class SmplNerfPipeline(NerfPipeline):
             [ray_samples.reshape(-1, ray_samples.shape[-1]), goal_pose.reshape(-1, goal_pose.shape[-1])], -1)
         ############################
 
-        print(warp_field_inputs.shape)
         warp = self.model_warp_field(warp_field_inputs).view(ray_samples.shape)
         warped_samples = ray_samples + warp
         samples_encoding = self.position_encoder.encode(warped_samples)
