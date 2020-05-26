@@ -56,7 +56,7 @@ def save_split(save_dir, camera_transforms, indices, split,
             'image_transform_map': image_transform_map,
             'image_pose_map': image_pose_map,
             'betas': betas[0].numpy().tolist(),
-            'expressions': expression[0].numpy().tolist()}
+            'expression': expression[0].numpy().tolist()}
     elif dataset_type == "nerf" or dataset_type == "pix2pix":
         dict = {'camera_angle_x': camera_angle_x,
                 'image_transform_map': image_transform_map}
