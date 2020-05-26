@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 from sklearn.mixture import GaussianMixture
+from torch.distributions import MixtureSameFamily
 
 from models.smpl_nerf_pipeline import SmplNerfPipeline
 from solver.nerf_solver import NerfSolver
@@ -9,15 +10,15 @@ from utils import PositionalEncoder, tensorboard_rerenders, tensorboard_warps
 
 class SmplNerfSolver(NerfSolver):
     def __init__(self, model_coarse, model_fine, model_warp_field, positions_encoder: PositionalEncoder,
-                 directions_encoder: PositionalEncoder, human_pose_encoder: PositionalEncoder, canonical_smpl, args,
+                 directions_encoder: PositionalEncoder, human_pose_encoder: PositionalEncoder,
+                 canonical_mixture: MixtureSameFamily, args,
                  optim=torch.optim.Adam, loss_func=torch.nn.MSELoss()):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.model_warp_field = model_warp_field.to(self.device)
         self.human_pose_encoder = human_pose_encoder
-        self.gaussian_mixture = GaussianMixture()
+        self.canonical_mixture = canonical_mixture
         super(SmplNerfSolver, self).__init__(model_coarse, model_fine, positions_encoder, directions_encoder, args,
                                              optim, loss_func)
-
         self.optim = optim(
             list(model_coarse.parameters()) + list(model_fine.parameters()) + list(model_warp_field.parameters()),
             **self.optim_args_merged)
@@ -27,11 +28,12 @@ class SmplNerfSolver(NerfSolver):
                                 self.positions_encoder,
                                 self.directions_encoder, self.human_pose_encoder, self.writer)
 
-    def smpl_nerf_loss(self, rgb, rgb_fine, rgb_truth, warp):
+    def smpl_nerf_loss(self, rgb, rgb_fine, rgb_truth, warp, densities, ray_samples):
         loss_coarse = self.loss_func(rgb, rgb_truth)
         loss_fine = self.loss_func(rgb_fine, rgb_truth)
-        loss = loss_coarse + loss_fine
-        loss += 0.5 * torch.mean(torch.norm(warp, p=1, dim=-1))
+        loss_canonical_densities = self.loss_func(torch.exp(self.canonical_mixture.log_prob(ray_samples)), densities)
+        loss = loss_coarse + loss_fine + loss_canonical_densities
+        #loss += 0.5 * torch.mean(torch.norm(warp, p=1, dim=-1))
         return loss
 
     def train(self, train_loader, val_loader, h: int, w: int):
@@ -64,7 +66,7 @@ class SmplNerfSolver(NerfSolver):
                 rgb, rgb_fine, warp, ray_samples, densities = self.pipeline(data)
 
                 self.optim.zero_grad()
-                loss = self.smpl_nerf_loss(rgb, rgb_fine, rgb_truth, warp)
+                loss = self.smpl_nerf_loss(rgb, rgb_fine, rgb_truth, warp, densities, ray_samples)
                 loss.backward()
                 self.optim.step()
 
@@ -83,7 +85,7 @@ class SmplNerfSolver(NerfSolver):
 
                             rgb, rgb_fine, warp, ray_samples, densities = self.pipeline(data)
 
-                            loss = self.smpl_nerf_loss(rgb, rgb_fine, rgb_truth, warp)
+                            loss = self.smpl_nerf_loss(rgb, rgb_fine, rgb_truth, warp, densities, ray_samples)
                             val_loss += loss.item()
                         self.writer.add_scalars('Loss curve every nth iteration', {'train loss': loss_item,
                                                                                    'val loss': val_loss / len(
@@ -109,7 +111,7 @@ class SmplNerfSolver(NerfSolver):
 
                 rgb, rgb_fine, warp, ray_samples, densities = self.pipeline(data)
 
-                loss = self.smpl_nerf_loss(rgb, rgb_fine, rgb_truth, warp)
+                loss = self.smpl_nerf_loss(rgb, rgb_fine, rgb_truth, warp, densities, ray_samples)
                 val_loss += loss.item()
 
                 ground_truth_images.append(rgb_truth.detach().cpu().numpy())

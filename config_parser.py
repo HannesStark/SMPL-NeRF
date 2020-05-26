@@ -27,7 +27,7 @@ def config_parser():
 
     parser.add_argument("--netdepth_warp", type=int, default=8, help='layers in fine network')
     parser.add_argument("--netwidth_warp", type=int, default=256, help='channels per layer in fine network')
-    parser.add_argument("--gmm_variance", type=float, default=1.0, help='variance of gaussian mixture model that is used for the loss of the densities')
+    parser.add_argument("--gmm_std", type=float, default=1.0, help='std of gaussian mixture model that is used for the loss of the densities')
 
     parser.add_argument("--batchsize", type=int, default=2048,
                         help='batch size (number of random rays per gradient step)')

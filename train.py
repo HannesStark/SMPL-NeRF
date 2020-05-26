@@ -34,8 +34,8 @@ def train():
         train_data = RaysFromImagesDataset(train_dir, os.path.join(train_dir, 'transforms.json'), transform)
         val_data = RaysFromImagesDataset(val_dir, os.path.join(val_dir, 'transforms.json'), transform)
     elif args.model_type == "smpl_nerf":
-        train_data = SmplNerfDataset(train_dir, os.path.join(train_dir, 'transforms.json'), transform)
-        val_data = SmplNerfDataset(val_dir, os.path.join(val_dir, 'transforms.json'), transform)
+        train_data = SmplNerfDataset(train_dir, os.path.join(train_dir, 'transforms.json'), transform, args)
+        val_data = SmplNerfDataset(val_dir, os.path.join(val_dir, 'transforms.json'), transform, args)
 
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=args.batchsize, shuffle=True, num_workers=0)
     val_loader = torch.utils.data.DataLoader(val_data, batch_size=args.batchsize_val, shuffle=False, num_workers=0)
@@ -55,7 +55,7 @@ def train():
         #model_warp_field = WarpFieldNet(args.netdepth_warp, args.netwidth_warp, 3, 2)
 
         solver = SmplNerfSolver(model_coarse, model_fine, model_warp_field, position_encoder, direction_encoder,
-                                human_pose_encoder,train_data, args, torch.optim.Adam,
+                                human_pose_encoder, train_data.canonical_mixture, args, torch.optim.Adam,
                                 torch.nn.MSELoss())
     elif args.model_type == 'nerf':
         solver = NerfSolver(model_coarse, model_fine, position_encoder, direction_encoder, args, torch.optim.Adam,

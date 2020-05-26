@@ -5,11 +5,13 @@ import json
 import cv2
 import numpy as np
 import torch
+from torch.distributions import MultivariateNormal
 from torch.utils.data import Dataset
 
 from utils import get_rays
 import smplx
 from render import get_smpl_vertices
+import torch.distributions as D
 
 
 class SmplNerfDataset(Dataset):
@@ -19,7 +21,7 @@ class SmplNerfDataset(Dataset):
     """
 
     def __init__(self, image_directory: str, transforms_file: str,
-                 transform) -> None:
+                 transform, args) -> None:
         """
         Parameters
         ----------
@@ -58,12 +60,16 @@ class SmplNerfDataset(Dataset):
 
             trans_dir_rgb_stack = np.stack([rays_translation, rays_direction, image], -2)
             trans_dir_rgb_list = trans_dir_rgb_stack.reshape((-1, 3, 3))
-            self.human_poses.append(np.repeat(human_pose[np.newaxis,:], trans_dir_rgb_list.shape[0], axis=0))
+            self.human_poses.append(np.repeat(human_pose[np.newaxis, :], trans_dir_rgb_list.shape[0], axis=0))
             self.rays.append(trans_dir_rgb_list)
         self.rays = np.concatenate(self.rays)
         self.human_poses = np.concatenate(self.human_poses)
         self.canonical_smpl = get_smpl_vertices(self.betas, self.expression)
-        print(type(self.canonical_smpl))
+
+        mix = D.Categorical(torch.ones(len(self.canonical_smpl), ))
+        comp = D.Independent(D.Normal(
+            torch.from_numpy(self.canonical_smpl), torch.ones(self.canonical_smpl.shape)*args.gmm_std), 1)
+        self.canonical_mixture = torch.distributions.mixture_same_family.MixtureSameFamily(mix, comp)
         print('Finish initializing rays')
 
     def __getitem__(self, index: int):
