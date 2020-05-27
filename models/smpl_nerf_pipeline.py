@@ -38,15 +38,14 @@ class SmplNerfPipeline(NerfPipeline):
         warp_field_inputs = torch.cat([samples_encoding.reshape(-1, samples_encoding.shape[-1]),
                                        goal_pose_encoding.reshape(-1, goal_pose_encoding.shape[-1])], -1)
 
-        # for warp input without encoding ################
-        goal_pose = goal_pose[..., None, :].expand(goal_pose.shape[0],
-                                                   ray_samples.shape[1],
-                                                   goal_pose.shape[-1])
-        warp_field_inputs = torch.cat(
-            [ray_samples.reshape(-1, ray_samples.shape[-1]), goal_pose.reshape(-1, goal_pose.shape[-1])], -1)
+        ## for warp input without encoding ################
+        #goal_pose = goal_pose[..., None, :].expand(goal_pose.shape[0],
+        #                                           ray_samples.shape[1],
+        #                                           goal_pose.shape[-1])
+        #warp_field_inputs = torch.cat(
+        #    [ray_samples.reshape(-1, ray_samples.shape[-1]), goal_pose.reshape(-1, goal_pose.shape[-1])], -1)
         ############################
 
-        print(warp_field_inputs.shape)
         warp = self.model_warp_field(warp_field_inputs).view(ray_samples.shape)
         warped_samples = ray_samples + warp
         samples_encoding = self.position_encoder.encode(warped_samples)
@@ -62,9 +61,9 @@ class SmplNerfPipeline(NerfPipeline):
         raw_outputs = self.model_coarse(inputs)  # [batchsize * number_coarse_samples, 4]
         raw_outputs = raw_outputs.view(samples_encoding.shape[0], samples_encoding.shape[1],
                                        raw_outputs.shape[-1])  # [batchsize, number_coarse_samples, 4]
-        rgb, weights = raw2outputs(raw_outputs, z_vals, coarse_samples_directions, self.args)
+        rgb, weights, densities = raw2outputs(raw_outputs, z_vals, coarse_samples_directions, self.args)
         if not self.args.run_fine:
-            return rgb, rgb, warp, ray_samples
+            return rgb, rgb, warp, ray_samples, densities
 
         # get values for the fine network and run them through the fine network
         z_vals, ray_samples_fine = fine_sampling(ray_translation, ray_direction, z_vals, weights,
@@ -97,6 +96,6 @@ class SmplNerfPipeline(NerfPipeline):
         fine_samples_directions = ray_direction[..., None, :].expand(ray_direction.shape[0],
                                                                      ray_samples_fine.shape[1],
                                                                      ray_direction.shape[-1])
-        rgb_fine, _ = raw2outputs(raw_outputs_fine, z_vals, fine_samples_directions, self.args)
+        rgb_fine, weights, densities_fine = raw2outputs(raw_outputs_fine, z_vals, fine_samples_directions, self.args)
 
-        return rgb, rgb_fine, warp_fine, ray_samples_fine
+        return rgb, rgb_fine, warp_fine, ray_samples_fine, densities_fine

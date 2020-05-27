@@ -14,6 +14,7 @@ import os
 
 from trimesh.ray.ray_triangle import RayMeshIntersector
 from scipy.spatial.transform import Rotation as R
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 def get_rays(H: int, W: int, focal: float,
@@ -68,7 +69,7 @@ class PositionalEncoder():
 
 
 def raw2outputs(raw: torch.Tensor, z_vals: torch.Tensor,
-                samples_directions: torch.Tensor, args) -> Tuple[torch.Tensor, torch.Tensor]:
+                samples_directions: torch.Tensor, args) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Transforms model's predictions to semantically meaningful values.
 
@@ -93,7 +94,7 @@ def raw2outputs(raw: torch.Tensor, z_vals: torch.Tensor,
     weights : torch.Tensor ([batch_size, 3])
         Weights assigned to each sampled color.
     """
-    raw2alpha = lambda raw, dists: 1. - torch.exp(-torch.nn.functional.relu(raw) * dists)
+    raw2density = lambda raw, dists: 1. - torch.exp(-torch.nn.functional.relu(raw) * dists)
 
     dists = z_vals[..., 1:] - z_vals[..., :-1]
     dists = torch.cat([dists, torch.Tensor([1e10]).expand(dists[..., :1].shape)], -1)  # [batchsize, number_samples]
@@ -105,13 +106,13 @@ def raw2outputs(raw: torch.Tensor, z_vals: torch.Tensor,
     noise = 0.
     if args.sigma_noise_std > 0.:
         noise = torch.normal(0, args.sigma_noise_std, raw[..., 3].shape)
-    alpha = raw2alpha(raw[..., 3] + noise, dists)  # [batchsize, number_samples]
-    one_minus_alpha = 1. - alpha + 1e-10
+    density = raw2density(raw[..., 3] + noise, dists)  # [batchsize, number_samples]
+    one_minus_density = 1. - density + 1e-10
 
     # remove last column from one_minus_alhpa and add ones as first column so cumprod gives us the exclusive cumprod like tf.cumprod(exclusive=True)
-    ones = torch.ones(one_minus_alpha.shape[:-1]).unsqueeze(-1)
-    exclusive = torch.cat([ones, one_minus_alpha[..., :-1]], -1)
-    weights = alpha * torch.cumprod(exclusive, -1)
+    ones = torch.ones(one_minus_density.shape[:-1]).unsqueeze(-1)
+    exclusive = torch.cat([ones, one_minus_density[..., :-1]], -1)
+    weights = density * torch.cumprod(exclusive, -1)
     rgb = torch.sum(weights[..., None] * rgb, -2)  # [batchsize, 3]
 
     depth_map = torch.sum(weights * z_vals, -1)
@@ -119,7 +120,7 @@ def raw2outputs(raw: torch.Tensor, z_vals: torch.Tensor,
     acc_map = torch.sum(weights, -1)
     if args.white_background:
         rgb = rgb + (1. - acc_map[..., None])
-    return rgb, weights
+    return rgb, weights, density
 
 
 def sample_pdf(bins, weights, number_samples):
@@ -307,7 +308,7 @@ def get_dependent_rays_indices(ray_translation: np.array, ray_direction: np.arra
     camera_coords = cv2.projectPoints(goal_intersections, rvec, tvec, camera_matrix, distortion_coeffs)[0]
     return np.round(camera_coords.reshape(-1, 2)), vertices
 
-def tensorboard_rerenders(writer: SummaryWriter, number_validation_images, rerender_images, ground_truth_images, step):
+def tensorboard_rerenders(writer: SummaryWriter, number_validation_images, rerender_images, ground_truth_images, step, warps=None):
     if number_validation_images > len(rerender_images):
         print('there are only ', len(rerender_images),
               ' in the validation directory which is less than the specified number_validation_images: ',
@@ -318,7 +319,15 @@ def tensorboard_rerenders(writer: SummaryWriter, number_validation_images, reren
         rerender_images = rerender_images[:number_validation_images]
 
     if number_validation_images > 0:
-        fig, axarr = plt.subplots(number_validation_images, 2, sharex=True, sharey=True)
+
+        if warps is not None:
+            image_col = 3
+            warps = np.linalg.norm(warps, axis=-1)
+            warps = warps.mean(axis=3)
+        else:
+            image_col = 2
+        fig, axarr = plt.subplots(number_validation_images, image_col, sharex=True, sharey=True)
+
         if len(axarr.shape) == 1:
             axarr = axarr[None, :]
         for i in range(number_validation_images):
@@ -327,8 +336,24 @@ def tensorboard_rerenders(writer: SummaryWriter, number_validation_images, reren
             axarr[i, 0].axis('off')
             axarr[i, 1].imshow(rerender_images[i][:, :, ::-1])
             axarr[i, 1].axis('off')
+            if warps is not None:
+                w = axarr[i, 2].imshow(warps[i])
+                axarr[i, 2].axis('off')
+
+                last_axes = plt.gca()
+                ax = w.axes
+                fig = ax.figure
+                divider = make_axes_locatable(ax)
+                cax = divider.append_axes("right", size="5%", pad=0.05)
+                fig.colorbar(w, cax=cax)
+                plt.sca(last_axes)
+
         axarr[0, 0].set_title('Ground Truth')
         axarr[0, 1].set_title('Rerender')
+        if warps is not None:
+            axarr[0, 2].set_title('Warp Intensity')
+
+
         fig.set_dpi(300)
         writer.add_figure(str(step) + ' validation images', fig, step)
         plt.close()
@@ -343,4 +368,22 @@ def tensorboard_warps(writer: SummaryWriter, number_validation_images, samples, 
     colors = colors/max
     colors = colors.repeat(3, axis=-1)
 
-    writer.add_mesh('my_mesh', vertices=samples, colors=colors, global_step=step)
+    writer.add_mesh('warp', vertices=samples, colors=colors, global_step=step)
+
+def tensorboard_densities(writer: SummaryWriter, number_validation_images, samples, canonical_mixture, step):
+    if number_validation_images <= len(samples):
+        asdf = samples[:number_validation_images]
+        densities = samples[:number_validation_images]
+
+    densities = torch.exp(canonical_mixture.log_prob(torch.from_numpy(samples)))
+    densities = densities.detach().numpy()
+    mask = densities>0.01
+    print(mask.shape)
+    densities = densities[mask]
+    print(densities.shape)
+    samples = samples[mask]
+    cmap = plt.cm.get_cmap('viridis')
+    rgb = cmap(densities)[:,:,:3] * 255
+
+    writer.add_mesh('density', vertices=samples, colors=rgb, global_step=step)
+

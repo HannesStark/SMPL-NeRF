@@ -27,6 +27,7 @@ def config_parser():
 
     parser.add_argument("--netdepth_warp", type=int, default=8, help='layers in fine network')
     parser.add_argument("--netwidth_warp", type=int, default=256, help='channels per layer in fine network')
+    parser.add_argument("--gmm_std", type=float, default=1.0, help='std of gaussian mixture model that is used for the loss of the densities')
 
     parser.add_argument("--batchsize", type=int, default=2048,
                         help='batch size (number of random rays per gradient step)')
@@ -39,8 +40,8 @@ def config_parser():
     parser.add_argument("--early_validation", type=int, default=0,
                         help='run extra validation loop every log_iterations')
     parser.add_argument("--num_epochs", type=int, default=100, help='number of epochs to run')
-    parser.add_argument("--near", type=int, default=2, help='near ray bound for coarse sampling')
-    parser.add_argument("--far", type=int, default=6, help='far ray bound for coarse sampling')
+    parser.add_argument("--near", type=int, default=1, help='near ray bound for coarse sampling')
+    parser.add_argument("--far", type=int, default=4, help='far ray bound for coarse sampling')
     parser.add_argument("--number_coarse_samples", type=int, default=64, help='number of coarse samples per ray')
     parser.add_argument("--number_fine_samples", type=int, default=128, help='number of fine samples per ray')
     parser.add_argument("--use_identity_positional", type=int, default=0,
