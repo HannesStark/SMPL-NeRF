@@ -120,6 +120,7 @@ def raw2outputs(raw: torch.Tensor, z_vals: torch.Tensor,
     acc_map = torch.sum(weights, -1)
     if args.white_background:
         rgb = rgb + (1. - acc_map[..., None])
+
     return rgb, weights, density
 
 
@@ -363,27 +364,22 @@ def tensorboard_warps(writer: SummaryWriter, number_validation_images, samples, 
         samples = samples[:number_validation_images]
         warps = warps[:number_validation_images]
 
-    colors = np.sum(warps, axis=-1,keepdims=True)
-    max = np.max(colors, axis=-1, keepdims=True)
-    colors = colors/max
-    colors = colors.repeat(3, axis=-1)
+    magnitude = np.sum(warps, axis=-1)
+    cmap = plt.cm.get_cmap('viridis')
+    rgb = cmap(magnitude)[:, :, :3] * 255
 
-    writer.add_mesh('warp', vertices=samples, colors=colors, global_step=step)
+    writer.add_mesh('warp', vertices=samples, colors=rgb, global_step=step)
 
-def tensorboard_densities(writer: SummaryWriter, number_validation_images, samples, canonical_mixture, step):
+def tensorboard_densities(writer: SummaryWriter, number_validation_images, samples, densities, step):
     if number_validation_images <= len(samples):
-        asdf = samples[:number_validation_images]
-        densities = samples[:number_validation_images]
+        samples = samples[:number_validation_images]
+        densities = densities[:number_validation_images]
 
-    densities = torch.exp(canonical_mixture.log_prob(torch.from_numpy(samples)))
-    densities = densities.detach().numpy()
-    mask = densities>0.01
-    print(mask.shape)
-    densities = densities[mask]
-    print(densities.shape)
-    samples = samples[mask]
+    #map all samples with a low density to origin
+    #samples = np.where(densities[:,:,None] > 0.0001, samples, np.zeros_like(samples))
+
     cmap = plt.cm.get_cmap('viridis')
     rgb = cmap(densities)[:,:,:3] * 255
-
-    writer.add_mesh('density', vertices=samples, colors=rgb, global_step=step)
+    print(rgb.shape)
+    writer.add_mesh('density', vertices=torch.from_numpy(samples), colors=rgb, global_step=step)
 

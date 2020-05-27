@@ -1,15 +1,14 @@
 experiment_name = firstDynamicOverfit
-number_validation_images = 1
+number_validation_images = 2
 model_type = smpl_nerf
 
 netdepth = 3
 
 run_fine = 1
-gmm_std = 0.3
 netdepth_fine = 8
 
 log_iterations = 5
-batchsize = 1
+batchsize = 50
 batchsize_val = 30
 num_epochs = 50
 

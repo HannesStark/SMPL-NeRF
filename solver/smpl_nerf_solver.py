@@ -104,6 +104,7 @@ class SmplNerfSolver(NerfSolver):
             ground_truth_images = []
             samples = []
             warps = []
+            densities_list = []
             for i, data in enumerate(val_loader):
                 for j, element in enumerate(data):
                     data[j] = element.to(self.device)
@@ -118,6 +119,7 @@ class SmplNerfSolver(NerfSolver):
                 rerender_images.append(rgb_fine.detach().cpu().numpy())
                 samples.append(ray_samples.detach().cpu().numpy())
                 warps.append(warp.detach().cpu().numpy())
+                densities_list.append(densities.detach().cpu().numpy())
 
             if len(val_loader) != 0:
                 rerender_images = np.concatenate(rerender_images, 0).reshape((-1, h, w, 3))
@@ -125,6 +127,9 @@ class SmplNerfSolver(NerfSolver):
                 samples = np.concatenate(samples)
                 samples = samples.reshape(
                     (-1, h * w * samples.shape[-2], 3))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
+                densities_list = np.concatenate(densities_list)
+                densities_list = densities_list.reshape(
+                    (-1, h * w * densities_list.shape[-1]))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
                 warps = np.concatenate(warps)
                 warps_mesh = warps.reshape(
                     (-1, h * w * warps.shape[-2], 3))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
@@ -134,20 +139,13 @@ class SmplNerfSolver(NerfSolver):
 
             if epoch == 0 or epoch == args.num_epochs or epoch == args.num_epochs // 2:  # bc it takes too much storage
                 tensorboard_warps(self.writer, args.number_validation_images, samples, warps_mesh, epoch)
-                #tensorboard_densities(self.writer, args.number_validation_images, samples, self.canonical_mixture, epoch)
-
+                tensorboard_densities(self.writer, args.number_validation_images, samples, densities_list, epoch)
 
             tensorboard_rerenders(self.writer, args.number_validation_images, rerender_images, ground_truth_images,
                                   step=epoch, warps=warps)
-
-
-
-
-
 
             print('[Epoch %d] VAL loss: %.7f' % (epoch + 1, val_loss / (len(val_loader) or not len(val_loader))))
             self.writer.add_scalars('Loss Curve', {'train loss': train_loss / iter_per_epoch,
                                                    'val loss': val_loss / (len(val_loader) or not len(val_loader))},
                                     epoch)
-            #self.writer.flush()
         print('FINISH.')
