@@ -6,6 +6,9 @@ import numpy as np
 import torch
 import trimesh
 from torch.utils.tensorboard import SummaryWriter
+import torch.distributions as D
+from torch.distributions import MixtureSameFamily
+
 
 from torchsearchsorted import searchsorted
 
@@ -383,3 +386,28 @@ def tensorboard_densities(writer: SummaryWriter, number_validation_images, sampl
     print(rgb.shape)
     writer.add_mesh('density', vertices=torch.from_numpy(samples), colors=rgb, global_step=step)
 
+def get_gmm_from_smpl(smpl_vertices: np.array, device, gmm_std):
+    """
+    Returns GaussianMixtureModel computed from vertices positions
+
+    Parameters
+    ----------
+    smpl_vertices : np.array (n_vertices, 3)
+        Vertices of smpl as np array.
+    device : str
+        device.
+    gmm_std : float
+        std for gmm.
+
+    Returns
+    -------
+    mixture : torch.distributions.mixture_same_family.MixtureSameFamily
+        gmm probability distribution.
+
+    """
+    mix = D.Categorical(torch.ones(len(smpl_vertices), ).to(device))
+    comp = D.Independent(D.Normal(
+        torch.from_numpy(smpl_vertices).to(device),
+        torch.ones(smpl_vertices.shape).to(device)*gmm_std), 1)
+    mixture = torch.distributions.mixture_same_family.MixtureSameFamily(mix, comp)
+    return mixture

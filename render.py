@@ -69,13 +69,17 @@ def get_smpl_mesh(smpl_file_name: str = None, texture_file_name: str = None,
 def get_smpl_vertices(betas, expression, 
                   smpl_file_name: str = None, texture_file_name: str = None,
                   uv_map_file_name: str = None, body_pose: torch.Tensor = None,
-                  return_betas_exps=False) -> pyrender.Mesh:
+                  return_betas_exps=False) -> np.array:
     """
     Load SMPL model, texture file and uv-map.
     Set arm angles and convert to mesh.
 
     Parameters
     ----------
+    betas: np.array(1, 10)
+        Betas for smpl
+    expression: np.array(1, 10)
+        Expression for smpl
     smpl_file_name : str
         file name of smpl model (.pkl).
     texture_file_name : str
@@ -91,7 +95,7 @@ def get_smpl_vertices(betas, expression,
 
     Returns
     -------
-    vertices : pyrender.Mesh
+    vertices : np.array
         SMPL mesh with texture and desired body pose.
 
     """
