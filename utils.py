@@ -322,6 +322,8 @@ def tensorboard_rerenders(writer: SummaryWriter, number_validation_images, reren
 
         if warps is not None:
             image_col = 3
+            warps = np.linalg.norm(warps, axis=-1)
+            warps = warps.mean(axis=3)
         else:
             image_col = 2
         fig, axarr = plt.subplots(number_validation_images, image_col, sharex=True, sharey=True)
@@ -366,5 +368,22 @@ def tensorboard_warps(writer: SummaryWriter, number_validation_images, samples, 
     colors = colors/max
     colors = colors.repeat(3, axis=-1)
 
-    writer.add_mesh('my_mesh', vertices=samples, colors=colors, global_step=step)
+    writer.add_mesh('warp', vertices=samples, colors=colors, global_step=step)
+
+def tensorboard_densities(writer: SummaryWriter, number_validation_images, samples, canonical_mixture, step):
+    if number_validation_images <= len(samples):
+        asdf = samples[:number_validation_images]
+        densities = samples[:number_validation_images]
+
+    densities = torch.exp(canonical_mixture.log_prob(torch.from_numpy(samples)))
+    densities = densities.detach().numpy()
+    mask = densities>0.01
+    print(mask.shape)
+    densities = densities[mask]
+    print(densities.shape)
+    samples = samples[mask]
+    cmap = plt.cm.get_cmap('viridis')
+    rgb = cmap(densities)[:,:,:3] * 255
+
+    writer.add_mesh('density', vertices=samples, colors=rgb, global_step=step)
 

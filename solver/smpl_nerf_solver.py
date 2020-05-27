@@ -5,7 +5,7 @@ from torch.distributions import MixtureSameFamily
 
 from models.smpl_nerf_pipeline import SmplNerfPipeline
 from solver.nerf_solver import NerfSolver
-from utils import PositionalEncoder, tensorboard_rerenders, tensorboard_warps
+from utils import PositionalEncoder, tensorboard_rerenders, tensorboard_warps, tensorboard_densities
 
 
 class SmplNerfSolver(NerfSolver):
@@ -126,26 +126,22 @@ class SmplNerfSolver(NerfSolver):
                 samples = samples.reshape(
                     (-1, h * w * samples.shape[-2], 3))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
                 warps = np.concatenate(warps)
-                temp = warps.shape[-2]
                 warps_mesh = warps.reshape(
                     (-1, h * w * warps.shape[-2], 3))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
+                warps = warps.reshape((-1, h, w, warps.shape[-2], 3))
 
-                ###################
 
-                warps_new = warps.reshape((-1, h, w, temp, 3))
-                warps_mag = np.linalg.norm(warps_new, axis=-1)
-                warps_mag = warps_mag.mean(axis=3)
 
-                ###################
-
-            if epoch == 1 or epoch == args.num_epochs or epoch == args.num_epochs // 2:  # bc it takes too much storage
+            if epoch == 0 or epoch == args.num_epochs or epoch == args.num_epochs // 2:  # bc it takes too much storage
                 tensorboard_warps(self.writer, args.number_validation_images, samples, warps_mesh, epoch)
+                #tensorboard_densities(self.writer, args.number_validation_images, samples, self.canonical_mixture, epoch)
 
 
             tensorboard_rerenders(self.writer, args.number_validation_images, rerender_images, ground_truth_images,
-                                  step=epoch, warps=warps_mag)
+                                  step=epoch, warps=warps)
 
-            ################### additional visualization of warp field magnitude
+
+
 
 
 
