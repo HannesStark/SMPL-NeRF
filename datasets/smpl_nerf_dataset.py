@@ -65,11 +65,6 @@ class SmplNerfDataset(Dataset):
         self.rays = np.concatenate(self.rays)
         self.human_poses = np.concatenate(self.human_poses)
         self.canonical_smpl = get_smpl_vertices(self.betas, self.expression)
-
-        mix = D.Categorical(torch.ones(len(self.canonical_smpl), ))
-        comp = D.Independent(D.Normal(
-            torch.from_numpy(self.canonical_smpl), torch.ones(self.canonical_smpl.shape)*args.gmm_std), 1)
-        self.canonical_mixture = torch.distributions.mixture_same_family.MixtureSameFamily(mix, comp)
         print('Finish initializing rays')
 
     def __getitem__(self, index: int):
