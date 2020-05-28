@@ -9,7 +9,6 @@ from torch.utils.tensorboard import SummaryWriter
 import torch.distributions as D
 from torch.distributions import MixtureSameFamily
 
-
 from torchsearchsorted import searchsorted
 
 from typing import Tuple
@@ -198,8 +197,6 @@ def fine_sampling(ray_translation: torch.Tensor, samples_directions: torch.Tenso
     return z_vals, ray_samples_fine
 
 
-
-
 def save_run(file_location: str, model_coarse, model_fine, dataset, solver,
              parser):
     """
@@ -220,7 +217,7 @@ def save_run(file_location: str, model_coarse, model_fine, dataset, solver,
            'focal': dataset.focal}
     with open(file_location, 'wb') as file:
         pickle.dump(run, file, protocol=pickle.HIGHEST_PROTOCOL)
-    
+
     parser.write_config_file(args, [os.path.join(os.path.dirname(file_location), 'config.txt')])
 
 
@@ -312,7 +309,9 @@ def get_dependent_rays_indices(ray_translation: np.array, ray_direction: np.arra
     camera_coords = cv2.projectPoints(goal_intersections, rvec, tvec, camera_matrix, distortion_coeffs)[0]
     return np.round(camera_coords.reshape(-1, 2)), vertices
 
-def tensorboard_rerenders(writer: SummaryWriter, number_validation_images, rerender_images, ground_truth_images, step, warps=None):
+
+def tensorboard_rerenders(writer: SummaryWriter, number_validation_images, rerender_images, ground_truth_images, step,
+                          warps=None):
     if number_validation_images > len(rerender_images):
         print('there are only ', len(rerender_images),
               ' in the validation directory which is less than the specified number_validation_images: ',
@@ -357,10 +356,10 @@ def tensorboard_rerenders(writer: SummaryWriter, number_validation_images, reren
         if warps is not None:
             axarr[0, 2].set_title('Warp Intensity')
 
-
         fig.set_dpi(300)
         writer.add_figure(str(step) + ' validation images', fig, step)
         plt.close()
+
 
 def tensorboard_warps(writer: SummaryWriter, number_validation_images, samples, warps, step):
     if number_validation_images <= len(samples):
@@ -373,18 +372,19 @@ def tensorboard_warps(writer: SummaryWriter, number_validation_images, samples, 
 
     writer.add_mesh('warp', vertices=samples, colors=rgb, global_step=step)
 
+
 def tensorboard_densities(writer: SummaryWriter, number_validation_images, samples, densities, step):
     if number_validation_images <= len(samples):
         samples = samples[:number_validation_images]
         densities = densities[:number_validation_images]
 
-    #map all samples with a low density to origin
-    #samples = np.where(densities[:,:,None] > 0.0001, samples, np.zeros_like(samples))
+    # map all samples with a low density to origin
+    # samples = np.where(densities[:,:,None] > 0.0001, samples, np.zeros_like(samples))
 
     cmap = plt.cm.get_cmap('viridis')
-    rgb = cmap(densities)[:,:,:3] * 255
-    print(rgb.shape)
+    rgb = cmap(densities)[:, :, :3] * 255
     writer.add_mesh('density', vertices=torch.from_numpy(samples), colors=rgb, global_step=step)
+
 
 def get_gmm_from_smpl(smpl_vertices: np.array, device, gmm_std):
     """
@@ -408,6 +408,6 @@ def get_gmm_from_smpl(smpl_vertices: np.array, device, gmm_std):
     mix = D.Categorical(torch.ones(len(smpl_vertices), ).to(device))
     comp = D.Independent(D.Normal(
         torch.from_numpy(smpl_vertices).to(device),
-        torch.ones(smpl_vertices.shape).to(device)*gmm_std), 1)
+        torch.ones(smpl_vertices.shape).to(device) * gmm_std), 1)
     mixture = torch.distributions.mixture_same_family.MixtureSameFamily(mix, comp)
     return mixture

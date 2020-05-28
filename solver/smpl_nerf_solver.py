@@ -29,9 +29,12 @@ class SmplNerfSolver(NerfSolver):
     def smpl_nerf_loss(self, rgb, rgb_fine, rgb_truth, warp, densities, ray_samples):
         loss_coarse = self.loss_func(rgb, rgb_truth)
         loss_fine = self.loss_func(rgb_fine, rgb_truth)
+        print('coares ', loss_coarse.item())
+
         loss_canonical_densities = self.loss_func(torch.exp(self.canonical_mixture.log_prob(ray_samples)), densities)
+        print('densities ', loss_canonical_densities.item())
         loss = loss_coarse + loss_fine + loss_canonical_densities
-        #loss += 0.5 * torch.mean(torch.norm(warp, p=1, dim=-1))
+        # loss += 0.5 * torch.mean(torch.norm(warp, p=1, dim=-1))
         return loss
 
     def train(self, train_loader, val_loader, h: int, w: int):
@@ -61,10 +64,10 @@ class SmplNerfSolver(NerfSolver):
                     data[j] = element.to(self.device)
                 rgb_truth = data[-1]
 
-                rgb, rgb_fine, warp, ray_samples, densities = self.pipeline(data)
+                rgb, rgb_fine, warp, ray_samples, warped_samples, densities = self.pipeline(data)
 
                 self.optim.zero_grad()
-                loss = self.smpl_nerf_loss(rgb, rgb_fine, rgb_truth, warp, densities, ray_samples)
+                loss = self.smpl_nerf_loss(rgb, rgb_fine, rgb_truth, warp, densities, warped_samples)
                 loss.backward()
                 self.optim.step()
 
@@ -81,9 +84,9 @@ class SmplNerfSolver(NerfSolver):
                                 data[j] = element.to(self.device)
                             rgb_truth = data[-1]
 
-                            rgb, rgb_fine, warp, ray_samples, densities = self.pipeline(data)
+                            rgb, rgb_fine, warp, ray_samples, warped_samples, densities = self.pipeline(data)
 
-                            loss = self.smpl_nerf_loss(rgb, rgb_fine, rgb_truth, warp, densities, ray_samples)
+                            loss = self.smpl_nerf_loss(rgb, rgb_fine, rgb_truth, warp, densities, warped_samples)
                             val_loss += loss.item()
                         self.writer.add_scalars('Loss curve every nth iteration', {'train loss': loss_item,
                                                                                    'val loss': val_loss / len(
@@ -103,19 +106,21 @@ class SmplNerfSolver(NerfSolver):
             samples = []
             warps = []
             densities_list = []
+            warped_samples_list = []
             for i, data in enumerate(val_loader):
                 for j, element in enumerate(data):
                     data[j] = element.to(self.device)
                 rgb_truth = data[-1]
 
-                rgb, rgb_fine, warp, ray_samples, densities = self.pipeline(data)
+                rgb, rgb_fine, warp, ray_samples, warped_samples, densities = self.pipeline(data)
 
-                loss = self.smpl_nerf_loss(rgb, rgb_fine, rgb_truth, warp, densities, ray_samples)
+                loss = self.smpl_nerf_loss(rgb, rgb_fine, rgb_truth, warp, densities, warped_samples)
                 val_loss += loss.item()
 
                 ground_truth_images.append(rgb_truth.detach().cpu().numpy())
                 rerender_images.append(rgb_fine.detach().cpu().numpy())
                 samples.append(ray_samples.detach().cpu().numpy())
+                warped_samples_list.append(warped_samples.detach().cpu().numpy())
                 warps.append(warp.detach().cpu().numpy())
                 densities_list.append(densities.detach().cpu().numpy())
 
@@ -125,19 +130,23 @@ class SmplNerfSolver(NerfSolver):
                 samples = np.concatenate(samples)
                 samples = samples.reshape(
                     (-1, h * w * samples.shape[-2], 3))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
+                warped_samples_list = np.concatenate(warped_samples_list)
+                warped_samples_list = warped_samples_list.reshape(
+                    (-1, h * w * warped_samples_list.shape[-2],
+                     3))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
                 densities_list = np.concatenate(densities_list)
                 densities_list = densities_list.reshape(
-                    (-1, h * w * densities_list.shape[-1]))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
+                    (-1,
+                     h * w * densities_list.shape[-1]))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
                 warps = np.concatenate(warps)
                 warps_mesh = warps.reshape(
                     (-1, h * w * warps.shape[-2], 3))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
                 warps = warps.reshape((-1, h, w, warps.shape[-2], 3))
 
-
-
-            if epoch == 0 or epoch == args.num_epochs or epoch == args.num_epochs // 2:  # bc it takes too much storage
+            if epoch in np.floor(np.array(args.mesh_epochs) * (args.num_epochs -1)):  # bc it takes too much storage
                 tensorboard_warps(self.writer, args.number_validation_images, samples, warps_mesh, epoch)
-                tensorboard_densities(self.writer, args.number_validation_images, samples, densities_list, epoch)
+                tensorboard_densities(self.writer, args.number_validation_images, warped_samples_list, densities_list,
+                                      epoch)
 
             tensorboard_rerenders(self.writer, args.number_validation_images, rerender_images, ground_truth_images,
                                   step=epoch, warps=warps)

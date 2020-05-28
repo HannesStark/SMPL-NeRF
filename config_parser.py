@@ -27,7 +27,7 @@ def config_parser():
 
     parser.add_argument("--netdepth_warp", type=int, default=8, help='layers in fine network')
     parser.add_argument("--netwidth_warp", type=int, default=256, help='channels per layer in fine network')
-    parser.add_argument("--gmm_std", type=float, default=0.01, help='std of gaussian mixture model that is used for the loss of the densities')
+    parser.add_argument("--gmm_std", type=float, default=0.07, help='std of gaussian mixture model that is used for the loss of the densities')
 
     parser.add_argument("--batchsize", type=int, default=2048,
                         help='batch size (number of random rays per gradient step)')
@@ -37,6 +37,8 @@ def config_parser():
     parser.add_argument("--weight_decay", type=int, default=0, help='adam weight decay')
     parser.add_argument("--log_iterations", type=int, default=10,
                         help='number of iterations to pass to run extra validation and logging')
+    parser.add_argument("--mesh_epochs", type=int, default=[0, 0.5, 1], help='layers with concateneted positional input',
+                        action="append")
     parser.add_argument("--early_validation", type=int, default=0,
                         help='run extra validation loop every log_iterations')
     parser.add_argument("--num_epochs", type=int, default=100, help='number of epochs to run')
