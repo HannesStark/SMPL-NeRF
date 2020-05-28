@@ -29,10 +29,7 @@ class SmplNerfSolver(NerfSolver):
     def smpl_nerf_loss(self, rgb, rgb_fine, rgb_truth, warp, densities, ray_samples):
         loss_coarse = self.loss_func(rgb, rgb_truth)
         loss_fine = self.loss_func(rgb_fine, rgb_truth)
-        print('coares ', loss_coarse.item())
-
         loss_canonical_densities = self.loss_func(torch.exp(self.canonical_mixture.log_prob(ray_samples)), densities)
-        print('densities ', loss_canonical_densities.item())
         loss = loss_coarse + loss_fine + loss_canonical_densities
         # loss += 0.5 * torch.mean(torch.norm(warp, p=1, dim=-1))
         return loss
