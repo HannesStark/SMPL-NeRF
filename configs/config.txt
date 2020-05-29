@@ -8,9 +8,10 @@ run_fine =0
 netdepth_fine = 8
 
 log_iterations = 5
-batchsize = 5
-batchsize_val = 2048
-num_epochs = 2
+batchsize = 256
+batchsize_val = 256
+num_epochs = 1000
+mesh_epochs = [1]
 
 white_background = 1
 sigma_noise_std = 1

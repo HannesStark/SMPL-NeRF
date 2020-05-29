@@ -57,13 +57,14 @@ def train():
         solver = SmplNerfSolver(model_coarse, model_fine, model_warp_field, position_encoder, direction_encoder,
                                 human_pose_encoder, train_data.canonical_smpl, args, torch.optim.Adam,
                                 torch.nn.MSELoss())
+        solver.train(train_loader, val_loader, train_data.h, train_data.w)
+        save_run(os.path.join(solver.writer.log_dir, args.experiment_name + '.pkl'), model_coarse, model_fine, train_data,
+             solver, parser, model_warp_field)
     elif args.model_type == 'nerf':
         solver = NerfSolver(model_coarse, model_fine, position_encoder, direction_encoder, args, torch.optim.Adam,
                             torch.nn.MSELoss())
-
-    solver.train(train_loader, val_loader, train_data.h, train_data.w)
-
-    save_run(os.path.join(solver.writer.log_dir, args.experiment_name + '.pkl'), model_coarse, model_fine, train_data,
+        solver.train(train_loader, val_loader, train_data.h, train_data.w)
+        save_run(os.path.join(solver.writer.log_dir, args.experiment_name + '.pkl'), model_coarse, model_fine, train_data,
              solver, parser)
 
 
