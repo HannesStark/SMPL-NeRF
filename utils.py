@@ -198,14 +198,17 @@ def fine_sampling(ray_translation: torch.Tensor, samples_directions: torch.Tenso
 
 
 def save_run(file_location: str, model_coarse, model_fine, dataset, solver,
-             parser):
+             parser, model_warp_field=None):
     """
     Save coarse and fine model and training configuration
     """
     args = parser.parse_args()
-    run = {'model_coarse': model_coarse,
-           'model_fine': model_fine,
-           'position_encoder': {'number_frequencies': solver.positions_encoder.number_frequencies,
+    saving_path = os.path.dirname(file_location)
+    torch.save(model_coarse.state_dict(), os.path.join(saving_path, 'model_coarse.pt'))
+    torch.save(model_fine.state_dict(), os.path.join(saving_path, 'model_fine.pt'))
+    if model_warp_field is not None:
+        torch.save(model_coarse.state_dict(), os.path.join(saving_path, 'model_warp_field.pt'))
+    run = {'position_encoder': {'number_frequencies': solver.positions_encoder.number_frequencies,
                                 'include_identity': solver.positions_encoder.include_identity},
            'direction_encoder': {'number_frequencies': solver.directions_encoder.number_frequencies,
                                  'include_identity': solver.directions_encoder.include_identity},
