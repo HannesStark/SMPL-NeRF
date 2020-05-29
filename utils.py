@@ -50,6 +50,48 @@ def get_rays(H: int, W: int, focal: float,
     return rays_translation, rays_direction
 
 
+class GaussianMixture():
+    def __init__(self, means: np.ndarray, std, device):
+        """
+        Create a gaussian mixture model with means and the same diagonal std for every gaussian
+
+        Parameters
+        ---------
+        means: [num_gaussians, dim_gaussian]
+        std: float
+        """
+
+        self.means = torch.from_numpy(means).to(device)
+        self.var = std ** 2
+        cov_det = self.var ** means.shape[-1]
+        self.factor = 1 / np.sqrt(((2 * np.pi) ** means.shape[-1] * cov_det))
+
+    def pdf(self, samples):
+        """
+        returns the probability density for each sample
+
+        Parameters
+        ----------
+        samples : torch.Tensor ([batchsize, number_samples, dim_gaussian])
+            samples for which to compute the density
+
+        Returns
+        -------
+        mixture_probs: torch.Tensor ([number_samples])
+            Probability density of each sample under the gaussian mixture
+        """
+        if samples.shape[-1] != self.means.shape[-1]:
+            raise ValueError("Dimension of samples is ", samples.shape[-1], " while dimension of gaussians is ",
+                             self.means.shape[-1])
+        mu = self.means[None, None, :, :].repeat(
+            (samples.shape[0], samples.shape[1], 1, 1))  # [batchsize, num_samples, num_gaussians, dim_gaussian]
+        samples_minus_mu = samples[..., None, :] - mu  # [num_samples, num_gaussians, dim_gaussian]
+        gaussians_probs = self.factor * torch.exp(
+            -0.5 * torch.sum(samples_minus_mu ** 2, dim=-1) / self.var)  # [num_samples, num_gaussians]
+        mixture_probs = torch.sum(gaussians_probs, dim=-1) / gaussians_probs.shape[-1]  # [num_samples]
+        return mixture_probs
+
+
 class PositionalEncoder():
     def __init__(self, number_frequencies, include_identity):
         freq_bands = torch.pow(2, torch.linspace(0., number_frequencies - 1, number_frequencies))
@@ -384,30 +426,3 @@ def tensorboard_densities(writer: SummaryWriter, number_validation_images, sampl
     cmap = plt.cm.get_cmap('viridis')
     rgb = cmap(densities)[:, :, :3] * 255
     writer.add_mesh('density', vertices=torch.from_numpy(samples), colors=rgb, global_step=step)
-
-
-def get_gmm_from_smpl(smpl_vertices: np.array, device, gmm_std):
-    """
-    Returns GaussianMixtureModel computed from vertices positions
-
-    Parameters
-    ----------
-    smpl_vertices : np.array (n_vertices, 3)
-        Vertices of smpl as np array.
-    device : str
-        device.
-    gmm_std : float
-        std for gmm.
-
-    Returns
-    -------
-    mixture : torch.distributions.mixture_same_family.MixtureSameFamily
-        gmm probability distribution.
-
-    """
-    mix = D.Categorical(torch.ones(len(smpl_vertices), ).to(device))
-    comp = D.Independent(D.Normal(
-        torch.from_numpy(smpl_vertices).to(device),
-        torch.ones(smpl_vertices.shape).to(device) * gmm_std), 1)
-    mixture = torch.distributions.mixture_same_family.MixtureSameFamily(mix, comp)
-    return mixture

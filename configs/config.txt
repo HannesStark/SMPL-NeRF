@@ -10,7 +10,7 @@ netdepth_fine = 8
 log_iterations = 5
 batchsize = 5
 batchsize_val = 2048
-num_epochs = 512
+num_epochs = 2
 
 white_background = 1
 sigma_noise_std = 1
