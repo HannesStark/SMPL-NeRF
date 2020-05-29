@@ -3,8 +3,7 @@ import numpy as np
 
 from models.smpl_nerf_pipeline import SmplNerfPipeline
 from solver.nerf_solver import NerfSolver
-from utils import PositionalEncoder, tensorboard_rerenders, tensorboard_warps, tensorboard_densities, GaussianMixture, \
-    get_gmm_from_smpl
+from utils import PositionalEncoder, tensorboard_rerenders, tensorboard_warps, tensorboard_densities, GaussianMixture
 
 
 class SmplNerfSolver(NerfSolver):
