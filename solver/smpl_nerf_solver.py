@@ -17,9 +17,13 @@ class SmplNerfSolver(NerfSolver):
         self.canonical_mixture = GaussianMixture(canonical_smpl, args.gmm_std, self.device)
         super(SmplNerfSolver, self).__init__(model_coarse, model_fine, positions_encoder, directions_encoder, args,
                                              optim, loss_func)
-        self.optim = optim(
-            list(model_coarse.parameters()) + list(model_fine.parameters()) + list(model_warp_field.parameters()),
-            **self.optim_args_merged)
+        if args.restrict_gmm_loss:
+            self.warp_optim = optim(list(model_coarse.parameters()))
+            self.optim = optim(list(model_fine.parameters()) + list(model_warp_field.parameters()),
+                **self.optim_args_merged)
+        else:
+            self.optim = optim(list(model_coarse.parameters()) + list(model_fine.parameters()) + list(model_warp_field.parameters()),
+                **self.optim_args_merged)
 
     def init_pipeline(self):
         return SmplNerfPipeline(self.model_coarse, self.model_fine, self.model_warp_field, self.args,
@@ -31,6 +35,8 @@ class SmplNerfSolver(NerfSolver):
         loss_fine = self.loss_func(rgb_fine, rgb_truth)
         loss_canonical_densities = self.loss_func(self.canonical_mixture.pdf(ray_samples), densities)
         loss = loss_coarse + loss_fine + loss_canonical_densities
+        if self.args.restrict_gmm_loss:
+            loss = loss_coarse + loss_fine
         # loss += 0.5 * torch.mean(torch.norm(warp, p=1, dim=-1))
         return loss, loss_coarse, loss_fine, loss_canonical_densities
 
@@ -70,8 +76,11 @@ class SmplNerfSolver(NerfSolver):
                 loss, loss_coarse, loss_fine, loss_canonical_densities = self.smpl_nerf_loss(rgb, rgb_fine, rgb_truth,
                                                                                              warp, densities,
                                                                                              warped_samples)
-                loss.backward()
+                loss.backward(retain_graph=True)
+                loss_canonical_densities.backward()
                 self.optim.step()
+                if self.args.restrict_gmm_loss:
+                    self.warp_optim.step()
 
                 loss_item = loss.item()
                 if i % args.log_iterations == args.log_iterations - 1:

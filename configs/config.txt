@@ -16,3 +16,4 @@ mesh_epochs = [1]
 white_background = 1
 sigma_noise_std = 1
 lrate = 5e-5
+restrict_gmm_loss=1
