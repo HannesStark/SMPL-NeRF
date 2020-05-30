@@ -52,7 +52,7 @@ def train():
                                         human_pose_encoder.output_dim * 2)
 
         # test without encoding:
-        model_warp_field = WarpFieldNet(args.netdepth_warp, args.netwidth_warp, 3, 2)
+        #model_warp_field = WarpFieldNet(args.netdepth_warp, args.netwidth_warp, 3, 2)
 
         solver = SmplNerfSolver(model_coarse, model_fine, model_warp_field, position_encoder, direction_encoder,
                                 human_pose_encoder, train_data.canonical_smpl, args, torch.optim.Adam,
