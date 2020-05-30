@@ -39,11 +39,11 @@ class SmplNerfPipeline(NerfPipeline):
                                        goal_pose_encoding.reshape(-1, goal_pose_encoding.shape[-1])], -1)
 
         ## for warp input without encoding ################
-        #goal_pose = goal_pose[..., None, :].expand(goal_pose.shape[0],
-        #                                           ray_samples.shape[1],
-        #                                           goal_pose.shape[-1])
-        #warp_field_inputs = torch.cat(
-        #    [ray_samples.reshape(-1, ray_samples.shape[-1]), goal_pose.reshape(-1, goal_pose.shape[-1])], -1)
+        goal_pose = goal_pose[..., None, :].expand(goal_pose.shape[0],
+                                                   ray_samples.shape[1],
+                                                   goal_pose.shape[-1])
+        warp_field_inputs = torch.cat(
+            [ray_samples.reshape(-1, ray_samples.shape[-1]), goal_pose.reshape(-1, goal_pose.shape[-1])], -1)
         ############################
 
         warp = self.model_warp_field(warp_field_inputs).view(ray_samples.shape)
