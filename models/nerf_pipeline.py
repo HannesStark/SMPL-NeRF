@@ -43,7 +43,7 @@ class NerfPipeline(nn.Module):
         raw_outputs = self.model_coarse(inputs)  # [batchsize * number_coarse_samples, 4]
         raw_outputs = raw_outputs.view(samples_encoding.shape[0], samples_encoding.shape[1],
                                        raw_outputs.shape[-1])  # [batchsize, number_coarse_samples, 4]
-        rgb, weights = raw2outputs(raw_outputs, z_vals, coarse_samples_directions, self.args)
+        rgb, weights, densities = raw2outputs(raw_outputs, z_vals, coarse_samples_directions, self.args)
         if not self.args.run_fine:
             return rgb, rgb
 
@@ -66,6 +66,6 @@ class NerfPipeline(nn.Module):
         fine_samples_directions = ray_direction[..., None, :].expand(ray_direction.shape[0],
                                                                      ray_samples_fine.shape[1],
                                                                      ray_direction.shape[-1])
-        rgb_fine, _ = raw2outputs(raw_outputs_fine, z_vals, fine_samples_directions, self.args)
+        rgb_fine, _, densities = raw2outputs(raw_outputs_fine, z_vals, fine_samples_directions, self.args)
 
         return rgb, rgb_fine

@@ -1,6 +1,7 @@
-experiment_name = firstDynamicOverfit
+experiment_name = append_to_nerf
 number_validation_images = 2
-model_type = smpl_nerf
+model_type = append_to_nerf
+human_pose_encoding = 0
 
 netdepth = 3
 
@@ -15,5 +16,5 @@ mesh_epochs = [1]
 
 white_background = 1
 sigma_noise_std = 1
-lrate = 5e-5
+lrate = 1e-4
 restrict_gmm_loss=1
