@@ -71,12 +71,12 @@ class SmplDataset(Dataset):
             self.focal = .5 * self.w / np.tan(.5 * camera_angle_x)
             rays_translation, rays_direction = get_rays(self.h, self.w, self.focal, camera_transform)
 
-            trans_dir_rgb_stack = np.stack([rays_translation, rays_direction, image], -2)
+            trans_dir_rgb_stack = np.stack([rays_translation, rays_direction, image], -2)  # [h x w x 3 x 3]
             trans_dir_rgb_list = trans_dir_rgb_stack.reshape((-1, 3, 3))
             self.human_poses.append(np.repeat(human_pose[np.newaxis, :], trans_dir_rgb_list.shape[0], axis=0))
             self.rays.append(trans_dir_rgb_list)
 
-            self.depth.append(depth.reshape((trans_dir_rgb_list.shape[0], 3)))
+            self.depth.append(depth.reshape((trans_dir_rgb_list.shape[0], 1)))
             self.warp.append(warp.reshape((trans_dir_rgb_list.shape[0], 3)))
 
 
