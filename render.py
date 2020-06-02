@@ -9,11 +9,15 @@ import matplotlib.pyplot as plt
 import trimesh
 from PIL import Image
 import numpy as np
+from camera import get_sphere_pose
+from utils import get_rays
+from trimesh.ray.ray_triangle import RayMeshIntersector
+import smplx
 
 
 def get_smpl_mesh(smpl_file_name: str = None, texture_file_name: str = None,
                   uv_map_file_name: str = None, body_pose: torch.Tensor = None,
-                  return_betas_exps=False) -> pyrender.Mesh:
+                  return_betas_exps=False, return_pyrender=True) -> pyrender.Mesh:
     """
     Load SMPL model, texture file and uv-map.
     Set arm angles and convert to mesh.
@@ -62,6 +66,8 @@ def get_smpl_mesh(smpl_file_name: str = None, texture_file_name: str = None,
                 visual=trimesh.visual.TextureVisuals(uv=uv, image=texture),
                                 process=False)
     mesh = pyrender.Mesh.from_trimesh(smpl_mesh)
+    if not return_pyrender:
+        mesh = smpl_mesh
     if return_betas_exps:
         return mesh, betas, expression
     return mesh
@@ -146,6 +152,106 @@ def get_human_poses(joints: list, start_angle: list, end_angle: list,
         human_poses.append(body_pose)
     return torch.stack(human_poses)
     
+def get_warp(canonical: trimesh.base.Trimesh, goal: trimesh.base.Trimesh,
+             camera_transform: np.array, h: int, w: int, 
+             camera_angle_x: float, debug: bool=False) -> np.array:
+    """
+    Calculate warp vectors pointing from goal SMPL to canonical SMPL for the
+    closest ray intersection (wrt. camera origin) and return a warp
+    for each ray. If the ray doesn't intersect with the goal smpl than
+    a warp equal to zero will be returned for that ray (pixel)
+
+    Parameters
+    ----------
+    canonical : trimesh.base.Trimesh
+        Canonical SMPL.
+    goal : trimesh.base.Trimesh
+        Goal SMPL.
+    camera_transform : np.array (4, 4)
+        Camera transformation matrix.
+    h : int
+        Height of camera.
+    w : int
+        Width of camera.
+    camera_angle_x : float
+        FOV of camera.
+    debug: bool
+        If True, a 3D and 2D plot of the image will be created and shown.
+
+    Returns
+    -------
+    warp_img : np.array (h, w, 3)
+        Warp vectors (3D) pointing from goal smpl to canonical smpl
+        intersections.
+
+    """
+    f = .5 * w / np.tan(.5 * camera_angle_x)
+    rays_translation, rays_direction = get_rays(h, w, f, camera_transform)
+    camera_origin = rays_translation[0][0]
+
+    # calculate intersections with rays and goal smpl 
+    intersector = RayMeshIntersector(goal)
+    goal_intersections = intersector.intersects_location(rays_translation.reshape(-1, 3), rays_direction.reshape(-1, 3))
+    goal_intersections_points = goal_intersections[0]  # (N_intersects, 3)
+    goal_intersections_face_indices = goal_intersections[2]  # (N_intersects, )
+    goal_intersections_ray_indices = goal_intersections[1] # (N_intersects, )
+
+    # Find multiple intersections and use only closest
+    u, c = np.unique(goal_intersections_ray_indices, return_counts=True)
+    multiple_intersections = u[c > 1]
+    unique_goal_intersect_points = []
+    unique_goal_intersect_face_indices = []
+    unique_goal_intersect_ray_indices = []
+    intersect_indices = np.arange(len(goal_intersections_points))
+    for multiple_intersection in u:
+        ray_mask = goal_intersections_ray_indices == multiple_intersection
+        indices_ray = intersect_indices[ray_mask]
+        ray_intersects = goal_intersections_points[ray_mask]
+        distances_camera = np.linalg.norm(ray_intersects-camera_origin, axis=1)
+        closest_intersect_index = indices_ray[np.argmin(distances_camera)]
+        unique_goal_intersect_points.append(goal_intersections_points[closest_intersect_index])
+        unique_goal_intersect_face_indices.append(goal_intersections_face_indices[closest_intersect_index])
+        unique_goal_intersect_ray_indices.append(goal_intersections_ray_indices[closest_intersect_index])
+
+    assert(len(unique_goal_intersect_points)==len(unique_goal_intersect_face_indices)==len(unique_goal_intersect_ray_indices))
+    assert((np.unique(goal_intersections_ray_indices) == unique_goal_intersect_ray_indices).all())
+    goal_intersections_points = np.array(unique_goal_intersect_points)
+    goal_intersections_face_indices = np.array(unique_goal_intersect_face_indices)
+    goal_intersections_ray_indices = np.array(unique_goal_intersect_ray_indices)
+    
+    # Calculate for each intersection on goal SMPL the corresponding 
+    # intersection on the canonical SMPL
+    canonical_intersections = []
+    for i, face_idx in enumerate(goal_intersections_face_indices):
+        vertex_indices = goal.faces[face_idx]
+        goal_vertices = goal.vertices[vertex_indices]
+        canonical_vertices = canonical.vertices[vertex_indices]
+        lin_coeffs_vertices = np.linalg.solve(goal_vertices.T, goal_intersections_points[i])
+        canonical_intersection = canonical_vertices.T.dot(lin_coeffs_vertices)
+        canonical_intersections.append(canonical_intersection)
+    canonical_intersections = np.array(canonical_intersections)
+
+    # Calculate actual warp for intersections
+    warp = canonical_intersections-goal_intersections_points
+    # Set each pixel corresponding to ray index to the warp
+    warp_img_flat = np.zeros((h*w, 3))
+    warp_img_flat[goal_intersections_ray_indices] = warp
+    warp_img = warp_img_flat.reshape((h, w, 3))
+
+    warp_min = -1 #np.min(warp_img, axis=(0,1))
+    warp_max = 1 #np.max(warp_img, axis=(0,1))
+    warp_normalized = (warp_img-warp_min)/(warp_max-warp_min)
+    if debug:
+        plt.imshow(warp_normalized)
+        plt.show()
+        scene = pyrender.Scene()
+        lines_warp = np.hstack((goal_intersections_points, goal_intersections_points+warp)).reshape(-1, 3)
+        primitive = [pyrender.Primitive(lines_warp, mode=1)]
+        primitive_mesh = pyrender.Mesh(primitive)
+        scene.add(primitive_mesh)
+        pyrender.Viewer(scene, use_raymond_lighting=True)
+    return warp_img
+
 
 def render_scene(mesh: pyrender.Mesh, camera_pose: np.array,
                  human_pose: np.array, light_pose: np.array,
@@ -203,7 +309,6 @@ def save_render(render, f_name):
     plt.imshow(render)
     plt.imsave(f_name, render)
     plt.close()
-
 
 if __name__ == "__main__":
     pass
