@@ -55,7 +55,7 @@ class SmplDataset(Dataset):
         warp_paths = all_paths[len_dir*2/3:]
 
 
-        if not len(image_paths)/3 == len(image_transform_map):
+        if not len(image_paths) == len(image_transform_map):
             raise ValueError('Number of images in image_directory is not the same as number of transforms')
 
         for i in range(len(image_transform_map)):
