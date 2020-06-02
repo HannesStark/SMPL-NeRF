@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import os
-from render import get_smpl_mesh, render_scene, save_render, save_warp, get_human_poses, get_warp
+from render import get_smpl_mesh, render_scene, save_render, get_human_poses, get_warp
 from utils import disjoint_indices
 from camera import get_sphere_poses, get_pose_matrix, get_circle_poses, get_circle_on_sphere_poses
 import json

@@ -197,14 +197,12 @@ def get_warp(canonical: trimesh.base.Trimesh, goal: trimesh.base.Trimesh,
     goal_intersections_ray_indices = goal_intersections[1] # (N_intersects, )
 
     # Find multiple intersections and use only closest
-    u, c = np.unique(goal_intersections_ray_indices, return_counts=True)
-    multiple_intersections = u[c > 1]
     unique_goal_intersect_points = []
     unique_goal_intersect_face_indices = []
     unique_goal_intersect_ray_indices = []
     intersect_indices = np.arange(len(goal_intersections_points))
-    for multiple_intersection in u:
-        ray_mask = goal_intersections_ray_indices == multiple_intersection
+    for ray in np.unique(goal_intersections_ray_indices):
+        ray_mask = goal_intersections_ray_indices == ray
         indices_ray = intersect_indices[ray_mask]
         ray_intersects = goal_intersections_points[ray_mask]
         distances_camera = np.linalg.norm(ray_intersects-camera_origin, axis=1)

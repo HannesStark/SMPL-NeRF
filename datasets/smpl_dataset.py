@@ -47,12 +47,9 @@ class SmplDataset(Dataset):
         image_pose_map = transforms_dict.get('image_pose_map')
         self.expression = [transforms_dict['expression']]
         self.betas = [transforms_dict['betas']]
-        all_paths = sorted(glob.glob(os.path.join(image_directory, '*.png')))
-
-        len_dir = len(all_paths)
-        depth_paths = all_paths[:len_dir/3]
-        image_paths = all_paths[len_dir/3:len_dir*2/3]
-        warp_paths = all_paths[len_dir*2/3:]
+        image_paths = sorted(glob.glob(os.path.join(image_directory, 'img_*.png')))
+        depth_paths = sorted(glob.glob(os.path.join(image_directory, 'depth_*.npy')))
+        warp_paths = sorted(glob.glob(os.path.join(image_directory, 'warp_*.npy')))
 
 
         if not len(image_paths) == len(image_transform_map):
@@ -63,8 +60,8 @@ class SmplDataset(Dataset):
             human_pose = np.array(image_pose_map[os.path.basename(image_paths[i])])
 
             image = cv2.imread(image_paths[i])
-            depth = cv2.imread(depth_paths[i])
-            warp = cv2.imread(warp_paths[i])
+            depth = np.load(depth_paths[i])
+            warp = np.load(warp_paths[i])
 
             self.h, self.w = image.shape[:2]
 
