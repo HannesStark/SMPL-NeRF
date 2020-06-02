@@ -79,6 +79,8 @@ class SmplDataset(Dataset):
 
         self.rays = np.concatenate(self.rays)
         self.human_poses = np.concatenate(self.human_poses)
+        self.warp = np.concatenate(self.warp)
+        self.depth = np.concatenate(self.depth)
         self.canonical_smpl = get_smpl_vertices(self.betas, self.expression)
 
         print('Finish initializing rays')
@@ -102,19 +104,20 @@ class SmplDataset(Dataset):
             Depth of coarse samples along ray.
         rgb : torch.Tensor ([3])
             RGB value corresponding to ray.
-
-        # dependency_rays{Ray_samples [samples, 3],ray_trans[3], ray_direction[3],
-        # z_vals[samples], ray_w[1], ray_h[1]} x [Number_of_dependent_rays],
-        # goal_pose[69]
+        human_pose: torch.Tensor ([69])
+            goal pose
+        warp: torch.Tensor ([3])
+            warp from goal to canonical for 3D sample
+        depth: torch.Tensor ([1])
+            depth value for sample on ray
         """
 
         rays_translation, rays_direction, rgb = self.rays[index]
 
         ray_sample, samples_translation, samples_direction, z_vals, rgb = self.transform(
             (rays_translation, rays_direction, rgb))
-
         return ray_sample, samples_translation, samples_direction, z_vals, torch.Tensor(
-            self.human_poses[index]).float(), rgb, self.warp[index], self.depth[index]
+            self.human_poses[index]).float(), rgb, torch.Tensor(self.warp[index]).float(), torch.Tensor(self.depth[index]).float()
 
     def __len__(self) -> int:
         return len(self.rays)
