@@ -1,15 +1,15 @@
 experiment_name = append_to_nerf
 number_validation_images = 2
-model_type = append_to_nerf
+model_type = smpl_nerf
 human_pose_encoding = 0
 
-netdepth = 3
+netdepth = 7
 
-run_fine =0
+run_fine =1
 netdepth_fine = 8
 
 log_iterations = 5
-batchsize = 256
+batchsize = 6
 batchsize_val = 256
 num_epochs = 1000
 mesh_epochs = [1]
@@ -17,4 +17,3 @@ mesh_epochs = [1]
 white_background = 1
 sigma_noise_std = 1
 lrate = 1e-4
-restrict_gmm_loss=1

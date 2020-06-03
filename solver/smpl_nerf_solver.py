@@ -28,15 +28,15 @@ class SmplNerfSolver(NerfSolver):
     def init_pipeline(self):
         return SmplNerfPipeline(self.model_coarse, self.model_fine, self.model_warp_field, self.args,
                                 self.positions_encoder,
-                                self.directions_encoder, self.human_pose_encoder, self.writer)
+                                self.directions_encoder, self.human_pose_encoder)
 
     def smpl_nerf_loss(self, rgb, rgb_fine, rgb_truth, warp, densities, ray_samples):
         loss_coarse = self.loss_func(rgb, rgb_truth)
         loss_fine = self.loss_func(rgb_fine, rgb_truth)
         loss_canonical_densities = self.loss_func(self.canonical_mixture.pdf(ray_samples), densities)
-        loss = loss_coarse + loss_fine + loss_canonical_densities
-        if self.args.restrict_gmm_loss:
-            loss = loss_coarse + loss_fine
+        loss = loss_coarse + loss_fine
+        if self.args.use_gmm_loss and not self.args.restrict_gmm_loss:
+            loss = loss_coarse + loss_fine + loss_canonical_densities
         # loss += 0.5 * torch.mean(torch.norm(warp, p=1, dim=-1))
         return loss, loss_coarse, loss_fine, loss_canonical_densities
 

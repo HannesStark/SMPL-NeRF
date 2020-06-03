@@ -5,6 +5,7 @@ from torch.utils.data import Subset
 from torchvision.transforms import transforms
 from config_parser import config_parser
 from datasets.rays_from_images_dataset import RaysFromImagesDataset
+from datasets.smpl_dataset import SmplDataset
 from datasets.smpl_nerf_dataset import SmplNerfDataset
 from datasets.transforms import CoarseSampling, ToTensor, NormalizeRGB
 from models.debug_model import DebugModel
@@ -15,6 +16,7 @@ from solver.nerf_solver import NerfSolver
 import numpy as np
 
 from solver.smpl_nerf_solver import SmplNerfSolver
+from solver.smpl_solver import SmplSolver
 from utils import PositionalEncoder, save_run
 
 np.random.seed(0)
@@ -23,7 +25,7 @@ np.random.seed(0)
 def train():
     parser = config_parser()
     args = parser.parse_args()
-    if args.model_type not in ["nerf", "smpl_nerf", "append_to_nerf"]:
+    if args.model_type not in ["nerf", "smpl_nerf", "append_to_nerf", "smpl"]:
         raise Exception("The model type ", args.model_type, " does not exist.")
 
     transform = transforms.Compose(
@@ -34,6 +36,9 @@ def train():
     if args.model_type == "nerf":
         train_data = RaysFromImagesDataset(train_dir, os.path.join(train_dir, 'transforms.json'), transform)
         val_data = RaysFromImagesDataset(val_dir, os.path.join(val_dir, 'transforms.json'), transform)
+    elif args.model_type == "smpl":
+        train_data = SmplDataset(train_dir, os.path.join(train_dir, 'transforms.json'), transform)
+        val_data = SmplDataset(val_dir, os.path.join(val_dir, 'transforms.json'), transform)
     elif args.model_type == "smpl_nerf" or args.model_type == "append_to_nerf":
         train_data = SmplNerfDataset(train_dir, os.path.join(train_dir, 'transforms.json'), transform, args)
         val_data = SmplNerfDataset(val_dir, os.path.join(val_dir, 'transforms.json'), transform, args)
@@ -62,6 +67,14 @@ def train():
         save_run(os.path.join(solver.writer.log_dir, args.experiment_name + '.pkl'), model_coarse, model_fine,
                  train_data,
                  solver, parser, model_warp_field)
+    elif args.model_type == 'smpl':
+        solver = SmplSolver(model_coarse, model_fine, position_encoder, direction_encoder,
+                                    args, torch.optim.Adam,
+                                    torch.nn.MSELoss())
+        solver.train(train_loader, val_loader, train_data.h, train_data.w)
+        save_run(os.path.join(solver.writer.log_dir, args.experiment_name + '.pkl'), model_coarse, model_fine,
+                 train_data,
+                 solver, parser)
     elif args.model_type == 'nerf':
         solver = NerfSolver(model_coarse, model_fine, position_encoder, direction_encoder, args, torch.optim.Adam,
                             torch.nn.MSELoss())

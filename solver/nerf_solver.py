@@ -2,7 +2,6 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 
-from models.append_to_nerf_pipeline import AppendToNerfPipeline
 from models.nerf_pipeline import NerfPipeline
 from utils import PositionalEncoder, tensorboard_rerenders
 

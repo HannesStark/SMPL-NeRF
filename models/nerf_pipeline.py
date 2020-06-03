@@ -1,19 +1,15 @@
 import torch
-import torch.nn as nn
 
+from models.smpl_pipeline import SmplPipeline
 from utils import PositionalEncoder, raw2outputs, fine_sampling
 
 
-class NerfPipeline(nn.Module):
+class NerfPipeline(SmplPipeline):
 
     def __init__(self, model_coarse, model_fine, args, position_encoder: PositionalEncoder,
                  direction_encoder: PositionalEncoder):
-        super(NerfPipeline, self).__init__()
-        self.model_coarse = model_coarse
+        super(NerfPipeline, self).__init__(model_coarse, args, position_encoder, direction_encoder)
         self.model_fine = model_fine
-        self.args = args
-        self.position_encoder = position_encoder
-        self.direction_encoder = direction_encoder
 
     def forward(self, data):
         """

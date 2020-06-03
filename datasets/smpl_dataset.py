@@ -21,7 +21,7 @@ class SmplDataset(Dataset):
     """
 
     def __init__(self, image_directory: str, transforms_file: str,
-                 transform, args) -> None:
+                 transform) -> None:
         """
         Parameters
         ----------
@@ -117,7 +117,7 @@ class SmplDataset(Dataset):
             (rays_translation, rays_direction, rgb))
 
         return ray_sample, samples_translation, samples_direction, z_vals, torch.Tensor(
-            self.human_poses[index]).float(), rgb, self.warp[index], self.depth[index]
+            self.human_poses[index]).float(), self.warp[index], self.depth[index], rgb
 
     def __len__(self) -> int:
         return len(self.rays)

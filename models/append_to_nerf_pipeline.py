@@ -1,5 +1,4 @@
 import torch
-from torch.utils.tensorboard import SummaryWriter
 
 from models.nerf_pipeline import NerfPipeline
 from utils import PositionalEncoder, raw2outputs, fine_sampling
@@ -8,10 +7,9 @@ from utils import PositionalEncoder, raw2outputs, fine_sampling
 class AppendToNerfPipeline(NerfPipeline):
 
     def __init__(self, model_coarse, model_fine, args, position_encoder: PositionalEncoder,
-                 direction_encoder: PositionalEncoder, human_pose_encoder: PositionalEncoder, writer: SummaryWriter):
+                 direction_encoder: PositionalEncoder, human_pose_encoder: PositionalEncoder):
         super(AppendToNerfPipeline, self).__init__(model_coarse, model_fine, args, position_encoder, direction_encoder)
         self.human_pose_encoder = human_pose_encoder
-        self.writer = writer
 
     def forward(self, data):
         """

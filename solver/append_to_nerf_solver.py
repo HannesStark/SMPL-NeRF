@@ -1,10 +1,8 @@
 import torch
-import numpy as np
 
 from models.append_to_nerf_pipeline import AppendToNerfPipeline
-from models.smpl_nerf_pipeline import SmplNerfPipeline
 from solver.nerf_solver import NerfSolver
-from utils import PositionalEncoder, tensorboard_rerenders, tensorboard_warps, tensorboard_densities, GaussianMixture
+from utils import PositionalEncoder
 
 
 class AppendToNerfSolver(NerfSolver):
@@ -18,4 +16,4 @@ class AppendToNerfSolver(NerfSolver):
     def init_pipeline(self):
         return AppendToNerfPipeline(self.model_coarse, self.model_fine, self.args,
                                     self.positions_encoder,
-                                    self.directions_encoder, self.human_pose_encoder, self.writer)
+                                    self.directions_encoder, self.human_pose_encoder)
