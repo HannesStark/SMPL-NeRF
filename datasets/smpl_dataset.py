@@ -47,15 +47,11 @@ class SmplDataset(Dataset):
         image_pose_map = transforms_dict.get('image_pose_map')
         self.expression = [transforms_dict['expression']]
         self.betas = [transforms_dict['betas']]
-        all_paths = sorted(glob.glob(os.path.join(image_directory, '*.png')))
+        image_paths = sorted(glob.glob(os.path.join(image_directory, 'img_*.png')))
+        depth_paths = sorted(glob.glob(os.path.join(image_directory, 'depth_*.npy')))
+        warp_paths = sorted(glob.glob(os.path.join(image_directory, 'warp_*.npy')))
 
-        len_dir = len(all_paths)
-        depth_paths = all_paths[:len_dir/3]
-        image_paths = all_paths[len_dir/3:len_dir*2/3]
-        warp_paths = all_paths[len_dir*2/3:]
-
-
-        if not len(image_paths)/3 == len(image_transform_map):
+        if not len(image_paths) == len(image_transform_map):
             raise ValueError('Number of images in image_directory is not the same as number of transforms')
 
         for i in range(len(image_transform_map)):
@@ -63,8 +59,8 @@ class SmplDataset(Dataset):
             human_pose = np.array(image_pose_map[os.path.basename(image_paths[i])])
 
             image = cv2.imread(image_paths[i])
-            depth = cv2.imread(depth_paths[i])
-            warp = cv2.imread(warp_paths[i])
+            depth = np.load(depth_paths[i])
+            warp = np.load(warp_paths[i])
 
             self.h, self.w = image.shape[:2]
 
@@ -79,9 +75,10 @@ class SmplDataset(Dataset):
             self.depth.append(depth.reshape((trans_dir_rgb_list.shape[0], 1)))
             self.warp.append(warp.reshape((trans_dir_rgb_list.shape[0], 3)))
 
-
         self.rays = np.concatenate(self.rays)
         self.human_poses = np.concatenate(self.human_poses)
+        self.warp = np.concatenate(self.warp)
+        self.depth = np.concatenate(self.depth)
         self.canonical_smpl = get_smpl_vertices(self.betas, self.expression)
 
         print('Finish initializing rays')
@@ -105,19 +102,21 @@ class SmplDataset(Dataset):
             Depth of coarse samples along ray.
         rgb : torch.Tensor ([3])
             RGB value corresponding to ray.
-
-        # dependency_rays{Ray_samples [samples, 3],ray_trans[3], ray_direction[3],
-        # z_vals[samples], ray_w[1], ray_h[1]} x [Number_of_dependent_rays],
-        # goal_pose[69]
+        human_pose: torch.Tensor ([69])
+            goal pose
+        warp: torch.Tensor ([3])
+            warp from goal to canonical for 3D sample
+        depth: torch.Tensor ([1])
+            depth value for sample on ray
         """
 
         rays_translation, rays_direction, rgb = self.rays[index]
 
         ray_sample, samples_translation, samples_direction, z_vals, rgb = self.transform(
             (rays_translation, rays_direction, rgb))
-
         return ray_sample, samples_translation, samples_direction, z_vals, torch.Tensor(
-            self.human_poses[index]).float(), self.warp[index], self.depth[index], rgb
+            self.human_poses[index]).float(), torch.Tensor(self.warp[index]).float(), torch.Tensor(
+            self.depth[index]).float(), rgb
 
     def __len__(self) -> int:
         return len(self.rays)

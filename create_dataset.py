@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import os
-from render import get_smpl_mesh, render_scene, save_render, get_human_poses
+from render import get_smpl_mesh, render_scene, save_render, get_human_poses, get_warp
 from utils import disjoint_indices
 from camera import get_sphere_poses, get_pose_matrix, get_circle_poses, get_circle_on_sphere_poses
 import json
 from skimage.color import gray2rgb
 import configargparse
+from tqdm import tqdm
 
 np.random.seed(0)
 
@@ -37,18 +38,20 @@ def config_parser():
 
 def save_split(save_dir, camera_transforms, indices, split,
                height, width, camera_angle_x, far, dataset_type, human_poses=None):
-    mesh, betas, expression = get_smpl_mesh(return_betas_exps=True)
-    if dataset_type not in ["nerf", "pix2pix", "smpl_nerf"]:
+    mesh_canonical, betas, expression = get_smpl_mesh(return_betas_exps=True)
+    if dataset_type not in ["nerf", "pix2pix", "smpl_nerf", "smpl"]:
         raise Exception("This dataset type is unknown")
     directory = os.path.join(save_dir, split)
     if not os.path.exists(directory):
         os.makedirs(directory)
     camera_transforms = camera_transforms[indices]
     image_names = ["img_{:03d}.png".format(index) for index in indices]
+    depth_names = ["depth_{:03d}.npy".format(index) for index in indices]
+    warp_names = ["warp_{:03d}.npy".format(index) for index in indices]
     print("Length of {} set: {}".format(split, len(image_names)))
     image_transform_map = {image_name: camera_transform.tolist()
                            for (image_name, camera_transform) in zip(image_names, camera_transforms)}
-    if dataset_type == "smpl_nerf":
+    if dataset_type == "smpl_nerf" or "smpl":
         human_poses = human_poses[indices]
         image_pose_map = {image_name: human_pose[0].numpy().tolist()
                                for (image_name, human_pose) in zip(image_names, human_poses)}
@@ -60,20 +63,30 @@ def save_split(save_dir, camera_transforms, indices, split,
     elif dataset_type == "nerf" or dataset_type == "pix2pix":
         dict = {'camera_angle_x': camera_angle_x,
                 'image_transform_map': image_transform_map}
-    for i, (image_name, camera_pose) in enumerate(image_transform_map.items()):
+    for i, (image_name, camera_pose) in tqdm(enumerate(image_transform_map.items())):
         if dataset_type == "nerf":
-            img = render_scene(mesh, camera_pose, get_pose_matrix(), camera_pose,
+            img = render_scene(mesh_canonical, camera_pose, get_pose_matrix(), camera_pose,
                            height, width, camera_angle_x)
         elif dataset_type == "pix2pix":
-            rgb, depth = render_scene(mesh, camera_pose, get_pose_matrix(), camera_pose,
+            rgb, depth = render_scene(mesh_canonical, camera_pose, get_pose_matrix(), camera_pose,
                            height, width, camera_angle_x, return_depth=True)
             depth = (depth / far * 255).astype(np.uint8)
             img = np.concatenate([rgb, gray2rgb(depth)], 1)
         elif dataset_type == "smpl_nerf":
-            mesh = get_smpl_mesh(body_pose=human_poses[i])
-            img = render_scene(mesh, camera_pose, get_pose_matrix(), camera_pose,
+            mesh_goal = get_smpl_mesh(body_pose=human_poses[i])
+            img = render_scene(mesh_goal, camera_pose, get_pose_matrix(), camera_pose,
                            height, width, camera_angle_x)
+        elif dataset_type == "smpl":
+            mesh_goal = get_smpl_mesh(body_pose=human_poses[i])
+            trimesh_goal = get_smpl_mesh(body_pose=human_poses[i], return_pyrender=False)
+            trimesh_canonical = get_smpl_mesh(return_pyrender=False)
+            img, depth = render_scene(mesh_goal, camera_pose, get_pose_matrix(), camera_pose,
+                           height, width, camera_angle_x, return_depth=True)
+            warp = get_warp(trimesh_canonical,trimesh_goal, np.array(camera_pose), height, width, camera_angle_x)
+            np.save(os.path.join(directory, warp_names[i]), warp)
+            np.save(os.path.join(directory, depth_names[i]), depth)
         save_render(img, os.path.join(directory, image_name))
+        
     print("Saved {} images under: {}".format(split, directory))
     json_file_name = os.path.join(directory, 'transforms.json')
     with open(json_file_name, 'w') as fp:
@@ -96,7 +109,7 @@ def create_dataset():
         camera_number_steps = args.number_steps
     else:
         raise Exception("This camera path is unknown")
-    if args.dataset_type == "smpl_nerf":
+    if args.dataset_type == "smpl_nerf" or args.dataset_type == "smpl":
         dataset_size = dataset_size * args.human_number_steps
     print("Dataset size: ",dataset_size)
     far = args.camera_radius * 2 # For depth normalization
@@ -109,9 +122,9 @@ def create_dataset():
         camera_transforms, camera_angles = get_circle_poses(args.start_angle, args.end_angle, args.number_steps,
                                     args.camera_radius)
     elif args.camera_path == "circle_on_sphere":
-        camera_transforms, camera_angles = get_circle_on_sphere_poses(args.number_steps,20,
+        camera_transforms, camera_angles = get_circle_on_sphere_poses(args.number_steps, 20,
                                     args.camera_radius)
-    if args.dataset_type == "smpl_nerf":
+    if args.dataset_type == "smpl_nerf" or args.dataset_type == "smpl":
         human_poses = get_human_poses(args.joints, args.human_start_angle, args.human_end_angle,
                                       args.human_number_steps)
         human_poses = human_poses.repeat(camera_number_steps, 1, 1)
