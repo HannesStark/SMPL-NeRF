@@ -20,7 +20,7 @@ class SmplDataset(Dataset):
     mapping file (used for training).
     """
 
-    def __init__(self, image_directory: str, transforms_file: str,
+    def __init__(self, image_directory: str, transforms_file: str, args,
                  transform) -> None:
         """
         Parameters
@@ -33,6 +33,7 @@ class SmplDataset(Dataset):
             List of callable transforms for preprocessing.
         """
         super().__init__()
+        self.args = args
         self.transform = transform
         self.rays = []  # list of arrays with ray translation, ray direction and rgb
         self.human_poses = []  # list of corresponding human poses
@@ -92,31 +93,37 @@ class SmplDataset(Dataset):
 
         Returns
         -------
-        ray_samples : torch.Tensor ([number_coarse_samples, 3])
+        ray_sample : torch.Tensor ([number_coarse_samples, 3])
             Coarse samples along the ray between near and far bound.
-        samples_translations : torch.Tensor ([3])
+        sample_translations : torch.Tensor ([3])
             Translation of samples.
-        samples_directions : torch.Tensor ([3])
+        sample_directions : torch.Tensor ([3])
             Direction of samples.
         z_vals : torch.Tensor ([number_coarse_samples])
             Depth of coarse samples along ray.
-        rgb : torch.Tensor ([3])
-            RGB value corresponding to ray.
         human_pose: torch.Tensor ([69])
             goal pose
         warp: torch.Tensor ([3])
             warp from goal to canonical for 3D sample
         depth: torch.Tensor ([1])
             depth value for sample on ray
+        rgb : torch.Tensor ([3])
+            RGB value corresponding to ray.
         """
 
-        rays_translation, rays_direction, rgb = self.rays[index]
+        ray_translation, ray_direction, rgb = self.rays[index]
+        ray_direction_unit = ray_direction / np.linalg.norm(ray_direction, axis=-1, keepdims=True)
 
-        ray_sample, samples_translation, samples_direction, z_vals, rgb = self.transform(
-            (rays_translation, rays_direction, rgb))
-        return ray_sample, samples_translation, samples_direction, z_vals, torch.Tensor(
-            self.human_poses[index]).float(), torch.Tensor(self.warp[index]).float(), torch.Tensor(
-            self.depth[index]).float(), rgb
+        # set ray sample at the distance of far if there is no intersection with the smpl. That is if the depth is 0
+        if self.depth[index] == 0:
+            ray_sample = ray_translation + ray_direction_unit * self.args.far
+        else:
+            ray_sample = ray_translation + ray_direction_unit * self.depth[index]
+
+        sample_translation, sample_direction, rgb = self.transform((ray_translation, ray_direction, rgb))
+        return torch.Tensor(ray_sample).float(), torch.Tensor(sample_translation).float(), torch.Tensor(
+            sample_direction).float(), torch.Tensor(
+            self.warp[index]).float(), torch.Tensor(rgb).float()
 
     def __len__(self) -> int:
         return len(self.rays)

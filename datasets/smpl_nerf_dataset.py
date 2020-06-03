@@ -21,7 +21,7 @@ class SmplNerfDataset(Dataset):
     """
 
     def __init__(self, image_directory: str, transforms_file: str,
-                 transform, args) -> None:
+                 transform) -> None:
         """
         Parameters
         ----------

@@ -37,11 +37,11 @@ def train():
         train_data = RaysFromImagesDataset(train_dir, os.path.join(train_dir, 'transforms.json'), transform)
         val_data = RaysFromImagesDataset(val_dir, os.path.join(val_dir, 'transforms.json'), transform)
     elif args.model_type == "smpl":
-        train_data = SmplDataset(train_dir, os.path.join(train_dir, 'transforms.json'), transform)
-        val_data = SmplDataset(val_dir, os.path.join(val_dir, 'transforms.json'), transform)
+        train_data = SmplDataset(train_dir, os.path.join(train_dir, 'transforms.json'), args, transform=NormalizeRGB())
+        val_data = SmplDataset(val_dir, os.path.join(val_dir, 'transforms.json'), args, transform=NormalizeRGB())
     elif args.model_type == "smpl_nerf" or args.model_type == "append_to_nerf":
-        train_data = SmplNerfDataset(train_dir, os.path.join(train_dir, 'transforms.json'), transform, args)
-        val_data = SmplNerfDataset(val_dir, os.path.join(val_dir, 'transforms.json'), transform, args)
+        train_data = SmplNerfDataset(train_dir, os.path.join(train_dir, 'transforms.json'), transform)
+        val_data = SmplNerfDataset(val_dir, os.path.join(val_dir, 'transforms.json'), transform)
 
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=args.batchsize, shuffle=True, num_workers=0)
     val_loader = torch.utils.data.DataLoader(val_data, batch_size=args.batchsize_val, shuffle=False, num_workers=0)
@@ -59,7 +59,6 @@ def train():
         model_warp_field = WarpFieldNet(args.netdepth_warp, args.netwidth_warp, positions_dim * 3,
                                         human_pose_dim * 2)
 
-
         solver = SmplNerfSolver(model_coarse, model_fine, model_warp_field, position_encoder, direction_encoder,
                                 human_pose_encoder, train_data.canonical_smpl, args, torch.optim.Adam,
                                 torch.nn.MSELoss())
@@ -69,8 +68,8 @@ def train():
                  solver, parser, model_warp_field)
     elif args.model_type == 'smpl':
         solver = SmplSolver(model_coarse, model_fine, position_encoder, direction_encoder,
-                                    args, torch.optim.Adam,
-                                    torch.nn.MSELoss())
+                            args, torch.optim.Adam,
+                            torch.nn.MSELoss())
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
         save_run(os.path.join(solver.writer.log_dir, args.experiment_name + '.pkl'), model_coarse, model_fine,
                  train_data,

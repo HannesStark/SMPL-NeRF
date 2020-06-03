@@ -23,7 +23,7 @@ class SmplPipeline(nn.Module):
                 Estimated RGB color with coarse net.
 
             """
-        ray_sample, ray_translation, samples_direction, z_vals, goal_pose, warp, depth, rgb_truth = data
+        ray_sample, ray_translation, samples_direction, warp, rgb_truth = data
 
         warped_sample = ray_sample + warp
         sample_encoding = self.position_encoder.encode(warped_sample)
@@ -36,4 +36,4 @@ class SmplPipeline(nn.Module):
         inputs = torch.cat([sample_encoding, direction_encoding], -1)  # [batchsize, encoding_size]
         raw_outputs = self.model_coarse(inputs)  # [batchsize, 4]
         rgb = torch.sigmoid(raw_outputs[..., :3])  # [batchsize, 3]
-        return rgb
+        return rgb, rgb

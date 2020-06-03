@@ -1,11 +1,11 @@
-experiment_name = append_to_nerf
+experiment_name = smpl_onesmaple_per_ray
 number_validation_images = 2
-model_type = smpl_nerf
-human_pose_encoding = 0
+model_type = smpl
+human_pose_encoding = 1
 
-netdepth = 7
+netdepth = 3
 
-run_fine =1
+run_fine = 0
 netdepth_fine = 8
 
 log_iterations = 5
