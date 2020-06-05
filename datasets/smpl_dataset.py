@@ -123,7 +123,8 @@ class SmplDataset(Dataset):
         sample_translation, sample_direction, rgb = self.transform((ray_translation, ray_direction, rgb))
         return torch.Tensor(ray_sample).float(), torch.Tensor(sample_translation).float(), torch.Tensor(
             sample_direction).float(), torch.Tensor(
-            self.warp[index]).float(), torch.Tensor(rgb).float()
+            self.warp[index]).float(), torch.Tensor(rgb).float(), torch.Tensor(
+            self.human_poses[index]).float()
 
     def __len__(self) -> int:
         return len(self.rays)

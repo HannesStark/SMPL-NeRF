@@ -13,6 +13,7 @@ from models.render_ray_net import RenderRayNet
 from models.warp_field_net import WarpFieldNet
 from solver.append_to_nerf_solver import AppendToNerfSolver
 from solver.nerf_solver import NerfSolver
+from solver.warp_solver import WarpSolver
 import numpy as np
 
 from solver.smpl_nerf_solver import SmplNerfSolver
@@ -25,7 +26,7 @@ np.random.seed(0)
 def train():
     parser = config_parser()
     args = parser.parse_args()
-    if args.model_type not in ["nerf", "smpl_nerf", "append_to_nerf", "smpl"]:
+    if args.model_type not in ["nerf", "smpl_nerf", "append_to_nerf", "smpl", "warp"]:
         raise Exception("The model type ", args.model_type, " does not exist.")
 
     transform = transforms.Compose(
@@ -36,7 +37,7 @@ def train():
     if args.model_type == "nerf":
         train_data = RaysFromImagesDataset(train_dir, os.path.join(train_dir, 'transforms.json'), transform)
         val_data = RaysFromImagesDataset(val_dir, os.path.join(val_dir, 'transforms.json'), transform)
-    elif args.model_type == "smpl":
+    elif args.model_type == "smpl" or args.model_type == "warp":
         train_data = SmplDataset(train_dir, os.path.join(train_dir, 'transforms.json'), args, transform=NormalizeRGB())
         val_data = SmplDataset(val_dir, os.path.join(val_dir, 'transforms.json'), args, transform=NormalizeRGB())
     elif args.model_type == "smpl_nerf" or args.model_type == "append_to_nerf":
@@ -77,6 +78,18 @@ def train():
     elif args.model_type == 'nerf':
         solver = NerfSolver(model_coarse, model_fine, position_encoder, direction_encoder, args, torch.optim.Adam,
                             torch.nn.MSELoss())
+        solver.train(train_loader, val_loader, train_data.h, train_data.w)
+        save_run(os.path.join(solver.writer.log_dir, args.experiment_name + '.pkl'), model_coarse, model_fine,
+                 train_data,
+                 solver, parser)
+    elif args.model_type == 'warp':
+        human_pose_encoder = PositionalEncoder(args.number_frequencies_pose, args.use_identity_pose)
+        positions_dim = position_encoder.output_dim if args.human_pose_encoding else 1
+        human_pose_dim = human_pose_encoder.output_dim if args.human_pose_encoding else 1
+        model_warp_field = WarpFieldNet(args.netdepth_warp, args.netwidth_warp, positions_dim * 3,
+                                        human_pose_dim * 2)
+        human_pose_encoder = PositionalEncoder(args.number_frequencies_pose, args.use_identity_pose)
+        solver = WarpSolver(model_warp_field, position_encoder, direction_encoder, human_pose_encoder, args)
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
         save_run(os.path.join(solver.writer.log_dir, args.experiment_name + '.pkl'), model_coarse, model_fine,
                  train_data,
