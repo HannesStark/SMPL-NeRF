@@ -44,7 +44,7 @@ class SmplDataset(Dataset):
         with open(transforms_file, 'r') as transforms_file:
             transforms_dict = json.load(transforms_file)
         camera_angle_x = transforms_dict['camera_angle_x']
-        image_transform_map = transforms_dict.get('image_transform_map')
+        self.image_transform_map = transforms_dict.get('image_transform_map')
         image_pose_map = transforms_dict.get('image_pose_map')
         self.expression = [transforms_dict['expression']]
         self.betas = [transforms_dict['betas']]
@@ -52,11 +52,11 @@ class SmplDataset(Dataset):
         depth_paths = sorted(glob.glob(os.path.join(image_directory, 'depth_*.npy')))
         warp_paths = sorted(glob.glob(os.path.join(image_directory, 'warp_*.npy')))
 
-        if not len(image_paths) == len(image_transform_map):
+        if not len(image_paths) == len(self.image_transform_map):
             raise ValueError('Number of images in image_directory is not the same as number of transforms')
 
-        for i in range(len(image_transform_map)):
-            camera_transform = np.array(image_transform_map[os.path.basename(image_paths[i])])
+        for i in range(len(self.image_transform_map)):
+            camera_transform = np.array(self.image_transform_map[os.path.basename(image_paths[i])])
             human_pose = np.array(image_pose_map[os.path.basename(image_paths[i])])
 
             image = cv2.imread(image_paths[i])

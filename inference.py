@@ -29,6 +29,7 @@ from models.warp_field_net import WarpFieldNet
 from models.smpl_pipeline import SmplPipeline
 from datasets.smpl_dataset import SmplDataset
 from datasets.transforms import NormalizeRGB
+import matplotlib.pyplot as plt
 
 
 def inference(batch_size=128):
@@ -38,8 +39,7 @@ def inference(batch_size=128):
     config_file_training = os.path.join(args_inference.run_dir, "config.txt")
     parser_training.add_argument('--config2', is_config_file=True, default=config_file_training, help='config file path')
     args_training = parser_training.parse_args()
-    camera_transforms, camera_angles = get_circle_on_sphere_poses(args_inference.number_steps, 20,
-                                                                      args_inference.camera_radius)
+    
     position_encoder = PositionalEncoder(args_training.number_frequencies_postitional, args_training.use_identity_positional)
     direction_encoder = PositionalEncoder(args_training.number_frequencies_directional, args_training.use_identity_directional)
     model_coarse = RenderRayNet(args_training.netdepth, args_training.netwidth, position_encoder.output_dim * 3,
@@ -80,6 +80,7 @@ def inference(batch_size=128):
         dataset = SmplDataset(gt_dir, os.path.join(gt_dir, 'transforms.json'), args_training, transform=NormalizeRGB())
         data_loader = torch.utils.data.DataLoader(dataset, batch_size=args_training.batchsize, shuffle=False, num_workers=0)
         pipeline = SmplPipeline(model_coarse, args_training, position_encoder, direction_encoder)
+        camera_transforms = dataset.image_transform_map
         for i, data in enumerate(data_loader):
                 for j, element in enumerate(data):
                     data[j] = element.to(device)
@@ -92,8 +93,6 @@ def inference(batch_size=128):
         #        indices = indices[:batch + args_training.batchsize - number_rays]
         rgb_images = np.concatenate(rgb_images, 0).reshape((len(camera_transforms), dataset.h, dataset.w, 3))
         rgb_images = np.clip(rgb_images, 0, 1) * 255
-
-        return rgb_images.astype(np.uint8)
     
     elif args_inference.model_type == 'nerf':
         pass
@@ -106,8 +105,9 @@ def inference(batch_size=128):
         model_fine = RenderRayNet(args_training.netdepth_fine, args_training.netwidth_fine, position_encoder.output_dim * 3,
                                   direction_encoder.output_dim * 3, human_pose_dim * 2,
                                   skips=args_training.skips_fine)
-
-    return rgb_images.astype(np.uint8)
+    rgb_images = rgb_images.astype(np.uint8)
+    save_rerenders(rgb_images, args_inference.run_dir, args_inference.save_dir)
+    return rgb_images
 
 
 def save_rerenders(rgb_images, run_file, output_dir='renders'):
@@ -126,7 +126,7 @@ def config_parser_inference():
     """
     parser = configargparse.ArgumentParser()
     # General
-    parser.add_argument('--save_dir', default="data", help='save directory for inference output')
+    parser.add_argument('--save_dir', default="renders", help='save directory for inference output')
     parser.add_argument('--run_dir', default="runs/Jun03_12-17-11_korhal", help='path to load model')
     parser.add_argument('--model_type', default="smpl", type=str,
                         help='choose dataset type for model [smpl_nerf, nerf, pix2pix, smpl]')    # Camera
@@ -257,7 +257,10 @@ def create_dataset():
                args.dataset_type, human_poses)
 
 if __name__ == '__main__':
-    inference()
+    rgb_images = inference()
+    print(rgb_images.shape)
+    plt.imshow(rgb_images[0])
+    plt.show()
     # Option 1: Use transforms.pkl
     # with open('data/val/transforms.pkl', 'rb') as transforms_file:
     #   transforms_dict = pickle.load(transforms_file)
