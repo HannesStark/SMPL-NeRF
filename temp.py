@@ -93,22 +93,32 @@ for i, face_idx in enumerate(intersections_face_indices):
     goal_intersections_points.append(goal_intersection)
     goal_intersections_normals.append(goal_mesh.face_normals[face_idx])
 
+goal_intersections_normals = np.array(goal_intersections_normals)
 goal_intersections_points = np.array(goal_intersections_points)
 canonical_intersections_points = np.array(canonical_intersections_points)
 
-virtual_ray_direction = goal_intersections_points[1] - goal_intersections_points[0]
-virtual_ray_direction = virtual_ray_direction / np.linalg.norm(virtual_ray_direction)
-virtual_ray_offset = virtual_ray_direction * np.linalg.norm(canonical_intersections_points[0] - ray_translation)
-virtual_ray_translation = goal_intersections_points[0] - virtual_ray_offset
 
-for i, goal_intersections_point in enumerate(goal_intersections_points):
-    if -np.pi / 2 < np.arccos(ray_direction.dot(goal_intersections_normals[i])) < np.pi / 2:
+sections_normals = np.split(goal_intersections_normals, len(goal_intersections_normals) / 2)
+sections_canonical_points = np.split(canonical_intersections_points, len(canonical_intersections_points) / 2)
+sections_goal_points = np.split(goal_intersections_points, len(goal_intersections_points) / 2)
 
-        print(np.rad2deg(np.arccos(ray_direction.dot(goal_intersections_normals[i]))))
+#go through different sections of the ray
+for i, section_goal_points in enumerate(sections_goal_points):
+    #get virtual ray of section
+    virtual_ray_direction = sections_goal_points[i][1] - sections_goal_points[i][0]
+    virtual_ray_direction = virtual_ray_direction / np.linalg.norm(virtual_ray_direction)
+    virtual_ray_offset = virtual_ray_direction * np.linalg.norm(sections_canonical_points[i][0] - ray_translation)
+    virtual_ray_translation = sections_goal_points[i][0] - virtual_ray_offset
+
+    # get camera facing point from our goal intersections (checked by the if statement)
+    for j, camera_facing_goal_point in enumerate(section_goal_points):
+        if -np.pi / 2 < np.arccos(ray_direction.dot(sections_normals[i][j])) < np.pi / 2:
+            camera_facing_canonical_point = sections_canonical_points[i][j]
+            print(np.rad2deg(np.arccos(ray_direction.dot(sections_normals[i][j]))))
 
 print('virtual_ray_direction ', virtual_ray_direction)
-print('ray_direction ', ray_direction)
 print('virtual_ray_translation ', virtual_ray_translation)
+print('ray_direction ', ray_direction)
 print('ray_translation ', ray_translation)
 
 primitive2 = pyrender.Primitive([virtual_ray_translation, virtual_ray_translation + virtual_ray_direction * 6], mode=3,

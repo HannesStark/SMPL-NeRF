@@ -201,6 +201,7 @@ def get_circle_on_sphere_poses(number_steps: int, circle_radius: float,
     return np.array(poses), angles
 
 
+
 def camera_origin_direction(x: float, y: float, z: float) -> Tuple[float, float]:
     """
     Calculate phi and theta in degrees for a camera to face the origin
