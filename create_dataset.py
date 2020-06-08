@@ -37,6 +37,8 @@ def config_parser():
     parser.add_argument('--human_end_angle', default=90, type=int, help='End angle for human joints')
     parser.add_argument('--human_number_steps', default=10, type=int,
                         help='Number of angles inbetween start and end angle for human joints')
+    parser.add_argument("--multi_human_pose", type=int, default=0,
+                        help='Multiple human poses per viewpoint')
 
     return parser
 
@@ -115,7 +117,8 @@ def create_dataset():
     else:
         raise Exception("This camera path is unknown")
     if args.dataset_type == "smpl_nerf" or args.dataset_type == "smpl":
-        dataset_size = dataset_size * args.human_number_steps
+        if args.multi_human_pose:
+            dataset_size = dataset_size * args.human_number_steps
     print("Dataset size: ", dataset_size)
     far = args.camera_radius * 2  # For depth normalization
 
@@ -130,10 +133,14 @@ def create_dataset():
         camera_transforms, camera_angles = get_circle_on_sphere_poses(args.number_steps, 20,
                                                                       args.camera_radius)
     if args.dataset_type == "smpl_nerf" or args.dataset_type == "smpl":
-        human_poses = get_human_poses(args.joints, args.human_start_angle, args.human_end_angle,
-                                      args.human_number_steps)
-        human_poses = human_poses.repeat(camera_number_steps, 1, 1)
-        camera_transforms = np.repeat(camera_transforms, args.human_number_steps, axis=0)
+        if args.multi_human_pose:
+            human_poses = get_human_poses(args.joints, args.human_start_angle, args.human_end_angle,
+                                          args.human_number_steps)
+            human_poses = human_poses.repeat(camera_number_steps, 1, 1)
+            camera_transforms = np.repeat(camera_transforms, args.human_number_steps, axis=0)
+        else:
+            human_poses = get_human_poses(args.joints, args.human_start_angle, args.human_end_angle,
+                                          dataset_size)
     train_indices, val_indices = disjoint_indices(dataset_size, args.train_val_ratio)
     train_indices, val_indices = sorted(train_indices), sorted(val_indices)
     save_split(args.save_dir, camera_transforms, train_indices, "train",

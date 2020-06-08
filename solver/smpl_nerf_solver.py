@@ -76,11 +76,13 @@ class SmplNerfSolver(NerfSolver):
                 loss, loss_coarse, loss_fine, loss_canonical_densities = self.smpl_nerf_loss(rgb, rgb_fine, rgb_truth,
                                                                                              warp, densities,
                                                                                              warped_samples)
-                loss.backward(retain_graph=True)
-                loss_canonical_densities.backward()
-                self.optim.step()
                 if self.args.restrict_gmm_loss:
+                    loss.backward(retain_graph=True)
+                    loss_canonical_densities.backward()
                     self.warp_optim.step()
+                else:
+                    loss.backward()
+                self.optim.step()
 
                 loss_item = loss.item()
                 if i % args.log_iterations == args.log_iterations - 1:
