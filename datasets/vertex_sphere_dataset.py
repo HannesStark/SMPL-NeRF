@@ -14,7 +14,7 @@ from render import get_smpl_vertices
 import torch.distributions as D
 
 
-class TrueWarpDataset(Dataset):
+class VertexSphereDataset(Dataset):
     """
      Takes a data directory of type "smpl_nerf" and returns rays
     """
@@ -64,10 +64,10 @@ class TrueWarpDataset(Dataset):
             trans_dir_rgb_list = trans_dir_rgb_stack.reshape((-1, 3, 3))
             self.human_poses.append(np.repeat(human_pose[np.newaxis, :], trans_dir_rgb_list.shape[0], axis=0))
             self.goal_smpls.append(
-                torch.from_numpy(get_smpl_vertices(self.betas, self.expression, body_pose=human_pose)))
+                torch.from_numpy(get_smpl_vertices(self.betas, self.expression, body_pose=human_pose[None, :])))
 
             self.rays.append(trans_dir_rgb_list)
-        self.rays = torch.cat(self.rays)
+        self.rays = np.concatenate(self.rays)
         self.human_poses = np.concatenate(self.human_poses)
 
         print('Finish initializing rays')
@@ -89,12 +89,11 @@ class TrueWarpDataset(Dataset):
             Direction of samples.
         z_vals : torch.Tensor ([number_coarse_samples])
             Depth of coarse samples along ray.
+        warp : torch.Tensor ([number_coarse_samples, 3])
+            The correct warp for every sample as calculated from canonical and goal smpl and args.vertex_sphere_radius.
         rgb : torch.Tensor ([3])
             RGB value corresponding to ray.
 
-        # dependency_rays{Ray_samples [samples, 3],ray_trans[3], ray_direction[3],
-        # z_vals[samples], ray_w[1], ray_h[1]} x [Number_of_dependent_rays],
-        # goal_pose[69]
         """
 
         rays_translation, rays_direction, rgb = self.rays[index]
@@ -102,18 +101,24 @@ class TrueWarpDataset(Dataset):
         ray_samples, samples_translations, samples_directions, z_vals, rgb = self.transform(
             (rays_translation, rays_direction, rgb))
 
-        goal_smpl = self.goal_smpls[index]
+        goal_smpl = self.goal_smpls[index // (self.h * self.w)]  # divide because we have so many rays per image/smpl
         distances = ray_samples[:, None, :].expand((-1, goal_smpl.shape[0], -1)) - goal_smpl[None, :,
                                                                                    :]  # [number_samples, number_vertices, 3]
-        assignments = distances[distances < self.vertex_radius]  # [number_samples, number_vertices, 3]
+        distances = torch.norm(distances, dim=-1, keepdim=True)
+
+        assignments = distances
+        mask_to_0 = [assignments > self.vertex_radius]
+        mask_to_1 = [assignments < self.vertex_radius]
+        assignments[mask_to_0] = 0  # [number_samples, number_vertices, 3]
+        assignments[mask_to_1] = 1  # [number_samples, number_vertices, 3]
 
         warp = self.canonical_smpl - goal_smpl  # [number_vertices,3]
         warp = warp[None, :, :] * assignments  # [number_samples, number_vertices, 3]
         warp = warp.sum(dim=1)  # [number_samples, number_vertices, 3]
-        warp = warp / assignments.sum(dim=1)  # [number_samples, 3]
+        warp = warp / (assignments.sum(dim=1) + 1e-10)  # [number_samples, 3]
+        print(assignments.sum(dim=1))
 
-        return ray_samples, samples_translations, samples_directions, z_vals, self.human_poses[
-            index].float(), warp.float(), rgb
+        return ray_samples, samples_translations, samples_directions, z_vals, warp.float(), rgb
 
     def __len__(self) -> int:
         return len(self.rays)

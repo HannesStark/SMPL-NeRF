@@ -20,9 +20,10 @@ class SmplNerfSolver(NerfSolver):
         if args.restrict_gmm_loss:
             self.warp_optim = optim(list(model_coarse.parameters()))
             self.optim = optim(list(model_fine.parameters()) + list(model_warp_field.parameters()),
-                **self.optim_args_merged)
+                               **self.optim_args_merged)
         else:
-            self.optim = optim(list(model_coarse.parameters()) + list(model_fine.parameters()) + list(model_warp_field.parameters()),
+            self.optim = optim(
+                list(model_coarse.parameters()) + list(model_fine.parameters()) + list(model_warp_field.parameters()),
                 **self.optim_args_merged)
 
     def init_pipeline(self):
@@ -33,12 +34,12 @@ class SmplNerfSolver(NerfSolver):
     def smpl_nerf_loss(self, rgb, rgb_fine, rgb_truth, warp, densities, ray_samples):
         loss_coarse = self.loss_func(rgb, rgb_truth)
         loss_fine = self.loss_func(rgb_fine, rgb_truth)
-        loss_canonical_densities = self.loss_func(self.canonical_mixture.pdf(ray_samples), densities)
         loss = loss_coarse + loss_fine
         if self.args.use_gmm_loss and not self.args.restrict_gmm_loss:
+            loss_canonical_densities = self.loss_func(self.canonical_mixture.pdf(ray_samples), densities)
             loss = loss_coarse + loss_fine + loss_canonical_densities
         # loss += 0.5 * torch.mean(torch.norm(warp, p=1, dim=-1))
-        return loss, loss_coarse, loss_fine, loss_canonical_densities
+        return loss, loss_coarse, loss_fine
 
     def train(self, train_loader, val_loader, h: int, w: int):
         """
@@ -63,7 +64,6 @@ class SmplNerfSolver(NerfSolver):
             self.model_fine.train()
             train_loss = 0
             train_coarse_loss = 0
-            train_densities_loss = 0
             train_fine_loss = 0
             for i, data in enumerate(train_loader):
                 for j, element in enumerate(data):
@@ -73,15 +73,10 @@ class SmplNerfSolver(NerfSolver):
                 rgb, rgb_fine, warp, ray_samples, warped_samples, densities = self.pipeline(data)
 
                 self.optim.zero_grad()
-                loss, loss_coarse, loss_fine, loss_canonical_densities = self.smpl_nerf_loss(rgb, rgb_fine, rgb_truth,
-                                                                                             warp, densities,
-                                                                                             warped_samples)
-                if self.args.restrict_gmm_loss:
-                    loss.backward(retain_graph=True)
-                    loss_canonical_densities.backward()
-                    self.warp_optim.step()
-                else:
-                    loss.backward()
+                loss, loss_coarse, loss_fine, = self.smpl_nerf_loss(rgb, rgb_fine, rgb_truth,
+                                                                    warp, densities,
+                                                                    warped_samples)
+                loss.backward()
                 self.optim.step()
 
                 loss_item = loss.item()
@@ -99,11 +94,11 @@ class SmplNerfSolver(NerfSolver):
 
                             rgb, rgb_fine, warp, ray_samples, warped_samples, densities = self.pipeline(data)
 
-                            loss, loss_coarse, loss_fine, loss_canonical_densities = self.smpl_nerf_loss(rgb, rgb_fine,
-                                                                                                         rgb_truth,
-                                                                                                         warp,
-                                                                                                         densities,
-                                                                                                         warped_samples)
+                            loss, loss_coarse, loss_fine, = self.smpl_nerf_loss(rgb, rgb_fine,
+                                                                                rgb_truth,
+                                                                                warp,
+                                                                                densities,
+                                                                                warped_samples)
                             val_loss += loss.item()
                         self.writer.add_scalars('Loss curve every nth iteration', {'train loss': loss_item,
                                                                                    'val loss': val_loss / len(
@@ -113,7 +108,6 @@ class SmplNerfSolver(NerfSolver):
 
                 train_loss += loss_item
                 train_coarse_loss += loss_coarse.item()
-                train_densities_loss += loss_canonical_densities.item()
                 train_fine_loss += loss_fine.item()
             print('[Epoch %d] Average loss of Epoch: %.7f' %
                   (epoch + 1, train_loss / iter_per_epoch))
@@ -134,9 +128,8 @@ class SmplNerfSolver(NerfSolver):
 
                 rgb, rgb_fine, warp, ray_samples, warped_samples, densities = self.pipeline(data)
 
-                loss, loss_coarse, loss_fine, loss_canonical_densities = self.smpl_nerf_loss(rgb, rgb_fine, rgb_truth,
-                                                                                             warp, densities,
-                                                                                             warped_samples)
+                loss, loss_coarse, loss_fine = self.smpl_nerf_loss(rgb, rgb_fine, rgb_truth, warp, densities,
+                                                                   warped_samples)
                 val_loss += loss.item()
 
                 ground_truth_images.append(rgb_truth.detach().cpu().numpy())
@@ -178,7 +171,6 @@ class SmplNerfSolver(NerfSolver):
                                                    'val loss': val_loss / (len(val_loader) or not len(val_loader))},
                                     epoch)
             self.writer.add_scalars('Train Losses', {'coarse': train_coarse_loss / iter_per_epoch,
-                                                     'fine': train_fine_loss / iter_per_epoch,
-                                                     'densities': train_densities_loss / iter_per_epoch},
+                                                     'fine': train_fine_loss / iter_per_epoch},
                                     epoch)
         print('FINISH.')
