@@ -18,11 +18,11 @@ def config_parser():
     # training options
     parser.add_argument("--netdepth", type=int, default=8, help='layers in network')
     parser.add_argument("--netwidth", type=int, default=256, help='channels per layer')
-    parser.add_argument("--skips", type=int, default=[4], help='layers with concateneted positional input',
+    parser.add_argument("--skips", type=int, default=[], help='layers with concateneted positional input',
                         action="append")
     parser.add_argument("--netdepth_fine", type=int, default=8, help='layers in fine network')
     parser.add_argument("--netwidth_fine", type=int, default=256, help='channels per layer in fine network')
-    parser.add_argument("--skips_fine", type=int, default=[4],
+    parser.add_argument("--skips_fine", type=int, default=[],
                         help='layers with concateneted positional input of fine net', action="append")
     parser.add_argument("--run_fine", type=int, default=1, help='If 1 use fine network else only coarse')
 
@@ -43,7 +43,7 @@ def config_parser():
     parser.add_argument("--weight_decay", type=int, default=0, help='adam weight decay')
     parser.add_argument("--log_iterations", type=int, default=10,
                         help='number of iterations to pass to run extra validation and logging')
-    parser.add_argument("--mesh_epochs", type=int, default=[0, 0.5, 1],
+    parser.add_argument("--mesh_epochs", type=float, default=[],
                         help='layers with concateneted positional input',
                         action="append")
     parser.add_argument("--early_validation", type=int, default=0,

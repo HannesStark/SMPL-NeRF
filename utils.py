@@ -394,16 +394,21 @@ def tensorboard_rerenders(writer: SummaryWriter, number_validation_images, reren
         plt.close()
 
 
-def tensorboard_warps(writer: SummaryWriter, number_validation_images, samples, warps, step):
+def tensorboard_warps(writer: SummaryWriter, number_validation_images, samples,
+                      warps, step,tensorboard_tag='warp', point_size=0.01):
     if number_validation_images <= len(samples):
         samples = samples[:number_validation_images]
         warps = warps[:number_validation_images]
-
     magnitude = np.linalg.norm(warps, axis=-1)
     cmap = plt.cm.get_cmap('viridis')
     rgb = cmap(magnitude)[:, :, :3] * 255
-
-    writer.add_mesh('warp', vertices=samples, colors=rgb, global_step=step)
+    point_size_config = {
+      'material': {
+        'size': point_size
+        }
+    }
+    writer.add_mesh(tensorboard_tag, vertices=samples, colors=rgb, global_step=step,
+                    config_dict=point_size_config)
 
 
 def tensorboard_densities(writer: SummaryWriter, number_validation_images, samples, densities, step):

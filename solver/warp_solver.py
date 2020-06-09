@@ -84,6 +84,7 @@ class WarpSolver(NerfSolver):
             ground_truth_images = []
             samples = []
             warps = []
+            ground_truth_warps = []
             densities_list = []
             warped_samples_list = []
             for i, data in enumerate(val_loader):
@@ -99,6 +100,7 @@ class WarpSolver(NerfSolver):
                 samples.append(ray_sample.detach().cpu().numpy())
                 warped_samples_list.append(warped_samples.detach().cpu().numpy())
                 warps.append(warp.detach().cpu().numpy())
+                ground_truth_warps.append(warp_truth.detach().cpu().numpy())
 
             if len(val_loader) != 0:
                 ground_truth_images = np.concatenate(ground_truth_images).reshape((-1, h, w, 3))
@@ -113,10 +115,15 @@ class WarpSolver(NerfSolver):
                 warps_mesh = warps.reshape(
                     (-1, h * w, 3))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
                 warps = warps.reshape((-1, h, w, 3))
-
-            if epoch in np.floor(np.array(args.mesh_epochs) * (args.num_epochs - 1)):  # bc it takes too much storage
-                tensorboard_warps(self.writer, args.number_validation_images, samples, warps_mesh, epoch)
                 
+                ground_truth_warps = np.concatenate(ground_truth_warps)
+                ground_truth_warps_mesh = ground_truth_warps.reshape(
+                    (-1, h * w, 3))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
+                ground_truth_warps = ground_truth_warps.reshape((-1, h, w, 3))
+            if epoch in np.floor(np.array(args.mesh_epochs) * (args.num_epochs - 1)):  # bc it takes too much storage
+                tensorboard_warps(self.writer, args.number_validation_images, samples, warps_mesh, epoch, point_size=h/1000)
+                tensorboard_warps(self.writer, args.number_validation_images, 
+                                  samples, ground_truth_warps_mesh, epoch, tensorboard_tag="warp_gt", point_size=h/1000)
 
             print('[Epoch %d] VAL loss: %.7f' % (epoch + 1, val_loss / (len(val_loader) or not len(val_loader))))
             self.writer.add_scalars('Loss Curve', {'train loss': train_loss / iter_per_epoch,
