@@ -12,7 +12,7 @@ python create_dataset.py --dataset=pix2pix --save_dir=baseline/pytorch-CycleGAN-
 ```
 - Create Dataset with (RGB, transforms, poses) for smpl_nerf 
 ```bash
-python create_dataset.py --dataset=smpl_nerf --save_dir=data --resolution=128 --start_angle=0 --end_angle=1 --number_steps=1 --human_number_steps=10 
+python create_dataset.py --dataset=smpl_nerf --save_dir=data --resolution=128 --start_angle=0 --end_angle=1 --number_steps=1 --human_number_steps=10 --multi_human_pose=1
 ```
 - Train Pix2Pix on datasets (set name for experiment, set gpu_ids=-1 for CPU)
 ```bash

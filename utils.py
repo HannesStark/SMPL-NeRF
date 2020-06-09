@@ -249,7 +249,7 @@ def save_run(file_location: str, model_coarse, model_fine, dataset, solver,
     torch.save(model_coarse.state_dict(), os.path.join(saving_path, 'model_coarse.pt'))
     torch.save(model_fine.state_dict(), os.path.join(saving_path, 'model_fine.pt'))
     if model_warp_field is not None:
-        torch.save(model_coarse.state_dict(), os.path.join(saving_path, 'model_warp_field.pt'))
+        torch.save(model_warp_field.state_dict(), os.path.join(saving_path, 'model_warp_field.pt'))
 
     parser.write_config_file(args, [os.path.join(os.path.dirname(file_location), 'config.txt')])
 
@@ -399,7 +399,7 @@ def tensorboard_warps(writer: SummaryWriter, number_validation_images, samples, 
         samples = samples[:number_validation_images]
         warps = warps[:number_validation_images]
 
-    magnitude = np.sum(warps, axis=-1)
+    magnitude = np.linalg.norm(warps, axis=-1)
     cmap = plt.cm.get_cmap('viridis')
     rgb = cmap(magnitude)[:, :, :3] * 255
 

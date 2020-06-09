@@ -40,15 +40,15 @@ class SmplNerfDataset(Dataset):
         with open(transforms_file, 'r') as transforms_file:
             transforms_dict = json.load(transforms_file)
         camera_angle_x = transforms_dict['camera_angle_x']
-        image_transform_map = transforms_dict.get('image_transform_map')
+        self.image_transform_map = transforms_dict.get('image_transform_map')
         image_pose_map = transforms_dict.get('image_pose_map')
         self.expression = [transforms_dict['expression']]
         self.betas = [transforms_dict['betas']]
         image_paths = sorted(glob.glob(os.path.join(image_directory, '*.png')))
-        if not len(image_paths) == len(image_transform_map):
+        if not len(image_paths) == len(self.image_transform_map):
             raise ValueError('Number of images in image_directory is not the same as number of transforms')
         for image_path in image_paths:
-            camera_transform = np.array(image_transform_map[os.path.basename(image_path)])
+            camera_transform = np.array(self.image_transform_map[os.path.basename(image_path)])
             human_pose = np.array(image_pose_map[os.path.basename(image_path)])
 
             image = cv2.imread(image_path)
