@@ -11,7 +11,7 @@ class AppendToNerfSolver(NerfSolver):
                  optim=torch.optim.Adam, loss_func=torch.nn.MSELoss()):
         self.human_pose_encoder = human_pose_encoder
         super(AppendToNerfSolver, self).__init__(model_coarse, model_fine, positions_encoder, directions_encoder, args,
-                                             optim, loss_func)
+                                                 optim, loss_func)
 
     def init_pipeline(self):
         return AppendToNerfPipeline(self.model_coarse, self.model_fine, self.args,

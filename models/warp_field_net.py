@@ -11,10 +11,8 @@ class WarpFieldNet(nn.Module):
         self.positions_dim = positions_dim
         self.direcions_dim = pose_dim
 
-
         self.linear1 = torch.nn.Linear(positions_dim + pose_dim, width)
         self.linear2 = torch.nn.Linear(width, 3)
-
 
     def forward(self, x):
         x = self.linear1(x)

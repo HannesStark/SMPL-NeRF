@@ -10,7 +10,7 @@ def config_parser():
     parser.add_argument('--config', is_config_file=True, default="configs/config.txt", help='config file path')
     parser.add_argument("--experiment_name", type=str, default='default', help='experiment name')
     parser.add_argument('--model_type', default="nerf", type=str,
-                        help='choose model type for model [smpl_nerf, nerf, append_to_nerf, smpl]')
+                        help='choose model type for model [smpl_nerf, nerf, append_to_nerf, smpl, warp, vertex_sphere]')
     parser.add_argument("--dataset_dir", type=str, default='data', help='directory with specific dataset structure')
     parser.add_argument("--number_validation_images", type=int, default=1,
                         help='number of images to take from the validation images directory and use to render validation images')
@@ -30,10 +30,10 @@ def config_parser():
     parser.add_argument("--netwidth_warp", type=int, default=256, help='channels per layer in fine network')
     parser.add_argument("--gmm_std", type=float, default=0.07,
                         help='std of gaussian mixture model that is used for the loss of the densities')
-    parser.add_argument("--restrict_gmm_loss", default=0, type=int,
-                        help='restricts the loss of the densities with the gmm to only be optimized in the warp field')
     parser.add_argument("--use_gmm_loss", default=0, type=int,
                         help='additional gaussian mixture loss')
+    parser.add_argument("--vertex_sphere_radius", type=float, default=0.1,
+                        help='the radius around the smpl vertices which the samples are assigned to and warped like the vertex. Is only used for model_type true_warp')
 
     parser.add_argument("--batchsize", type=int, default=2048,
                         help='batch size (number of random rays per gradient step)')

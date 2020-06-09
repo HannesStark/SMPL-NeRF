@@ -11,6 +11,7 @@ class WarpSolver(NerfSolver):
                          "betas": (0.9, 0.999),
                          "eps": 1e-8,
                          "weight_decay": 0}
+
     def __init__(self, model_warp_field, positions_encoder: PositionalEncoder,
                  directions_encoder: PositionalEncoder, human_pose_encoder: PositionalEncoder,
                  args, optim=torch.optim.Adam, loss_func=torch.nn.MSELoss()):
@@ -26,6 +27,7 @@ class WarpSolver(NerfSolver):
         self.optim = optim(list(model_warp_field.parameters()),
                            **self.optim_args_merged)
         self.loss_func = loss_func
+
     def forward(self, ray_sample, goal_pose):
         goal_pose = torch.stack([goal_pose[:, 38], goal_pose[:, 41]], axis=-1)
         # get values for coarse network and run them through the coarse network
@@ -33,13 +35,13 @@ class WarpSolver(NerfSolver):
         samples_encoding = self.position_encoder.encode(ray_sample)
         if self.args.human_pose_encoding:
             warp_field_inputs = torch.cat([samples_encoding,
-                                       goal_pose_encoding], -1)
+                                           goal_pose_encoding], -1)
         else:
             warp_field_inputs = torch.cat(
                 [ray_sample, goal_pose], -1)
         warp = self.model_warp_field(warp_field_inputs)
         return warp
-    
+
     def train(self, train_loader, val_loader, h: int, w: int):
         """
         Train coarse and fine model on training data and run validation
@@ -78,7 +80,7 @@ class WarpSolver(NerfSolver):
                 train_loss += loss_item
             print('[Epoch %d] Average loss of Epoch: %.7f' %
                   (epoch + 1, train_loss / iter_per_epoch))
-            
+
             ### Validation ###
             val_loss = 0
             ground_truth_images = []
@@ -95,7 +97,7 @@ class WarpSolver(NerfSolver):
                 warped_samples = ray_sample + warp
                 loss = self.loss_func(warp, warp_truth)
                 val_loss += loss.item()
-                
+
                 ground_truth_images.append(rgb_truth.detach().cpu().numpy())
                 samples.append(ray_sample.detach().cpu().numpy())
                 warped_samples_list.append(warped_samples.detach().cpu().numpy())
@@ -106,7 +108,7 @@ class WarpSolver(NerfSolver):
                 ground_truth_images = np.concatenate(ground_truth_images).reshape((-1, h, w, 3))
                 samples = np.concatenate(samples)
                 samples = samples.reshape(
-                    (-1, h * w , 3))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
+                    (-1, h * w, 3))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
                 warped_samples_list = np.concatenate(warped_samples_list)
                 warped_samples_list = warped_samples_list.reshape(
                     (-1, h * w,

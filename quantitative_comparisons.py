@@ -66,7 +66,7 @@ if __name__ == '__main__':
         os.makedirs(output_dir)
 
     l1_val_diffs = l1_val_rerender(run_file, val_folder='data/val', batchsize=900)
-    stat_file = open(os.path.join(output_dir,'statistics.txt'), 'w+')
+    stat_file = open(os.path.join(output_dir, 'statistics.txt'), 'w+')
     stat_file.write('Mean L1 Val Loss: ' + str(np.mean(l1_val_diffs)))
 
     height, width, yfov = 128, 128, np.pi / 3
@@ -77,7 +77,8 @@ if __name__ == '__main__':
         camera_pose = get_circle_pose(i, camera_radius)
         camera_transforms.append(camera_pose)
 
-    renders, rerenders = render_vs_rerender(run_file, camera_transforms, height, width, yfov, output_dir, degrees, batchsize=900)
+    renders, rerenders = render_vs_rerender(run_file, camera_transforms, height, width, yfov, output_dir, degrees,
+                                            batchsize=900)
     renders = renders.reshape((len(renders), -1))
     rerenders = rerenders.reshape((len(rerenders), -1))
 

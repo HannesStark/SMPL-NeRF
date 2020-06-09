@@ -14,7 +14,6 @@ class DebugModel(nn.Module):
         self.direcions_dim = directions_dim
         self.skips = skips
 
-
         self.positional_input = torch.nn.Linear(positions_dim, width)
         self.linear1 = torch.nn.Linear(width, width)
         self.linear2 = torch.nn.Linear(width, width)
@@ -25,18 +24,17 @@ class DebugModel(nn.Module):
         self.linear7 = torch.nn.Linear(width, width)
         self.sigma_out_layer = torch.nn.Linear(width, 1)
 
-
         self.rgb_out_layer = torch.nn.Linear(width, 3)
 
     def forward(self, x):
         positions, directions = x[..., :self.positions_dim], x[..., -self.direcions_dim:]
         o = positions
         o = F.relu(self.positional_input(o))
-        #o = F.relu(self.linear1(o))
-        #o = F.relu(self.linear2(o))
-        #o = F.relu(self.linear3(o))
-        #o = F.relu(self.linear4(o))
-        #o = F.relu(self.linear5(o))
+        # o = F.relu(self.linear1(o))
+        # o = F.relu(self.linear2(o))
+        # o = F.relu(self.linear3(o))
+        # o = F.relu(self.linear4(o))
+        # o = F.relu(self.linear5(o))
         o = F.relu(self.linear6(o))
         o = F.relu(self.linear7(o))
         sigma = self.sigma_out_layer(o)

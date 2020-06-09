@@ -8,6 +8,7 @@ from torch.utils.data import Dataset
 
 from utils import get_rays, get_dependent_rays_indices
 
+
 class DependentRaysFromImagesDataset(Dataset):
     """
     Dataset of rays from a directory of images and an images camera transforms
@@ -29,7 +30,7 @@ class DependentRaysFromImagesDataset(Dataset):
         super().__init__()
         self.transform = transform
         self.rays = []  # list of arrays with ray translation, ray direction and rgb
-        self.human_poses = [] # list of corresponding human poses
+        self.human_poses = []  # list of corresponding human poses
         self.dependencies_index = []
         self.dependencies_hw = []
         print('Start initializing all rays of all images')
@@ -96,7 +97,7 @@ class DependentRaysFromImagesDataset(Dataset):
         ray_samples, samples_translations, samples_directions, z_vals, rgb = self.transform(
             (rays_translation, rays_direction, rgb))
 
-          # all dependend rays, indexed
+        # all dependend rays, indexed
         dependency_ray = []
         for i in self.dependencies_index[index]:
             rt, rd, rgb_i = self.rays[i]
@@ -106,8 +107,7 @@ class DependentRaysFromImagesDataset(Dataset):
         dependency_rays = {index: dependency_ray}
 
         return ray_samples, samples_translations, samples_directions, z_vals, rgb, \
-        dependency_rays, self.human_poses[index]
-
+               dependency_rays, self.human_poses[index]
 
     def __len__(self) -> int:
         return len(self.rays)

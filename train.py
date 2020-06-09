@@ -8,9 +8,11 @@ from datasets.rays_from_images_dataset import RaysFromImagesDataset
 from datasets.smpl_dataset import SmplDataset
 from datasets.smpl_nerf_dataset import SmplNerfDataset
 from datasets.transforms import CoarseSampling, ToTensor, NormalizeRGB
+from datasets.vertex_sphere_dataset import VertexSphereDataset
 from models.debug_model import DebugModel
 from models.render_ray_net import RenderRayNet
 from models.warp_field_net import WarpFieldNet
+from solver.VertexSphereSolver import VertexSphereSolver
 from solver.append_to_nerf_solver import AppendToNerfSolver
 from solver.nerf_solver import NerfSolver
 from solver.warp_solver import WarpSolver
@@ -26,7 +28,7 @@ np.random.seed(0)
 def train():
     parser = config_parser()
     args = parser.parse_args()
-    if args.model_type not in ["nerf", "smpl_nerf", "append_to_nerf", "smpl", "warp"]:
+    if args.model_type not in ["nerf", "smpl_nerf", "append_to_nerf", "smpl", "warp", 'vertex_sphere']:
         raise Exception("The model type ", args.model_type, " does not exist.")
 
     transform = transforms.Compose(
@@ -43,6 +45,9 @@ def train():
     elif args.model_type == "smpl_nerf" or args.model_type == "append_to_nerf":
         train_data = SmplNerfDataset(train_dir, os.path.join(train_dir, 'transforms.json'), transform)
         val_data = SmplNerfDataset(val_dir, os.path.join(val_dir, 'transforms.json'), transform)
+    elif args.model_type == "vertex_sphere":
+        train_data = VertexSphereDataset(train_dir, os.path.join(train_dir, 'transforms.json'), args.vertex_sphere_radius, transform)
+        val_data = VertexSphereDataset(val_dir, os.path.join(val_dir, 'transforms.json'), args.vertex_sphere_radius, transform)
 
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=args.batchsize, shuffle=True, num_workers=0)
     val_loader = torch.utils.data.DataLoader(val_data, batch_size=args.batchsize_val, shuffle=False, num_workers=0)
@@ -106,6 +111,13 @@ def train():
         solver = AppendToNerfSolver(model_coarse, model_fine, position_encoder, direction_encoder, human_pose_encoder,
                                     args, torch.optim.Adam,
                                     torch.nn.MSELoss())
+        solver.train(train_loader, val_loader, train_data.h, train_data.w)
+        save_run(os.path.join(solver.writer.log_dir, args.experiment_name + '.pkl'), model_coarse, model_fine,
+                 train_data,
+                 solver, parser)
+    elif args.model_type == 'vertex_sphere':
+        solver = VertexSphereSolver(model_coarse, model_fine, position_encoder, direction_encoder, args, torch.optim.Adam,
+                            torch.nn.MSELoss())
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
         save_run(os.path.join(solver.writer.log_dir, args.experiment_name + '.pkl'), model_coarse, model_fine,
                  train_data,

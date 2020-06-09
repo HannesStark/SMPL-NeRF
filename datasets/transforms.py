@@ -25,6 +25,7 @@ class NormalizeRGB():
     """
     Normalize RGB image to [0, 1]
     """
+
     def __init__(self):
         pass
 
@@ -38,6 +39,7 @@ class CoarseSampling():
     """
     Coarse sampling along a ray
     """
+
     def __init__(self, near: int, far: int, number_samples: int = 64):
         """
         Parameters
