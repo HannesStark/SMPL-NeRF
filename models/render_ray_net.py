@@ -29,7 +29,7 @@ class RenderRayNet(nn.Module):
         directional_width = width // 2
         self.directional_input = torch.nn.Linear(width + directions_dim, directional_width)
         self.directional_net = nn.ModuleList()
-        #for i in range(self.n_layers // 2 - 1):  # minus one because we create the first layer as self.directional_input
+        # for i in range(self.n_layers // 2 - 1):  # minus one because we create the first layer as self.directional_input
         for i in range(1):
             self.directional_net.append(torch.nn.Linear(directional_width, directional_width))
         self.rgb_out_layer = torch.nn.Linear(directional_width, 3)

@@ -116,7 +116,6 @@ class VertexSphereDataset(Dataset):
         warp = warp[None, :, :] * assignments  # [number_samples, number_vertices, 3]
         warp = warp.sum(dim=1)  # [number_samples, number_vertices, 3]
         warp = warp / (assignments.sum(dim=1) + 1e-10)  # [number_samples, 3]
-        print(assignments.sum(dim=1))
 
         return ray_samples, samples_translations, samples_directions, z_vals, warp.float(), rgb
 
