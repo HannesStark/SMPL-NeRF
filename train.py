@@ -46,8 +46,8 @@ def train():
         train_data = SmplNerfDataset(train_dir, os.path.join(train_dir, 'transforms.json'), transform)
         val_data = SmplNerfDataset(val_dir, os.path.join(val_dir, 'transforms.json'), transform)
     elif args.model_type == "vertex_sphere":
-        train_data = VertexSphereDataset(train_dir, os.path.join(train_dir, 'transforms.json'), args.vertex_sphere_radius, transform)
-        val_data = VertexSphereDataset(val_dir, os.path.join(val_dir, 'transforms.json'), args.vertex_sphere_radius, transform)
+        train_data = VertexSphereDataset(train_dir, os.path.join(train_dir, 'transforms.json'), args)
+        val_data = VertexSphereDataset(val_dir, os.path.join(val_dir, 'transforms.json'), args)
 
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=args.batchsize, shuffle=True, num_workers=0)
     val_loader = torch.utils.data.DataLoader(val_data, batch_size=args.batchsize_val, shuffle=False, num_workers=0)
