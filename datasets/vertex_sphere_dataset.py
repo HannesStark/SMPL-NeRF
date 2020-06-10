@@ -83,16 +83,14 @@ class VertexSphereDataset(Dataset):
 
             warps_of_image = []
 
-            rays_samples.to(device)
-            goal_smpl.to(device)
-            canonical_smpl.to(device)
+            rays_samples = rays_samples.to(device)
+            goal_smpl = goal_smpl.to(device)
             # iterate through all the samples because we do not have enough memeory to compute all warps at once
             for sample_index in tqdm(range(args.number_coarse_samples)):
                 sample = rays_samples[:, sample_index, :]  # [h*w, 3]
                 distances = sample[:, None, :].expand((-1, goal_smpl.shape[0], -1)) - goal_smpl[None, :,
                                                                                       :]  # [h*w, number_vertices, 3]
                 distances = torch.norm(distances, dim=-1, keepdim=True)
-                sys.getsizeof(distances)
                 assignments = distances
                 mask_to_0 = [assignments > 1]
                 mask_to_1 = [assignments < 1]
@@ -104,10 +102,8 @@ class VertexSphereDataset(Dataset):
                 warp = warp.sum(dim=1)  # [h*w, number_vertices, 3]
                 warp = warp / (assignments.sum(dim=1) + 1e-10)  # [h*w, 3]
                 warps_of_image.append(warp)
-            warps_of_image = torch.stack(warps_of_image, -2)  # [h*w, number_samples, 3]
-            warps_of_image.cpu()
-            rays_samples.cpu()
-            goal_smpl.cpu()
+            warps_of_image = torch.stack(warps_of_image, -2).cpu()  # [h*w, number_samples, 3]
+            rays_samples = rays_samples.cpu()
 
             self.rays_samples.append(rays_samples)
             self.all_warps.append(warps_of_image)
