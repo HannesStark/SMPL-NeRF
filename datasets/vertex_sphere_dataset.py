@@ -85,6 +85,7 @@ class VertexSphereDataset(Dataset):
 
             rays_samples.to(device)
             goal_smpl.to(device)
+            canonical_smpl.to(device)
             # iterate through all the samples because we do not have enough memeory to compute all warps at once
             for sample_index in tqdm(range(args.number_coarse_samples)):
                 sample = rays_samples[:, sample_index, :]  # [h*w, 3]
