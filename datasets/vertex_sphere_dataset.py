@@ -43,7 +43,7 @@ class VertexSphereDataset(Dataset):
         image_pose_map = transforms_dict.get('image_pose_map')
         self.expression = [transforms_dict['expression']]
         self.betas = [transforms_dict['betas']]
-        self.canonical_smpl = torch.from_numpy(get_smpl_vertices(self.betas, self.expression)).to(device)
+        canonical_smpl = torch.from_numpy(get_smpl_vertices(self.betas, self.expression)).to(device)
         image_paths = sorted(glob.glob(os.path.join(image_directory, '*.png')))
         if not len(image_paths) == len(image_transform_map):
             raise ValueError('Number of images in image_directory is not the same as number of transforms')
@@ -98,7 +98,7 @@ class VertexSphereDataset(Dataset):
                 assignments[mask_to_0] = 0  # [h*w, number_vertices, 3]
                 assignments[mask_to_1] = 1  # [h*w, number_vertices, 3]
 
-                warp = self.canonical_smpl - goal_smpl  # [h*w, number_vertices, 3]
+                warp = canonical_smpl - goal_smpl  # [h*w, number_vertices, 3]
                 warp = warp[None, :, :] * assignments  # [h*w, number_vertices, 3]
                 warp = warp.sum(dim=1)  # [h*w, number_vertices, 3]
                 warp = warp / (assignments.sum(dim=1) + 1e-10)  # [h*w, 3]
@@ -106,7 +106,6 @@ class VertexSphereDataset(Dataset):
             warps_of_image = torch.stack(warps_of_image, -2)  # [h*w, number_samples, 3]
             warps_of_image.cpu()
             rays_samples.cpu()
-            self.canonical_smpl.cpu()
             goal_smpl.cpu()
 
             self.rays_samples.append(rays_samples)
