@@ -88,3 +88,15 @@ class CoarseSampling():
         z_vals = lower + (upper - lower) * np.random.rand()
         ray_samples = ray_translation[None, :] + ray_direction[None, :] * z_vals[:, None]  # [N_samples, 3]
         return ray_samples, ray_translation, ray_direction, z_vals, rgb
+
+class NormalizeRGBImage():
+    """
+    Normalize RGB image to [0, 1]
+    """
+
+    def __init__(self):
+        pass
+
+    def __call__(self, image):
+        image = (np.array(image) / 255.).astype(np.float32)
+        return image
