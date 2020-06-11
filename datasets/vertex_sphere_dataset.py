@@ -92,8 +92,8 @@ class VertexSphereDataset(Dataset):
                                                                                       :]  # [h*w, number_vertices, 3]
                 distances = torch.norm(distances, dim=-1, keepdim=True)
                 assignments = distances
-                mask_to_0 = [assignments > 1]
-                mask_to_1 = [assignments < 1]
+                mask_to_0 = [assignments > args.vertex_sphere_radius]
+                mask_to_1 = [assignments < args.vertex_sphere_radius]
                 assignments[mask_to_0] = 0  # [h*w, number_vertices, 3]
                 assignments[mask_to_1] = 1  # [h*w, number_vertices, 3]
 
