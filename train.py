@@ -13,7 +13,7 @@ from datasets.vertex_sphere_dataset import VertexSphereDataset
 from models.debug_model import DebugModel
 from models.render_ray_net import RenderRayNet
 from models.warp_field_net import WarpFieldNet
-from solver.VertexSphereSolver import VertexSphereSolver
+from solver.vertex_sphere_solver import VertexSphereSolver
 from solver.append_to_nerf_solver import AppendToNerfSolver
 from solver.nerf_solver import NerfSolver
 from solver.warp_solver import WarpSolver

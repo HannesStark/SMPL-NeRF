@@ -60,18 +60,19 @@ class VertexSphereDataset(Dataset):
         self.rays_samples = []  # list of arrays with ray translation, ray direction and rgb
         self.rays = []
         self.all_warps = []
-        for image_path in tqdm(image_paths):
+        for image_path in tqdm(image_paths, desc='Images', leave=False):
             camera_transform = np.array(image_transform_map[os.path.basename(image_path)])
             human_pose = torch.tensor(image_pose_map[os.path.basename(image_path)])
 
             image = cv2.imread(image_path)
+            image.flags.writeable = True
             self.h, self.w = image.shape[:2]
             image = (torch.tensor(image).double() / 255.).view(-1, 3)
 
             # should we append a list of the different h, w of all images? right now referencing only the last h, w
             self.focal = .5 * self.w / np.tan(.5 * camera_angle_x)
             rays_translation, rays_direction = get_rays(self.h, self.w, self.focal, camera_transform)
-            rays_translation = torch.from_numpy(rays_translation).view(-1, 3)
+            rays_translation = torch.from_numpy(np.copy(rays_translation)).view(-1, 3) # copy because array not writable
             rays_direction = torch.from_numpy(rays_direction).view(-1, 3)
             translation_direction_rgb_stack = torch.stack(
                 [rays_translation, rays_direction, image], -2)
@@ -86,7 +87,7 @@ class VertexSphereDataset(Dataset):
             rays_samples = rays_samples.to(device)
             goal_smpl = goal_smpl.to(device)
             # iterate through all the samples because we do not have enough memeory to compute all warps at once
-            for sample_index in tqdm(range(args.number_coarse_samples)):
+            for sample_index in tqdm(range(args.number_coarse_samples), desc='Samples'):
                 sample = rays_samples[:, sample_index, :]  # [h*w, 3]
                 distances = sample[:, None, :].expand((-1, goal_smpl.shape[0], -1)) - goal_smpl[None, :,
                                                                                       :]  # [h*w, number_vertices, 3]
