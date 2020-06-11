@@ -22,6 +22,8 @@ import numpy as np
 from solver.smpl_nerf_solver import SmplNerfSolver
 from solver.smpl_solver import SmplSolver
 from utils import PositionalEncoder, save_run
+from models.smpl_estimator import SmplEstimator
+from solver.smpl_estimator_solver import SmplEstimatorSolver
 
 np.random.seed(0)
 
@@ -61,6 +63,7 @@ def train():
                                 direction_encoder.output_dim * 3, skips=args.skips)
     model_fine = RenderRayNet(args.netdepth_fine, args.netwidth_fine, position_encoder.output_dim * 3,
                               direction_encoder.output_dim * 3, skips=args.skips_fine)
+
 
     if args.model_type == "smpl_nerf":
         human_pose_encoder = PositionalEncoder(args.number_frequencies_pose, args.use_identity_pose)
@@ -126,6 +129,18 @@ def train():
         save_run(os.path.join(solver.writer.log_dir, args.experiment_name + '.pkl'), model_coarse, model_fine,
                  train_data,
                  solver, parser)
+    elif args.model_type == 'smpl_estimator':
+
+
+        model = SmplEstimator(human_size=len(args.human_joints))
+
+        solver = SmplEstimatorSolver(model, args, torch.optim.Adam,
+                                    torch.nn.MSELoss())
+        solver.train(train_loader, val_loader)
+        # save_run(os.path.join(solver.writer.log_dir, args.experiment_name + '.pkl'), model,
+        #         train_data,
+        #         solver, parser)
+
 
 
 if __name__ == '__main__':
