@@ -105,8 +105,6 @@ class SmplDataset(Dataset):
             goal pose
         warp: torch.Tensor ([3])
             warp from goal to canonical for 3D sample
-        depth: torch.Tensor ([1])
-            depth value for sample on ray
         rgb : torch.Tensor ([3])
             RGB value corresponding to ray.
         """
@@ -122,9 +120,9 @@ class SmplDataset(Dataset):
 
         sample_translation, sample_direction, rgb = self.transform((ray_translation, ray_direction, rgb))
         return torch.Tensor(ray_sample).float(), torch.Tensor(sample_translation).float(), torch.Tensor(
-            sample_direction).float(), torch.Tensor(
-            self.warp[index]).float(), torch.Tensor(rgb).float(), torch.Tensor(
-            self.human_poses[index]).float()
+            sample_direction).float(),torch.Tensor(
+            self.human_poses[index]).float(), torch.Tensor(
+            self.warp[index]).float(), torch.Tensor(rgb).float()
 
     def __len__(self) -> int:
         return len(self.rays)

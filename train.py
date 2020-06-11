@@ -73,24 +73,21 @@ def train():
                                 human_pose_encoder, train_data.canonical_smpl, args, torch.optim.Adam,
                                 torch.nn.MSELoss())
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
-        save_run(os.path.join(solver.writer.log_dir, args.experiment_name + '.pkl'), model_coarse, model_fine,
-                 train_data,
-                 solver, parser, model_warp_field)
+        save_run(solver.writer.log_dir, [model_coarse, model_fine, model_warp_field],
+                 ['model_coarse.pth', 'model_fine.pth', 'model_warp_field.pth'], parser)
     elif args.model_type == 'smpl':
         solver = SmplSolver(model_coarse, model_fine, position_encoder, direction_encoder,
                             args, torch.optim.Adam,
                             torch.nn.MSELoss())
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
-        save_run(os.path.join(solver.writer.log_dir, args.experiment_name + '.pkl'), model_coarse, model_fine,
-                 train_data,
-                 solver, parser)
+        save_run(solver.writer.log_dir, [model_coarse, model_fine],
+                 ['model_coarse.pth', 'model_fine.pth'], parser)
     elif args.model_type == 'nerf':
         solver = NerfSolver(model_coarse, model_fine, position_encoder, direction_encoder, args, torch.optim.Adam,
                             torch.nn.MSELoss())
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
-        save_run(os.path.join(solver.writer.log_dir, args.experiment_name + '.pkl'), model_coarse, model_fine,
-                 train_data,
-                 solver, parser)
+        save_run(solver.writer.log_dir, [model_coarse, model_fine],
+                 ['model_coarse.pth', 'model_fine.pth'], parser)
     elif args.model_type == 'warp':
         human_pose_encoder = PositionalEncoder(args.number_frequencies_pose, args.use_identity_pose)
         positions_dim = position_encoder.output_dim if args.human_pose_encoding else 1
@@ -100,9 +97,8 @@ def train():
         human_pose_encoder = PositionalEncoder(args.number_frequencies_pose, args.use_identity_pose)
         solver = WarpSolver(model_warp_field, position_encoder, direction_encoder, human_pose_encoder, args)
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
-        save_run(os.path.join(solver.writer.log_dir, args.experiment_name + '.pkl'), model_coarse, model_fine,
-                 train_data,
-                 solver, parser)
+        save_run(solver.writer.log_dir, [model_warp_field],
+                 ['model_warp_field.pth'], parser)
     elif args.model_type == 'append_to_nerf':
         human_pose_encoder = PositionalEncoder(args.number_frequencies_pose, args.use_identity_pose)
         human_pose_dim = human_pose_encoder.output_dim if args.human_pose_encoding else 1
@@ -116,16 +112,14 @@ def train():
                                     args, torch.optim.Adam,
                                     torch.nn.MSELoss())
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
-        save_run(os.path.join(solver.writer.log_dir, args.experiment_name + '.pkl'), model_coarse, model_fine,
-                 train_data,
-                 solver, parser)
+        save_run(solver.writer.log_dir, [model_coarse, model_fine],
+                 ['model_coarse.pth', 'model_fine.pth'], parser)
     elif args.model_type == 'vertex_sphere':
         solver = VertexSphereSolver(model_coarse, model_fine, position_encoder, direction_encoder, args, torch.optim.Adam,
                             torch.nn.MSELoss())
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
-        save_run(os.path.join(solver.writer.log_dir, args.experiment_name + '.pkl'), model_coarse, model_fine,
-                 train_data,
-                 solver, parser)
+        save_run(solver.writer.log_dir, [model_coarse, model_fine],
+                 ['model_coarse.pth', 'model_fine.pth'], parser)
 
 
 if __name__ == '__main__':

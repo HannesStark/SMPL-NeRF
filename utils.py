@@ -255,7 +255,7 @@ def save_run(save_dir: str, models, model_names, parser):
         Parser with configurations for training.
     """
     args = parser.parse_args()
-    for i, model in models:
+    for i, model in enumerate(models):
         torch.save(model.state_dict(), os.path.join(save_dir, model_names[i]))
     parser.write_config_file(args, [os.path.join(save_dir, 'config.txt')])
 

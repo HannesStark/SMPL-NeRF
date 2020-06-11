@@ -23,7 +23,7 @@ class SmplPipeline(nn.Module):
                 Estimated RGB color with coarse net.
 
             """
-        ray_sample, ray_translation, samples_direction, warp, rgb_truth, goal_pose = data
+        ray_sample, ray_translation, samples_direction, goal_pose, warp, rgb_truth = data
 
         warped_sample = ray_sample + warp
         sample_encoding = self.position_encoder.encode(warped_sample)
