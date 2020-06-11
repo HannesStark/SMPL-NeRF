@@ -239,19 +239,25 @@ def fine_sampling(ray_translation: torch.Tensor, samples_directions: torch.Tenso
     return z_vals, ray_samples_fine
 
 
-def save_run(file_location: str, model_coarse, model_fine, dataset, solver,
-             parser, model_warp_field=None):
+def save_run(save_dir: str, models, model_names, parser):
     """
-    Save coarse and fine model and training configuration
+    Save all models and config args under save_dir
+
+    Parameters
+    ----------
+    save_dir : str
+        Path for saving.
+    models : TYPE
+        List of models.
+    model_names: List
+        List of save names for models
+    parser : TYPE
+        Parser with configurations for training.
     """
     args = parser.parse_args()
-    saving_path = os.path.dirname(file_location)
-    torch.save(model_coarse.state_dict(), os.path.join(saving_path, 'model_coarse.pt'))
-    torch.save(model_fine.state_dict(), os.path.join(saving_path, 'model_fine.pt'))
-    if model_warp_field is not None:
-        torch.save(model_warp_field.state_dict(), os.path.join(saving_path, 'model_warp_field.pt'))
-
-    parser.write_config_file(args, [os.path.join(os.path.dirname(file_location), 'config.txt')])
+    for i, model in models:
+        torch.save(model.state_dict(), os.path.join(save_dir, model_names[i]))
+    parser.write_config_file(args, [os.path.join(save_dir, 'config.txt')])
 
 
 def disjoint_indices(size: int, ratio: float, random=True) -> Tuple[np.ndarray, np.ndarray]:
