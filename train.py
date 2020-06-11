@@ -13,7 +13,7 @@ from datasets.vertex_sphere_dataset import VertexSphereDataset
 from models.debug_model import DebugModel
 from models.render_ray_net import RenderRayNet
 from models.warp_field_net import WarpFieldNet
-from solver.VertexSphereSolver import VertexSphereSolver
+from solver.vertex_sphere_solver import VertexSphereSolver
 from solver.append_to_nerf_solver import AppendToNerfSolver
 from solver.nerf_solver import NerfSolver
 from solver.warp_solver import WarpSolver
@@ -49,8 +49,8 @@ def train():
         train_data = SmplNerfDataset(train_dir, os.path.join(train_dir, 'transforms.json'), transform)
         val_data = SmplNerfDataset(val_dir, os.path.join(val_dir, 'transforms.json'), transform)
     elif args.model_type == "vertex_sphere":
-        train_data = VertexSphereDataset(train_dir, os.path.join(train_dir, 'transforms.json'), args.vertex_sphere_radius, transform)
-        val_data = VertexSphereDataset(val_dir, os.path.join(val_dir, 'transforms.json'), args.vertex_sphere_radius, transform)
+        train_data = VertexSphereDataset(train_dir, os.path.join(train_dir, 'transforms.json'), args)
+        val_data = VertexSphereDataset(val_dir, os.path.join(val_dir, 'transforms.json'), args)
     elif args.model_type == "smpl_estimator":
         transform = NormalizeRGBImage()
         train_data = SmplEstimatorDataset(train_dir, os.path.join(train_dir, 'transforms.json'), args.vertex_sphere_radius, transform)
