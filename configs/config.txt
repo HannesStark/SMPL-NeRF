@@ -1,6 +1,6 @@
-experiment_name = vertex_sphere_test
+experiment_name = smpl estimator test
 number_validation_images = 3
-model_type = vertex_sphere
+model_type = smpl_estimator
 
 
 netdepth = 8
@@ -13,6 +13,8 @@ batchsize = 2048
 batchsize_val = 256
 num_epochs = 50
 mesh_epochs = [1]
+skips = [4]
+skips_fine= [4]
 
 
 vertex_sphere_radius=0.01

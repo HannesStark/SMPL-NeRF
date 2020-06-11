@@ -39,9 +39,9 @@ def inference():
                                 direction_encoder.output_dim * 3, skips=args_training.skips)
     model_fine = RenderRayNet(args_training.netdepth_fine, args_training.netwidth_fine, position_encoder.output_dim * 3,
                               direction_encoder.output_dim * 3, skips=args_training.skips_fine)
-    model_coarse.load_state_dict(torch.load(os.path.join(args_inference.run_dir, "model_coarse.pth"), map_location=torch.device('cpu')))
+    model_coarse.load_state_dict(torch.load(os.path.join(args_inference.run_dir, "model_coarse.pt"), map_location=torch.device('cpu')))
     model_coarse.eval()
-    model_fine.load_state_dict(torch.load(os.path.join(args_inference.run_dir, "model_fine.pth"),map_location=torch.device('cpu')))
+    model_fine.load_state_dict(torch.load(os.path.join(args_inference.run_dir, "model_fine.pt"),map_location=torch.device('cpu')))
     model_fine.eval()
     transform = transforms.Compose(
         [NormalizeRGB(), CoarseSampling(args_training.near, args_training.far, args_training.number_coarse_samples), ToTensor()])
@@ -64,7 +64,7 @@ def inference():
         human_pose_dim = human_pose_encoder.output_dim if args_training.human_pose_encoding else 1
         model_warp_field = WarpFieldNet(args_training.netdepth_warp, args_training.netwidth_warp, positions_dim * 3,
                                         human_pose_dim * 2)
-        model_warp_field.load_state_dict(torch.load(os.path.join(args_inference.run_dir, "model_warp_field.pth")))
+        model_warp_field.load_state_dict(torch.load(os.path.join(args_inference.run_dir, "model_warp_field.pt")))
         model_warp_field.eval()
         pipeline = SmplNerfPipeline(model_coarse, model_fine, model_warp_field, 
                                     args_training, position_encoder, direction_encoder, human_pose_encoder)

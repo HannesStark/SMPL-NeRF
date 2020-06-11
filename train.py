@@ -22,6 +22,8 @@ import numpy as np
 from solver.smpl_nerf_solver import SmplNerfSolver
 from solver.smpl_solver import SmplSolver
 from utils import PositionalEncoder, save_run
+from models.smpl_estimator import SmplEstimator
+from solver.smpl_estimator_solver import SmplEstimatorSolver
 
 np.random.seed(0)
 
@@ -62,6 +64,7 @@ def train():
     model_fine = RenderRayNet(args.netdepth_fine, args.netwidth_fine, position_encoder.output_dim * 3,
                               direction_encoder.output_dim * 3, skips=args.skips_fine)
 
+
     if args.model_type == "smpl_nerf":
         human_pose_encoder = PositionalEncoder(args.number_frequencies_pose, args.use_identity_pose)
         positions_dim = position_encoder.output_dim if args.human_pose_encoding else 1
@@ -74,20 +77,20 @@ def train():
                                 torch.nn.MSELoss())
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
         save_run(solver.writer.log_dir, [model_coarse, model_fine, model_warp_field],
-                 ['model_coarse.pth', 'model_fine.pth', 'model_warp_field.pth'], parser)
+                 ['model_coarse.pt', 'model_fine.pt', 'model_warp_field.pt'], parser)
     elif args.model_type == 'smpl':
         solver = SmplSolver(model_coarse, model_fine, position_encoder, direction_encoder,
                             args, torch.optim.Adam,
                             torch.nn.MSELoss())
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
         save_run(solver.writer.log_dir, [model_coarse, model_fine],
-                 ['model_coarse.pth', 'model_fine.pth'], parser)
+                 ['model_coarse.pt', 'model_fine.pt'], parser)
     elif args.model_type == 'nerf':
         solver = NerfSolver(model_coarse, model_fine, position_encoder, direction_encoder, args, torch.optim.Adam,
                             torch.nn.MSELoss())
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
         save_run(solver.writer.log_dir, [model_coarse, model_fine],
-                 ['model_coarse.pth', 'model_fine.pth'], parser)
+                 ['model_coarse.pt', 'model_fine.pt'], parser)
     elif args.model_type == 'warp':
         human_pose_encoder = PositionalEncoder(args.number_frequencies_pose, args.use_identity_pose)
         positions_dim = position_encoder.output_dim if args.human_pose_encoding else 1
@@ -98,7 +101,7 @@ def train():
         solver = WarpSolver(model_warp_field, position_encoder, direction_encoder, human_pose_encoder, args)
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
         save_run(solver.writer.log_dir, [model_warp_field],
-                 ['model_warp_field.pth'], parser)
+                 ['model_warp_field.pt'], parser)
     elif args.model_type == 'append_to_nerf':
         human_pose_encoder = PositionalEncoder(args.number_frequencies_pose, args.use_identity_pose)
         human_pose_dim = human_pose_encoder.output_dim if args.human_pose_encoding else 1
@@ -113,13 +116,23 @@ def train():
                                     torch.nn.MSELoss())
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
         save_run(solver.writer.log_dir, [model_coarse, model_fine],
-                 ['model_coarse.pth', 'model_fine.pth'], parser)
+                 ['model_coarse.pt', 'model_fine.pt'], parser)
     elif args.model_type == 'vertex_sphere':
         solver = VertexSphereSolver(model_coarse, model_fine, position_encoder, direction_encoder, args, torch.optim.Adam,
                             torch.nn.MSELoss())
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
         save_run(solver.writer.log_dir, [model_coarse, model_fine],
-                 ['model_coarse.pth', 'model_fine.pth'], parser)
+                 ['model_coarse.pt', 'model_fine.pt'], parser)
+    elif args.model_type == 'smpl_estimator':
+
+
+        model = SmplEstimator(human_size=len(args.human_joints))
+
+        solver = SmplEstimatorSolver(model, args, torch.optim.Adam,
+                                    torch.nn.MSELoss())
+        solver.train(train_loader, val_loader)
+        save_run(solver.writer.log_dir, [model],
+                 ['model_smpl_estimator.pt'], parser)
 
 
 if __name__ == '__main__':

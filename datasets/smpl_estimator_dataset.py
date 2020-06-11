@@ -76,8 +76,9 @@ class SmplEstimatorDataset(Dataset):
         image = self.images[index]
         human_pose = self.human_poses[index]
         image= self.transform((image))
-        image = torch.from_numpy(image)
-        human_pose = torch.from_numpy(human_pose)
+        image = image.transpose((2, 0, 1))
+        image = torch.from_numpy(image).float()
+        human_pose = torch.from_numpy(human_pose).float()
         return image, human_pose
 
     def __len__(self) -> int:
