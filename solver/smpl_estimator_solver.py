@@ -12,12 +12,13 @@ class SmplEstimatorSolver():
                          "weight_decay": 0}
 
     def __init__(self, model_smpl_estimator, args, optim=torch.optim.Adam, loss_func=torch.nn.MSELoss()):
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.model_smpl_estimator = model_smpl_estimator.to(self.device)
         self.optim_args_merged = self.default_adam_args.copy()
         self.optim_args_merged.update({"lr": args.lrate, "weight_decay": args.weight_decay})
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.args = args
         self.writer = SummaryWriter()
-        self.model_smpl_estimator = model_smpl_estimator
         self.optim = optim(list(model_smpl_estimator.parameters()),
                            **self.optim_args_merged)
         self.loss_func = loss_func
