@@ -11,11 +11,12 @@ netdepth_fine = 8
 log_iterations = 5
 batchsize = 2048
 batchsize_val = 256
-num_epochs = 50
-mesh_epochs = [1]
+num_epochs = 300
+mesh_epochs = 1
 
-
+coarse_samples_from_prior=0
 vertex_sphere_radius=0.01
+
 white_background = 1
 sigma_noise_std = 1
 lrate = 1e-4
