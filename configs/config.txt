@@ -16,7 +16,8 @@ mesh_epochs = [1]
 skips = [4]
 skips_fine= [4]
 
-
+near = 2.2
+far = 2.5
 coarse_samples_from_prior=1
 vertex_sphere_radius=0.01
 white_background = 1
