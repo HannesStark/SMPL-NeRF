@@ -32,8 +32,16 @@ def config_parser():
                         help='std of gaussian mixture model that is used for the loss of the densities')
     parser.add_argument("--use_gmm_loss", default=0, type=int,
                         help='additional gaussian mixture loss')
-    parser.add_argument("--vertex_sphere_radius", type=float, default=0.1,
+    parser.add_argument("--vertex_sphere_radius", type=float, default=0.01,
                         help='the radius around the smpl vertices which the samples are assigned to and warped like the vertex. Is only used for model_type true_warp')
+
+    parser.add_argument("--coarse_samples_from_prior", type=int, default=0,
+                        help='If this is on: For the rays that intersect the goal smpl the standard coarse samples are replaced by samples from a gaussian mixture with the intersections as the mean')
+    parser.add_argument("--std_dev_coarse_sample_prior", type=float, default=0.03,
+                        help='the standard deviation for the option coarse_samples_from_prior')
+
+
+
 
     parser.add_argument("--batchsize", type=int, default=2048,
                         help='batch size (number of random rays per gradient step)')

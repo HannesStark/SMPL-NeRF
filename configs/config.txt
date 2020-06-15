@@ -1,7 +1,7 @@
 experiment_name = sphervertex
 number_validation_images = 3
 model_type = vertex_sphere
-dataset_dir = data/overfit_8x8
+dataset_dir = data
 
 netdepth = 8
 
@@ -11,13 +11,15 @@ netdepth_fine = 8
 log_iterations = 5
 batchsize = 2048
 batchsize_val = 256
-num_epochs = 50
+num_epochs = 200
 mesh_epochs = [1]
 skips = [4]
 skips_fine= [4]
 
-
+near = 2.2
+far = 2.5
+coarse_samples_from_prior=1
 vertex_sphere_radius=0.01
 white_background = 1
 sigma_noise_std = 1
-lrate = 1e-4
+lrate = 4e-5
