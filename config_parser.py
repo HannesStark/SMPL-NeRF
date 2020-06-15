@@ -49,8 +49,8 @@ def config_parser():
     parser.add_argument("--early_validation", type=int, default=0,
                         help='run extra validation loop every log_iterations')
     parser.add_argument("--num_epochs", type=int, default=100, help='number of epochs to run')
-    parser.add_argument("--near", type=int, default=1, help='near ray bound for coarse sampling')
-    parser.add_argument("--far", type=int, default=4, help='far ray bound for coarse sampling')
+    parser.add_argument("--near", type=float, default=1, help='near ray bound for coarse sampling')
+    parser.add_argument("--far", type=float, default=4, help='far ray bound for coarse sampling')
     parser.add_argument("--number_coarse_samples", type=int, default=64, help='number of coarse samples per ray')
     parser.add_argument("--number_fine_samples", type=int, default=128, help='number of fine samples per ray')
     parser.add_argument("--human_pose_encoding", type=int, default=0,
