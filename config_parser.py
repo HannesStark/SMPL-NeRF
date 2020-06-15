@@ -63,6 +63,7 @@ def config_parser():
     parser.add_argument("--number_fine_samples", type=int, default=128, help='number of fine samples per ray')
     parser.add_argument("--human_pose_encoding", type=int, default=0,
                         help='whether or not to encode the human pose')
+    parser.add_argument('--human_joints', action="append", default=[41, 38], help='List of joints to vary')
     parser.add_argument("--use_identity_positional", type=int, default=0,
                         help='add identity function to positional encoding functions')
     parser.add_argument("--use_identity_directional", type=int, default=0,

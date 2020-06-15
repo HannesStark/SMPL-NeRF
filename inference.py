@@ -114,11 +114,11 @@ def config_parser_inference():
     parser = configargparse.ArgumentParser()
     # General
     parser.add_argument('--save_dir', default="renders", help='save directory for inference output (appended to run_dir')
-    parser.add_argument('--run_dir', default="runs/Jun08_09-38-28_philipp-UX410UAK", help='path to load model')
-    parser.add_argument('--ground_truth_dir', default="data/train", 
+    parser.add_argument('--run_dir', default="runs/Jun11_10-20-07_philipp-UX410UAK", help='path to load model')
+    parser.add_argument('--ground_truth_dir', default="data/train",
                         help='path to load ground truth, created with create_dataset.py')
     parser.add_argument('--model_type', default="smpl_nerf", type=str,
-                        help='choose dataset type for model [smpl_nerf, nerf, pix2pix, smpl]')    # Camera
+                        help='choose dataset type for model [smpl_nerf, nerf, pix2pix, smpl]')
     return parser
 
 if __name__ == '__main__':

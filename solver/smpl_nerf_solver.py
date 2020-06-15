@@ -17,14 +17,9 @@ class SmplNerfSolver(NerfSolver):
         self.canonical_mixture = GaussianMixture(canonical_smpl, args.gmm_std, self.device)
         super(SmplNerfSolver, self).__init__(model_coarse, model_fine, positions_encoder, directions_encoder, args,
                                              optim, loss_func)
-        if args.restrict_gmm_loss:
-            self.warp_optim = optim(list(model_coarse.parameters()))
-            self.optim = optim(list(model_fine.parameters()) + list(model_warp_field.parameters()),
-                               **self.optim_args_merged)
-        else:
-            self.optim = optim(
-                list(model_coarse.parameters()) + list(model_fine.parameters()) + list(model_warp_field.parameters()),
-                **self.optim_args_merged)
+        self.optim = optim(
+            list(model_coarse.parameters()) + list(model_fine.parameters()) + list(model_warp_field.parameters()),
+            **self.optim_args_merged)
 
     def init_pipeline(self):
         return SmplNerfPipeline(self.model_coarse, self.model_fine, self.model_warp_field, self.args,
