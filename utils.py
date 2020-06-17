@@ -408,13 +408,13 @@ def tensorboard_warps(writer: SummaryWriter, number_validation_images, samples,
     magnitude = np.linalg.norm(warps, axis=-1)
     cmap = plt.cm.get_cmap('viridis')
     rgb = cmap(magnitude)[:, :, :3] * 255
-    point_size_config = {
-        'material': {
-            'size': point_size
-        }
-    }
-    writer.add_mesh(tensorboard_tag, vertices=samples, colors=rgb, global_step=step,
-                    config_dict=point_size_config)
+    #point_size_config = {
+    #    'material': {
+    #        'size': point_size
+    #    }
+    #}
+    writer.add_mesh(tensorboard_tag, vertices=samples, colors=rgb, global_step=step,)
+    #config_dict=point_size_config)
 
 
 def tensorboard_densities(writer: SummaryWriter, number_validation_images, samples, densities, step):
