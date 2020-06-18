@@ -138,6 +138,7 @@ def raw2outputs(raw: torch.Tensor, z_vals: torch.Tensor,
     weights : torch.Tensor ([batch_size, 3])
         Weights assigned to each sampled color.
     """
+    
     raw2density = lambda raw, dists: 1. - torch.exp(-torch.nn.functional.relu(raw) * dists)
 
     dists = z_vals[..., 1:] - z_vals[..., :-1]
@@ -146,7 +147,8 @@ def raw2outputs(raw: torch.Tensor, z_vals: torch.Tensor,
     dists = dists * torch.norm(samples_directions, dim=-1)
 
     rgb = torch.sigmoid(raw[..., :3])  # [batchsize, number_samples, 3]
-
+    if z_vals.shape[-1] == 1:
+        return rgb.view(raw.shape[0], 3), torch.ones(raw.shape[0], 1), torch.ones(raw.shape[0], 1)
     noise = 0.
     if args.sigma_noise_std > 0.:
         noise = torch.normal(0, args.sigma_noise_std, raw[..., 3].shape)

@@ -46,6 +46,7 @@ class VertexSphereDataset(Dataset):
         self.betas = [transforms_dict['betas']]
         canonical_smpl = torch.from_numpy(get_smpl_vertices(self.betas, self.expression)).to(device)
         image_paths = sorted(glob.glob(os.path.join(image_directory, '*.png')))
+        depth_paths = sorted(glob.glob(os.path.join(image_directory, 'depth_*.npy')))
         if not len(image_paths) == len(image_transform_map):
             raise ValueError('Number of images in image_directory is not the same as number of transforms')
 
@@ -62,11 +63,14 @@ class VertexSphereDataset(Dataset):
         self.rays = []
         self.all_warps = []
         self.all_z_vals = []
-        for image_path in tqdm(image_paths, desc='Images', leave=False):
+        self.depth = []
+        for i, image_path in tqdm(enumerate(image_paths), desc='Images', leave=False):
             camera_transform = np.array(image_transform_map[os.path.basename(image_path)])
             goal_pose = torch.tensor(image_pose_map[os.path.basename(image_path)])
 
             image = cv2.imread(image_path)
+            depth = np.load(depth_paths[i])
+            depth = torch.from_numpy(depth.reshape((-1)))
             self.h, self.w = image.shape[:2]
             image = (torch.tensor(image).double() / 255.).view(-1, 3)
 
@@ -87,7 +91,11 @@ class VertexSphereDataset(Dataset):
                 intersections = intersector.intersects_location([rays_translation.numpy()[ray_index]],
                                                                 [rays_direction.numpy()[ray_index]])
                 canonical_intersections_points = torch.from_numpy(intersections[0])  # (N_intersects, 3)
-                if len(canonical_intersections_points) == 0 or args.coarse_samples_from_prior != 1:
+                if args.number_coarse_samples == 1:
+                    z_vals = depth[ray_index]
+                    if z_vals == 0:
+                        z_vals = torch.Tensor([args.far])[0]
+                elif len(canonical_intersections_points) == 0 or args.coarse_samples_from_prior != 1:
                     z_vals = z_vals_simple
                 else:
                     mix = D.Categorical(torch.ones(len(canonical_intersections_points), ))
@@ -97,7 +105,8 @@ class VertexSphereDataset(Dataset):
                     z_vals = gmm.sample((args.number_coarse_samples,))
                 z_vals_image.append(z_vals)
             z_vals_image = torch.stack(z_vals_image)  # [h*w, number_coarse_samples]
-
+            if args.number_coarse_samples == 1:
+                z_vals_image = z_vals_image.view(-1, 1)
             rays_samples = rays_translation[:, None, :] + rays_direction[:, None, :] * z_vals_image[:, :,
                                                                                        None]  # [h*w, number_coarse_samples, 3]
 
