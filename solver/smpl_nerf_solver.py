@@ -3,7 +3,8 @@ import numpy as np
 
 from models.smpl_nerf_pipeline import SmplNerfPipeline
 from solver.nerf_solver import NerfSolver
-from utils import PositionalEncoder, tensorboard_rerenders, tensorboard_warps, tensorboard_densities, GaussianMixture
+from utils import PositionalEncoder, tensorboard_rerenders, tensorboard_warps, tensorboard_densities, GaussianMixture, \
+    pyrender_densities
 
 
 class SmplNerfSolver(NerfSolver):
@@ -157,6 +158,9 @@ class SmplNerfSolver(NerfSolver):
                 tensorboard_warps(self.writer, args.number_validation_images, samples, warps_mesh, epoch)
                 tensorboard_densities(self.writer, args.number_validation_images, warped_samples_list, densities_list,
                                       epoch)
+
+            pyrender_densities(self.writer, densities_list,
+                                  step=epoch)
 
             tensorboard_rerenders(self.writer, args.number_validation_images, rerender_images, ground_truth_images,
                                   step=epoch, warps=warps)

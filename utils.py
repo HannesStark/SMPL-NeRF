@@ -428,3 +428,7 @@ def tensorboard_densities(writer: SummaryWriter, number_validation_images, sampl
     cmap = plt.cm.get_cmap('viridis')
     rgb = cmap(densities)[:, :, :3] * 255
     writer.add_mesh('density', vertices=torch.from_numpy(samples), colors=rgb, global_step=step)
+
+def pyrender_densities(writer: SummaryWriter, densities, step):
+    print('was here')
+    print(writer.filename_suffix)
