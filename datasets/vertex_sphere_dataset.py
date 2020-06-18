@@ -67,7 +67,6 @@ class VertexSphereDataset(Dataset):
             goal_pose = torch.tensor(image_pose_map[os.path.basename(image_path)])
 
             image = cv2.imread(image_path)
-            image.flags.writeable = True
             self.h, self.w = image.shape[:2]
             image = (torch.tensor(image).double() / 255.).view(-1, 3)
 
@@ -113,18 +112,34 @@ class VertexSphereDataset(Dataset):
                 sample = rays_samples[:, sample_index, :]  # [h*w, 3]
                 distances = sample[:, None, :].expand((-1, goal_smpl.shape[0], -1)) - goal_smpl[None, :,
                                                                                       :]  # [h*w, number_vertices, 3]
-                distances = torch.norm(distances, dim=-1, keepdim=True)
-                assignments = distances
-                mask_to_0 = [assignments > args.vertex_sphere_radius]
-                mask_to_1 = [assignments < args.vertex_sphere_radius]
-                assignments[mask_to_0] = 0  # [h*w, number_vertices, 3]
-                assignments[mask_to_1] = 1  # [h*w, number_vertices, 3]
+                distances = torch.norm(distances, dim=-1)  # [h*w, number_vertices]
+                warp = canonical_smpl - goal_smpl  # [number_vertices, 3]
+                if args.warp_by_vertex_mean:
+                    assignments = distances  # [h*w, number_vertices]
+                    outside_sphere = [assignments > args.vertex_sphere_radius]
+                    inside_sphere = [assignments < args.vertex_sphere_radius]
 
-                warp = canonical_smpl - goal_smpl  # [h*w, number_vertices, 3]
-                warp = warp[None, :, :] * assignments  # [h*w, number_vertices, 3]
-                warp = warp.sum(dim=1)  # [h*w, number_vertices, 3]
-                warp = warp / (assignments.sum(dim=1) + 1e-10)  # [h*w, 3]
-                warps_of_image.append(warp)
+                    assignments[outside_sphere] = 0  # [h*w, number_vertices]
+                    assignments[inside_sphere] = 1  # [h*w, number_vertices]
+
+                    warp = warp[None, :, :] * assignments[:, :, None]  # [h*w, number_vertices, 3]
+                    warp = warp.sum(dim=1)  # [h*w, 3]
+                    warp = warp / (assignments.sum(dim=1)[:, None] + 1e-10)  # [h*w, 3]
+                    warps_of_image.append(warp)
+                else:
+                    min_indices = torch.argmin(distances, dim=-1)  # [h*w]
+                    assignments = distances[torch.arange(len(distances)), min_indices]  # [h*w]
+
+                    outside_sphere = [assignments > args.vertex_sphere_radius]
+                    inside_sphere = [assignments < args.vertex_sphere_radius]
+
+                    assignments[outside_sphere] = 0  # [h*w]
+                    assignments[inside_sphere] = 1  # [h*w]
+
+                    warp = warp[None, :, :].expand(len(assignments), -1, -1)  # [h*w, number_vertices, 3]
+                    warp = warp[torch.arange(len(warp)), min_indices]  # [h*w, 3]
+                    warp = warp * assignments[:, None]  # [h*w, 3]
+                    warps_of_image.append(warp)
             warps_of_image = torch.stack(warps_of_image, -2).cpu()  # [h*w, number_samples, 3]
             rays_samples = rays_samples.cpu()
 

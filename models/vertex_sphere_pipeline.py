@@ -40,7 +40,7 @@ class VertexSpherePipeline(NerfPipeline):
         raw_outputs = raw_outputs.view(samples_encoding.shape[0], samples_encoding.shape[1],
                                        raw_outputs.shape[-1])  # [batchsize, number_coarse_samples, 4]
         rgb, weights, densities = raw2outputs(raw_outputs, z_vals, coarse_samples_directions, self.args)
-        # Take mean over samples for rgb value
+        # Take mean over samples for rgb value debugging
         #rgb = torch.sigmoid(raw_outputs[..., :3])
         #rgb = torch.mean(rgb, 1)
 
