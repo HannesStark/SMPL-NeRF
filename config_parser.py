@@ -34,6 +34,8 @@ def config_parser():
                         help='additional gaussian mixture loss')
     parser.add_argument("--vertex_sphere_radius", type=float, default=0.01,
                         help='the radius around the smpl vertices which the samples are assigned to and warped like the vertex. Is only used for model_type true_warp')
+    parser.add_argument("--warp_by_vertex_mean", type=int, default=0,
+                        help='If this is on: A sample will be warped a according to the mean of all vertices in which spheres it is instead of only according to the closest vertex in which sphere it is')
 
     parser.add_argument("--coarse_samples_from_prior", type=int, default=0,
                         help='If this is on: For the rays that intersect the goal smpl the standard coarse samples are replaced by samples from a gaussian mixture with the intersections as the mean')

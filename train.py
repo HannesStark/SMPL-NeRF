@@ -119,7 +119,7 @@ def train():
                  ['model_coarse.pt', 'model_fine.pt'], parser)
     elif args.model_type == 'vertex_sphere':
         solver = VertexSphereSolver(model_coarse, model_fine, position_encoder, direction_encoder, args, torch.optim.Adam,
-                            torch.nn.MSELoss())
+                                    torch.nn.MSELoss())
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
         save_run(solver.writer.log_dir, [model_coarse, model_fine],
                  ['model_coarse.pt', 'model_fine.pt'], parser)
@@ -129,7 +129,7 @@ def train():
         model = SmplEstimator(human_size=len(args.human_joints))
 
         solver = SmplEstimatorSolver(model, args, torch.optim.Adam,
-                                    torch.nn.MSELoss())
+                                     torch.nn.MSELoss())
         solver.train(train_loader, val_loader)
         save_run(solver.writer.log_dir, [model],
                  ['model_smpl_estimator.pt'], parser)
