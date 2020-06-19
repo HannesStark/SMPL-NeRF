@@ -67,8 +67,6 @@ class VertexSphereDataset(Dataset):
             goal_pose = torch.tensor(image_pose_map[os.path.basename(image_path)])
 
             image = cv2.imread(image_path)
-            depth = np.load(depth_paths[i])
-            depth = torch.from_numpy(depth.reshape((-1)))
             self.h, self.w = image.shape[:2]
             image = (torch.tensor(image).double() / 255.).view(-1, 3)
 
