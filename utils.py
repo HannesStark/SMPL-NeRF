@@ -433,4 +433,4 @@ def tensorboard_densities(writer: SummaryWriter, number_validation_images, sampl
 
 def pyrender_densities(writer: SummaryWriter, densities, step):
     print('was here')
-    print(writer.filename_suffix)
+    print(writer.get_logdir())
