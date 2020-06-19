@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 #from solver.nerf_solver import NerfSolver
-from utils import tensorboard_rerenders, tensorboard_warps, tensorboard_densities
+from utils import tensorboard_rerenders, tensorboard_warps
 from torch.utils.tensorboard import SummaryWriter
 
 class SmplEstimatorSolver():

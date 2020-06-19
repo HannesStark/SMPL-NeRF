@@ -138,7 +138,7 @@ def raw2outputs(raw: torch.Tensor, z_vals: torch.Tensor,
     weights : torch.Tensor ([batch_size, 3])
         Weights assigned to each sampled color.
     """
-    
+
     raw2density = lambda raw, dists: 1. - torch.exp(-torch.nn.functional.relu(raw) * dists)
 
     dists = z_vals[..., 1:] - z_vals[..., :-1]
@@ -410,27 +410,18 @@ def tensorboard_warps(writer: SummaryWriter, number_validation_images, samples,
     magnitude = np.linalg.norm(warps, axis=-1)
     cmap = plt.cm.get_cmap('viridis')
     rgb = cmap(magnitude)[:, :, :3] * 255
-    #point_size_config = {
+    # point_size_config = {
     #    'material': {
     #        'size': point_size
     #    }
-    #}
-    writer.add_mesh(tensorboard_tag, vertices=samples, colors=rgb, global_step=step,)
-    #config_dict=point_size_config)
+    # }
+    writer.add_mesh(tensorboard_tag, vertices=samples, colors=rgb, global_step=step, )
+    # config_dict=point_size_config)
 
 
-def tensorboard_densities(writer: SummaryWriter, number_validation_images, samples, densities, step):
-    if number_validation_images <= len(samples):
-        samples = samples[:number_validation_images]
-        densities = densities[:number_validation_images]
+def pyrender_data(writer: SummaryWriter, densities, samples, warps, step):
+    logdir = os.path.join(writer.get_logdir(), "pyrender_data")
+    if not os.path.exists(logdir):
+        os.makedirs(logdir)
+    np.savez(os.path.join(logdir, "densities_samples_warps" + str(step)), densities=densities, samples=samples, warps=warps)
 
-    # map all samples with a low density to origin
-    # samples = np.where(densities[:,:,None] > 0.0001, samples, np.zeros_like(samples))
-
-    cmap = plt.cm.get_cmap('viridis')
-    rgb = cmap(densities)[:, :, :3] * 255
-    writer.add_mesh('density', vertices=torch.from_numpy(samples), colors=rgb, global_step=step)
-
-def pyrender_densities(writer: SummaryWriter, densities, step):
-    print('was here')
-    print(writer.get_logdir())

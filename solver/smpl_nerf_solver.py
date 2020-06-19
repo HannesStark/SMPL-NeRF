@@ -3,8 +3,8 @@ import numpy as np
 
 from models.smpl_nerf_pipeline import SmplNerfPipeline
 from solver.nerf_solver import NerfSolver
-from utils import PositionalEncoder, tensorboard_rerenders, tensorboard_warps, tensorboard_densities, GaussianMixture, \
-    pyrender_densities
+from utils import PositionalEncoder, tensorboard_rerenders, tensorboard_warps, GaussianMixture, \
+    pyrender_data
 
 
 class SmplNerfSolver(NerfSolver):
@@ -152,24 +152,21 @@ class SmplNerfSolver(NerfSolver):
                 warps = np.concatenate(warps)
                 warps_mesh = warps.reshape(
                     (-1, h * w * warps.shape[-2], 3))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
-                warps = warps.reshape((-1, h, w, warps.shape[-2], 3))
+                warps = warps.reshape((-1, h, w, warps.shape[-2], 3)) # [number_images, h, w, (n_fine_samples + n_coarse_samples), 3]
 
             if epoch in np.floor(np.array(args.mesh_epochs) * (args.num_epochs - 1)):  # bc it takes too much storage
-                tensorboard_warps(self.writer, args.number_validation_images, samples, warps_mesh, epoch)
-                tensorboard_densities(self.writer, args.number_validation_images, warped_samples_list, densities_list,
-                                      epoch)
+                tensorboard_warps(self.writer, args.number_validation_images, samples, warps_mesh, epoch + 1)
 
-            pyrender_densities(self.writer, densities_list,
-                                  step=epoch)
+            pyrender_data(self.writer, densities_list, samples, warps_mesh, step=epoch + 1)
 
             tensorboard_rerenders(self.writer, args.number_validation_images, rerender_images, ground_truth_images,
-                                  step=epoch, warps=warps)
+                                  step=epoch + 1, warps=warps)
 
             print('[Epoch %d] VAL loss: %.7f' % (epoch + 1, val_loss / (len(val_loader) or not len(val_loader))))
             self.writer.add_scalars('Loss Curve', {'train loss': train_loss / iter_per_epoch,
                                                    'val loss': val_loss / (len(val_loader) or not len(val_loader))},
-                                    epoch)
+                                    epoch + 1)
             self.writer.add_scalars('Train Losses', {'coarse': train_coarse_loss / iter_per_epoch,
                                                      'fine': train_fine_loss / iter_per_epoch},
-                                    epoch)
+                                    epoch + 1)
         print('FINISH.')
