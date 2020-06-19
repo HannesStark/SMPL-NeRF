@@ -46,7 +46,6 @@ class VertexSphereDataset(Dataset):
         self.betas = [transforms_dict['betas']]
         canonical_smpl = torch.from_numpy(get_smpl_vertices(self.betas, self.expression)).to(device)
         image_paths = sorted(glob.glob(os.path.join(image_directory, '*.png')))
-        depth_paths = sorted(glob.glob(os.path.join(image_directory, 'depth_*.npy')))
         if not len(image_paths) == len(image_transform_map):
             raise ValueError('Number of images in image_directory is not the same as number of transforms')
 
@@ -63,7 +62,6 @@ class VertexSphereDataset(Dataset):
         self.rays = []
         self.all_warps = []
         self.all_z_vals = []
-        self.depth = []
         for i, image_path in tqdm(enumerate(image_paths), desc='Images', leave=False):
             camera_transform = np.array(image_transform_map[os.path.basename(image_path)])
             goal_pose = torch.tensor(image_pose_map[os.path.basename(image_path)])
@@ -92,9 +90,12 @@ class VertexSphereDataset(Dataset):
                                                                 [rays_direction.numpy()[ray_index]])
                 canonical_intersections_points = torch.from_numpy(intersections[0])  # (N_intersects, 3)
                 if args.number_coarse_samples == 1:
-                    z_vals = depth[ray_index]
-                    if z_vals == 0:
+                    if len(canonical_intersections_points) == 0:
                         z_vals = torch.Tensor([args.far])[0]
+                    else:
+                        distances_camera = np.linalg.norm(intersections[0]-rays_translation.numpy()[ray_index], axis=1)
+                        closest_intersection = np.argmin(distances_camera)
+                        z_vals = torch.Tensor([distances_camera[closest_intersection]])[0]
                 elif len(canonical_intersections_points) == 0 or args.coarse_samples_from_prior != 1:
                     z_vals = z_vals_simple
                 else:
