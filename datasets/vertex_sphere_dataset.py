@@ -89,11 +89,10 @@ class VertexSphereDataset(Dataset):
                 canonical_intersections_points = torch.from_numpy(intersections[0])  # (N_intersects, 3)
                 if args.number_coarse_samples == 1:
                     if len(canonical_intersections_points) == 0:
-                        z_vals = torch.Tensor([args.far])[0]
+                        z_vals = torch.DoubleTensor([args.far])[0] # [1]
                     else:
-                        distances_camera = np.linalg.norm(intersections[0]-rays_translation.numpy()[ray_index], axis=1)
-                        closest_intersection = np.argmin(distances_camera)
-                        z_vals = torch.Tensor([distances_camera[closest_intersection]])[0]
+                        distances_camera = torch.norm(canonical_intersections_points-rays_translation[ray_index], dim=1)
+                        z_vals = torch.min(distances_camera) # [1]
                 elif len(canonical_intersections_points) == 0 or args.coarse_samples_from_prior != 1:
                     z_vals = z_vals_simple
                 else:
