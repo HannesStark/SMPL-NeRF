@@ -145,7 +145,7 @@ def config_parser_inference():
     # General
     parser.add_argument('--save_dir', default="renders", help='save directory for inference output (appended to run_dir')
     parser.add_argument('--run_dir', default="runs/Jun20_07-52-59_korhal", help='path to load model')
-    parser.add_argument('--ground_truth_dir', default="data/render_append_to_nerf",
+    parser.add_argument('--ground_truth_dir', default="data/render_append_to_nerf/train",
                         help='path to load ground truth, created with create_dataset.py')
     parser.add_argument('--model_type', default="append_to_nerf", type=str,
                         help='choose dataset type for model [smpl_nerf, nerf, pix2pix, smpl, append_to_nerf]')
