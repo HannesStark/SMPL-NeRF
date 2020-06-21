@@ -10,6 +10,7 @@ from torchvision.transforms import transforms
 
 import configargparse
 from config_parser import config_parser
+from models.append_to_nerf_pipeline import AppendToNerfPipeline
 
 from models.render_ray_net import RenderRayNet
 from models.warp_field_net import WarpFieldNet
@@ -54,7 +55,7 @@ def inference():
     model_fine.to(device)
     rgb_images = []
     
-    if args_inference.model_type == "smpl_nerf" or args_inference.model_type == "append_to_nerf":
+    if args_inference.model_type == "smpl_nerf":
         dataset = SmplNerfDataset(args_inference.ground_truth_dir, 
                               os.path.join(args_inference.ground_truth_dir, 
                            'transforms.json'), transform)
@@ -68,6 +69,14 @@ def inference():
         model_warp_field.eval()
         pipeline = SmplNerfPipeline(model_coarse, model_fine, model_warp_field, 
                                     args_training, position_encoder, direction_encoder, human_pose_encoder)
+    elif args_inference.model_type == "append_to_nerf":
+        dataset = SmplNerfDataset(args_inference.ground_truth_dir,
+                                  os.path.join(args_inference.ground_truth_dir,
+                                               'transforms.json'), transform)
+        data_loader = torch.utils.data.DataLoader(dataset, batch_size=args_training.batchsize, shuffle=False,
+                                                  num_workers=0)
+        human_pose_encoder = PositionalEncoder(args_training.number_frequencies_pose, args_training.use_identity_pose)
+        pipeline = AppendToNerfPipeline(model_coarse, model_fine, args_training, position_encoder, direction_encoder, human_pose_encoder)
     elif args_inference.model_type == "smpl":
         dataset = SmplDataset(args_inference.ground_truth_dir, 
                               os.path.join(args_inference.ground_truth_dir, 
