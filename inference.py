@@ -54,7 +54,7 @@ def inference():
     model_fine.to(device)
     rgb_images = []
     
-    if args_inference.model_type == "smpl_nerf":
+    if args_inference.model_type == "smpl_nerf" or args_inference.model_type == "append_to_nerf":
         dataset = SmplNerfDataset(args_inference.ground_truth_dir, 
                               os.path.join(args_inference.ground_truth_dir, 
                            'transforms.json'), transform)
