@@ -33,17 +33,38 @@ def inference():
     parser_training.add_argument('--config2', is_config_file=True, 
                      default=config_file_training, help='config file path')
     args_training = parser_training.parse_args()
-    
-    position_encoder = PositionalEncoder(args_training.number_frequencies_postitional, args_training.use_identity_positional)
-    direction_encoder = PositionalEncoder(args_training.number_frequencies_directional, args_training.use_identity_directional)
-    model_coarse = RenderRayNet(args_training.netdepth, args_training.netwidth, position_encoder.output_dim * 3,
-                                direction_encoder.output_dim * 3, skips=args_training.skips)
-    model_fine = RenderRayNet(args_training.netdepth_fine, args_training.netwidth_fine, position_encoder.output_dim * 3,
-                              direction_encoder.output_dim * 3, skips=args_training.skips_fine)
-    model_coarse.load_state_dict(torch.load(os.path.join(args_inference.run_dir, "model_coarse.pt"), map_location=torch.device('cpu')))
-    model_coarse.eval()
-    model_fine.load_state_dict(torch.load(os.path.join(args_inference.run_dir, "model_fine.pt"),map_location=torch.device('cpu')))
-    model_fine.eval()
+
+    if args_inference.model_type == "append_to_nerf":
+        position_encoder = PositionalEncoder(args_training.number_frequencies_postitional, args_training.use_identity_positional)
+        direction_encoder = PositionalEncoder(args_training.number_frequencies_directional, args_training.use_identity_directional)
+        human_pose_encoder = PositionalEncoder(args_training.number_frequencies_pose, args_training.use_identity_pose)
+        human_pose_dim = human_pose_encoder.output_dim if args_training.human_pose_encoding else 1
+        model_coarse = RenderRayNet(args_training.netdepth, args_training.netwidth, position_encoder.output_dim * 3,
+                                    direction_encoder.output_dim * 3, human_pose_dim * 2,
+                                    skips=args_training.skips)
+        model_fine = RenderRayNet(args_training.netdepth_fine, args_training.netwidth_fine, position_encoder.output_dim * 3,
+                                  direction_encoder.output_dim * 3, human_pose_dim * 2,
+                                  skips=args_training.skips_fine)
+        model_coarse.load_state_dict(torch.load(os.path.join(args_inference.run_dir, "model_coarse.pt"), map_location=torch.device('cpu')))
+        model_coarse.eval()
+        model_fine.load_state_dict(torch.load(os.path.join(args_inference.run_dir, "model_fine.pt"),map_location=torch.device('cpu')))
+        model_fine.eval()
+    else:
+        position_encoder = PositionalEncoder(args_training.number_frequencies_postitional,
+                                             args_training.use_identity_positional)
+        direction_encoder = PositionalEncoder(args_training.number_frequencies_directional,
+                                              args_training.use_identity_directional)
+        model_coarse = RenderRayNet(args_training.netdepth, args_training.netwidth, position_encoder.output_dim * 3,
+                                    direction_encoder.output_dim * 3, skips=args_training.skips)
+        model_fine = RenderRayNet(args_training.netdepth_fine, args_training.netwidth_fine,
+                                  position_encoder.output_dim * 3,
+                                  direction_encoder.output_dim * 3, skips=args_training.skips_fine)
+        model_coarse.load_state_dict(
+            torch.load(os.path.join(args_inference.run_dir, "model_coarse.pt"), map_location=torch.device('cpu')))
+        model_coarse.eval()
+        model_fine.load_state_dict(
+            torch.load(os.path.join(args_inference.run_dir, "model_fine.pt"), map_location=torch.device('cpu')))
+        model_fine.eval()
     transform = transforms.Compose(
         [NormalizeRGB(), CoarseSampling(args_training.near, args_training.far, args_training.number_coarse_samples), ToTensor()])
 
