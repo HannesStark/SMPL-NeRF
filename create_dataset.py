@@ -149,6 +149,7 @@ def create_dataset():
     save_split(args.save_dir, camera_transforms, val_indices, "val",
                args.resolution, args.resolution, camera_angle_x, far,
                args.dataset_type, human_poses)
+    parser.write_config_file(args, [os.path.join(args.save_dir, 'create_dataset_config.txt')])
 
 
 if __name__ == "__main__":
