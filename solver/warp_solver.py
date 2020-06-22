@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 from solver.nerf_solver import NerfSolver
-from utils import PositionalEncoder, tensorboard_rerenders, tensorboard_warps, tensorboard_densities, GaussianMixture
+from utils import PositionalEncoder, tensorboard_rerenders, tensorboard_warps, GaussianMixture
 from torch.utils.tensorboard import SummaryWriter
 
 

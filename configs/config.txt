@@ -1,17 +1,17 @@
-experiment_name = sphervertex
+experiment_name = append_to_nerf_with_many_images
 number_validation_images = 3
-model_type = vertex_sphere
+model_type = append_to_nerf
 dataset_dir = data
 
 netdepth = 8
 
-run_fine = 0
+run_fine = 1
 netdepth_fine = 8
 
 log_iterations = 5
 batchsize = 2048
 batchsize_val = 256
-num_epochs = 3
+num_epochs = 200
 mesh_epochs = [1]
 skips = [4]
 skips_fine= [4]
