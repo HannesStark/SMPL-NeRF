@@ -262,7 +262,6 @@ def save_run(save_dir: str, models, model_names, parser):
     for i, model in enumerate(models):
         torch.save(model.state_dict(), os.path.join(save_dir, model_names[i]))
     parser.write_config_file(args, [os.path.join(save_dir, 'config.txt')])
-    #Todo: Copy config file from create_dataset to save_dir
     dataset_config_files = glob.glob(os.path.join(args.dataset_dir, '*.txt'))
     if len(dataset_config_files)>0:
         shutil.copyfile(dataset_config_files[0], os.path.join(save_dir,'create_dataset_config.txt'))
