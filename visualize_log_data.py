@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
+import matplotlib.pyplot as plt
 import numpy as np
 import os
 import configargparse
+from vedo import show, Spheres
 import pyrender
 import trimesh
+from tqdm import tqdm
 
 np.random.seed(0)
 
@@ -13,8 +16,10 @@ def config_parser():
 
     parser.add_argument('--run_dir', default="newest",
                         help='directory created by tensorboard with a densities folder inside. If it is "newest" it will choose the folder that was last modified')
-    parser.add_argument('--epoch', default="newest", type=str,
-                        help='by default it will choose the newest epoch')
+    parser.add_argument('--epoch', default=0, type=int,
+                        help='if 0 it will choose the newest epoch')
+    parser.add_argument('--number_images', default=4, type=int,
+                        help='images that will be visualized')
     return parser
 
 
@@ -35,8 +40,11 @@ def visualize_log_data():
     else:
         run_dir = args.run_dir
 
-    if args.epoch == "newest":
-        filenames = os.listdir(os.path.join(run_dir, 'pyrender_data'))
+    if args.epoch == 0:
+        try:
+            filenames = os.listdir(os.path.join(run_dir, 'pyrender_data'))
+        except:
+            raise ValueError("There seems to be no pyrender data generated for the specified run since the path ", os.path.join(run_dir, 'pyrender_data'), '  was not found')
 
         if len(filenames) == 0:
             raise ValueError('No epoch in the pyrender_data folder')
@@ -50,22 +58,22 @@ def visualize_log_data():
     densities, samples, warps = densities_samples_warps['densities'], densities_samples_warps['samples'], \
                                 densities_samples_warps['warps']
 
-    for image_index in range(len(densities)):
+    if len(densities) < args.number_images:
+        number_renders = len(densities)
+    else:
+        number_renders = args.number_images
+
+    ats = []
+    images = []
+    for image_index in range(number_renders):
         radii = densities[image_index] / np.max(densities[image_index])
-        radii = radii * 0.01
-        print(radii.shape)
-        print(samples[image_index].shape)
+        radii = radii * 0.1
 
-        sm = trimesh.creation.uv_sphere(radius=radii)
-        sm.visual.vertex_colors = [1.0, 0.0, 0.0]
-        tfs = np.tile(np.eye(4), (len(samples[image_index]), 1, 1))
-        tfs[:, :3, 3] = samples[image_index]
-        m = pyrender.Mesh.from_trimesh(sm, poses=tfs)
+        ats.append(image_index)
+        images.append(Spheres(samples[image_index], r=radii, c="lb", res=8))
 
-        scene = pyrender.Scene()
-        scene.add(m)
+    show(images, at=ats)
 
-        pyrender.Viewer(scene, use_raymond_lighting=True)
 
 
 if __name__ == "__main__":
