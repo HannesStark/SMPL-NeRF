@@ -13,6 +13,8 @@ from torchsearchsorted import searchsorted
 
 from typing import Tuple
 import os
+import glob
+import shutil
 
 from trimesh.ray.ray_triangle import RayMeshIntersector
 from scipy.spatial.transform import Rotation as R
@@ -260,6 +262,9 @@ def save_run(save_dir: str, models, model_names, parser):
     for i, model in enumerate(models):
         torch.save(model.state_dict(), os.path.join(save_dir, model_names[i]))
     parser.write_config_file(args, [os.path.join(save_dir, 'config.txt')])
+    dataset_config_files = glob.glob(os.path.join(args.dataset_dir, '*.txt'))
+    if len(dataset_config_files)>0:
+        shutil.copyfile(dataset_config_files[0], os.path.join(save_dir,'create_dataset_config.txt'))
 
 
 def disjoint_indices(size: int, ratio: float, random=True) -> Tuple[np.ndarray, np.ndarray]:
@@ -353,6 +358,7 @@ def get_dependent_rays_indices(ray_translation: np.array, ray_direction: np.arra
 
 def tensorboard_rerenders(writer: SummaryWriter, number_validation_images, rerender_images, ground_truth_images, step,
                           warps=None):
+    writer.add_images('{} all validation images'.format(step), rerender_images.transpose((0, 3, 1, 2)), step)
     if number_validation_images > len(rerender_images):
         print('there are only ', len(rerender_images),
               ' in the validation directory which is less than the specified number_validation_images: ',
