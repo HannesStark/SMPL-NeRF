@@ -68,7 +68,6 @@ class WarpSolver(NerfSolver):
                     data[j] = element.to(self.device)
                 ray_sample, ray_translation, samples_direction, warp_truth, rgb_truth, goal_pose = data
                 warp = self.forward(ray_sample, goal_pose)
-                warped_samples = ray_sample + warp
                 self.optim.zero_grad()
                 loss = self.loss_func(warp, warp_truth)
                 loss.backward()
@@ -87,7 +86,6 @@ class WarpSolver(NerfSolver):
             samples = []
             warps = []
             ground_truth_warps = []
-            densities_list = []
             warped_samples_list = []
             for i, data in enumerate(val_loader):
                 for j, element in enumerate(data):
@@ -105,23 +103,16 @@ class WarpSolver(NerfSolver):
                 ground_truth_warps.append(warp_truth.detach().cpu().numpy())
 
             if len(val_loader) != 0:
-                ground_truth_images = np.concatenate(ground_truth_images).reshape((-1, h, w, 3))
                 samples = np.concatenate(samples)
                 samples = samples.reshape(
                     (-1, h * w, 3))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
-                warped_samples_list = np.concatenate(warped_samples_list)
-                warped_samples_list = warped_samples_list.reshape(
-                    (-1, h * w,
-                     3))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
                 warps = np.concatenate(warps)
                 warps_mesh = warps.reshape(
                     (-1, h * w, 3))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
-                warps = warps.reshape((-1, h, w, 3))
                 
                 ground_truth_warps = np.concatenate(ground_truth_warps)
                 ground_truth_warps_mesh = ground_truth_warps.reshape(
                     (-1, h * w, 3))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
-                ground_truth_warps = ground_truth_warps.reshape((-1, h, w, 3))
             if epoch in np.floor(np.array(args.mesh_epochs) * (args.num_epochs - 1)):  # bc it takes too much storage
                 tensorboard_warps(self.writer, args.number_validation_images, samples, warps_mesh, epoch, point_size=h/1000)
                 tensorboard_warps(self.writer, args.number_validation_images, 
