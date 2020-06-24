@@ -358,7 +358,7 @@ def get_dependent_rays_indices(ray_translation: np.array, ray_direction: np.arra
 
 def tensorboard_rerenders(writer: SummaryWriter, number_validation_images, rerender_images, ground_truth_images, step,
                           warps=None):
-    writer.add_images('{} all validation images'.format(step), rerender_images.transpose((0, 3, 1, 2)), step)
+    writer.add_images('{} all validation images'.format(step), rerender_images[..., ::-1].transpose((0, 3, 1, 2)), step)
     if number_validation_images > len(rerender_images):
         print('there are only ', len(rerender_images),
               ' in the validation directory which is less than the specified number_validation_images: ',
