@@ -10,7 +10,7 @@ def config_parser():
     parser.add_argument('--config', is_config_file=True, default="configs/config.txt", help='config file path')
     parser.add_argument("--experiment_name", type=str, default='default', help='experiment name')
     parser.add_argument('--model_type', default="nerf", type=str,
-                        help='choose model type for model [smpl_nerf, nerf, append_to_nerf, smpl, warp, vertex_sphere]')
+                        help='choose model type for model [smpl_nerf, nerf, append_to_nerf, smpl, warp, vertex_sphere, smpl_estimator, original_nerf]')
     parser.add_argument("--dataset_dir", type=str, default='data', help='directory with specific dataset structure')
     parser.add_argument("--number_validation_images", type=int, default=1,
                         help='number of images to take from the validation images directory and use to render validation images')
