@@ -89,7 +89,7 @@ def train():
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
         save_run(solver.writer.log_dir, [model_coarse, model_fine],
                  ['model_coarse.pt', 'model_fine.pt'], parser)
-    elif args.model_type == 'nerf':
+    elif args.model_type == 'nerf' or args.model_type == "original_nerf":
         solver = NerfSolver(model_coarse, model_fine, position_encoder, direction_encoder, args, torch.optim.Adam,
                             torch.nn.MSELoss())
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
