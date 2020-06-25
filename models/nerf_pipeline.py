@@ -64,4 +64,4 @@ class NerfPipeline(SmplPipeline):
                                                                      ray_direction.shape[-1])
         rgb_fine, _, densities = raw2outputs(raw_outputs_fine, z_vals, fine_samples_directions, self.args)
 
-        return rgb, rgb_fine, ray_samples, densities
+        return rgb, rgb_fine, ray_samples_fine, densities
