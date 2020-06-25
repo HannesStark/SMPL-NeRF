@@ -427,7 +427,7 @@ def tensorboard_warps(writer: SummaryWriter, number_validation_images, samples,
 
 
 def vedo_data(writer: SummaryWriter, densities, samples, warps, step, max_number_saved_points=10000):
-    print('Saving data for vedo')
+    print('Saving data for vedo...')
     logdir = os.path.join(writer.get_logdir(), "pyrender_data")
     if not os.path.exists(logdir):
         os.makedirs(logdir)
@@ -440,12 +440,10 @@ def vedo_data(writer: SummaryWriter, densities, samples, warps, step, max_number
     warps_all = []
     for image_index in range(len(densities)):
         image_densities = densities[image_index]
-        max_density = np.max(image_densities)
-        normalized_densities = image_densities / max_density
 
-        densities_distribution = normalized_densities / normalized_densities.sum()
+        densities_distribution = image_densities / image_densities.sum()
 
-        sampled_indices = np.random.choice(np.arange(len(normalized_densities)),
+        sampled_indices = np.random.choice(np.arange(len(image_densities)),
                                            max_number_saved_points, p=densities_distribution)
 
         densities_all.append(image_densities[sampled_indices])
@@ -453,10 +451,10 @@ def vedo_data(writer: SummaryWriter, densities, samples, warps, step, max_number
         if warps != None:
             warps_all.append(warps[image_index][sampled_indices])
 
-    densities_all= np.concatenate(densities_all)
-    samples_all = np.concatenate(samples_all)
+    densities_all = np.stack(densities_all)
+    samples_all = np.stack(samples_all)
     if warps != None:
-        warps_all = np.concatenate(warps_all)
+        warps_all = np.stack(warps_all)
 
     np.savez(os.path.join(logdir, "densities_samples_warps" + str(step)), densities=densities_all, samples=samples_all,
              warps=warps_all)

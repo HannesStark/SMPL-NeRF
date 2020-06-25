@@ -61,10 +61,8 @@ def visualize_log_data():
     densities_samples_warps = np.load(
         os.path.join(run_dir, 'pyrender_data', "densities_samples_warps" + str(epoch) + '.npz'))
     densities, samples = densities_samples_warps['densities'], densities_samples_warps['samples']
-    try:
-        warps = densities_samples_warps['warps']
-    except:
-        warps = None
+
+    warps = densities_samples_warps['warps']
 
     if len(densities) < args.number_images:
         number_renders = len(densities)
@@ -80,19 +78,12 @@ def visualize_log_data():
                   ' is 0 so your images are probably white and this visualization has spheres of radius 0')
         normalized_densities = densities[image_index] / max_density
 
-        densities_distribution = normalized_densities / normalized_densities.sum()
-
-        sampled_indices = np.random.choice(np.arange(len(normalized_densities)),
-                                           args.number_of_points_to_visualize, p=densities_distribution)
-        radii = []
-        points = []
-        for index in sampled_indices:
-            radii.append(normalized_densities[index])
-            points.append(samples[image_index][index])
-        radii = np.array(radii) * 0.1
+        radii = normalized_densities * 0.1
+        print(radii.shape)
+        print(samples[image_index].shape)
 
         ats.append(image_index)
-        images.append(Spheres(points, r=radii, c="lb", res=8))
+        images.append(Spheres(samples[image_index], r=radii, c="lb", res=8))
 
     show(images, at=ats, axes=2)
 
