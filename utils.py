@@ -16,6 +16,7 @@ import os
 import glob
 import shutil
 
+from tqdm import tqdm
 from trimesh.ray.ray_triangle import RayMeshIntersector
 from scipy.spatial.transform import Rotation as R
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -263,8 +264,8 @@ def save_run(save_dir: str, models, model_names, parser):
         torch.save(model.state_dict(), os.path.join(save_dir, model_names[i]))
     parser.write_config_file(args, [os.path.join(save_dir, 'config.txt')])
     dataset_config_files = glob.glob(os.path.join(args.dataset_dir, '*.txt'))
-    if len(dataset_config_files)>0:
-        shutil.copyfile(dataset_config_files[0], os.path.join(save_dir,'create_dataset_config.txt'))
+    if len(dataset_config_files) > 0:
+        shutil.copyfile(dataset_config_files[0], os.path.join(save_dir, 'create_dataset_config.txt'))
 
 
 def disjoint_indices(size: int, ratio: float, random=True) -> Tuple[np.ndarray, np.ndarray]:
@@ -425,9 +426,38 @@ def tensorboard_warps(writer: SummaryWriter, number_validation_images, samples,
     # config_dict=point_size_config)
 
 
-def pyrender_data(writer: SummaryWriter, densities, samples, warps, step):
+def vedo_data(writer: SummaryWriter, densities, samples, warps, step, max_number_saved_points=10000):
+    print('Saving data for vedo')
     logdir = os.path.join(writer.get_logdir(), "pyrender_data")
     if not os.path.exists(logdir):
         os.makedirs(logdir)
-    np.savez(os.path.join(logdir, "densities_samples_warps" + str(step)), densities=densities, samples=samples, warps=warps)
 
+    if len(densities[0]) < max_number_saved_points:
+        max_number_saved_points = len(densities[0])
+
+    densities_all = []
+    samples_all = []
+    warps_all = []
+    for image_index in range(len(densities)):
+        image_densities = densities[image_index]
+        max_density = np.max(image_densities)
+        normalized_densities = image_densities / max_density
+
+        densities_distribution = normalized_densities / normalized_densities.sum()
+
+        sampled_indices = np.random.choice(np.arange(len(normalized_densities)),
+                                           max_number_saved_points, p=densities_distribution)
+
+        densities_all.append(image_densities[sampled_indices])
+        samples_all.append(samples[image_index][sampled_indices])
+        if warps != None:
+            warps_all.append(warps[image_index][sampled_indices])
+
+    densities_all= np.concatenate(densities_all)
+    samples_all = np.concatenate(samples_all)
+    if warps != None:
+        warps_all = np.concatenate(warps_all)
+
+    np.savez(os.path.join(logdir, "densities_samples_warps" + str(step)), densities=densities_all, samples=samples_all,
+             warps=warps_all)
+    print('Finish saving data for vedo')

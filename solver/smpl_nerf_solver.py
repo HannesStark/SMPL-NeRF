@@ -4,7 +4,7 @@ import numpy as np
 from models.smpl_nerf_pipeline import SmplNerfPipeline
 from solver.nerf_solver import NerfSolver
 from utils import PositionalEncoder, tensorboard_rerenders, tensorboard_warps, GaussianMixture, \
-    pyrender_data
+    vedo_data
 
 
 class SmplNerfSolver(NerfSolver):
@@ -157,7 +157,7 @@ class SmplNerfSolver(NerfSolver):
             if epoch in np.floor(np.array(args.mesh_epochs) * (args.num_epochs - 1)):  # bc it takes too much storage
                 tensorboard_warps(self.writer, args.number_validation_images, samples, warps_mesh, epoch + 1)
 
-            pyrender_data(self.writer, densities_list, samples, warps_mesh, step=epoch + 1)
+            vedo_data(self.writer, densities_list, samples, warps_mesh, step=epoch + 1)
 
             tensorboard_rerenders(self.writer, args.number_validation_images, rerender_images, ground_truth_images,
                                   step=epoch + 1, warps=warps)

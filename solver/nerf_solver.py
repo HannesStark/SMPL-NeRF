@@ -3,7 +3,7 @@ from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 
 from models.nerf_pipeline import NerfPipeline
-from utils import PositionalEncoder, tensorboard_rerenders, pyrender_data
+from utils import PositionalEncoder, tensorboard_rerenders, vedo_data
 
 
 class NerfSolver():
@@ -148,7 +148,7 @@ class NerfSolver():
                     (-1,
                      h * w * densities_list.shape[-1]))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
 
-            pyrender_data(self.writer, densities_list, samples, warps=None, step=epoch + 1)
+            vedo_data(self.writer, densities_list, samples, warps=None, step=epoch + 1)
             tensorboard_rerenders(self.writer, args.number_validation_images, rerender_images, ground_truth_images,
                                   step=epoch, warps=None)
 

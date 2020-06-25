@@ -144,7 +144,7 @@ def save_rerenders(rgb_images, run_file, output_dir='renders'):
     if not os.path.exists(output_dir):  # create directory if it does not already exist
         os.makedirs(output_dir)
     for i, image in enumerate(rgb_images):
-        cv2.imwrite(os.path.join(output_dir, 'img_{:03d}.png'.format(i)), image)
+        cv2.imwrite(os.path.join(output_dir, 'img_{:03d}.png'.format(i)), image[..., ::-1])
     imageio.mimwrite(os.path.join(output_dir, 'animated.mp4'), rgb_images,
                      fps=30, quality=8)
 
