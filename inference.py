@@ -41,11 +41,11 @@ def inference():
     if torch.cuda.is_available():
         torch.set_default_tensor_type('torch.cuda.FloatTensor')
 
+    position_encoder = PositionalEncoder(args_training.number_frequencies_postitional,
+                                         args_training.use_identity_positional)
+    direction_encoder = PositionalEncoder(args_training.number_frequencies_directional,
+                                          args_training.use_identity_directional)
     if not args_inference.model_type == "append_to_nerf":
-        position_encoder = PositionalEncoder(args_training.number_frequencies_postitional,
-                                             args_training.use_identity_positional)
-        direction_encoder = PositionalEncoder(args_training.number_frequencies_directional,
-                                              args_training.use_identity_directional)
         model_coarse = RenderRayNet(args_training.netdepth, args_training.netwidth, position_encoder.output_dim * 3,
                                     direction_encoder.output_dim * 3, skips=args_training.skips)
         model_fine = RenderRayNet(args_training.netdepth_fine, args_training.netwidth_fine,
