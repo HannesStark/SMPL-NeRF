@@ -1,6 +1,6 @@
-experiment_name = append_to_nerf_with_many_images
+experiment_name = testing gif animation
 number_validation_images = 2
-model_type = vertex_sphere
+model_type = append_to_nerf
 dataset_dir = data
 
 netdepth = 8
@@ -11,7 +11,7 @@ netdepth_fine = 8
 log_iterations = 5
 batchsize = 2048
 batchsize_val = 256
-num_epochs = 4
+num_epochs = 2
 mesh_epochs = [1]
 skips = [4]
 skips_fine= [4]

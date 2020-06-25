@@ -39,6 +39,9 @@ def config_parser():
                         help='Number of angles inbetween start and end angle for human joints')
     parser.add_argument("--multi_human_pose", type=int, default=0,
                         help='Multiple human poses per viewpoint')
+    parser.add_argument('--train_index', default=[], help='Needed to retain the original dataset order', action="append")
+    parser.add_argument('--val_index', default=[], help='Needed to retain the original dataset order', action="append")
+
 
     return parser
 
@@ -149,6 +152,10 @@ def create_dataset():
     save_split(args.save_dir, camera_transforms, val_indices, "val",
                args.resolution, args.resolution, camera_angle_x, far,
                args.dataset_type, human_poses)
+
+    args.train_index = train_indices
+    args.val_index = val_indices
+
     parser.write_config_file(args, [os.path.join(args.save_dir, 'create_dataset_config.txt')])
 
 

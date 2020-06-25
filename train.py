@@ -24,6 +24,7 @@ from solver.smpl_solver import SmplSolver
 from utils import PositionalEncoder, save_run
 from models.smpl_estimator import SmplEstimator
 from solver.smpl_estimator_solver import SmplEstimatorSolver
+from inference import inference_gif
 
 np.random.seed(0)
 
@@ -76,8 +77,14 @@ def train():
                                 human_pose_encoder, train_data.canonical_smpl, args, torch.optim.Adam,
                                 torch.nn.MSELoss())
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
+
         save_run(solver.writer.log_dir, [model_coarse, model_fine, model_warp_field],
                  ['model_coarse.pt', 'model_fine.pt', 'model_warp_field.pt'], parser)
+
+        model_dependent = [human_pose_encoder, positions_dim, human_pose_dim, model_warp_field]
+        inference_gif(solver.writer.log_dir, args.model_type, args, train_data, val_data, position_encoder,
+                      direction_encoder, model_coarse, model_fine, model_dependent)
+
     elif args.model_type == 'smpl':
         solver = SmplSolver(model_coarse, model_fine, position_encoder, direction_encoder,
                             args, torch.optim.Adam,
@@ -115,8 +122,14 @@ def train():
                                     args, torch.optim.Adam,
                                     torch.nn.MSELoss())
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
+
         save_run(solver.writer.log_dir, [model_coarse, model_fine],
                  ['model_coarse.pt', 'model_fine.pt'], parser)
+
+        model_dependent = [human_pose_encoder, human_pose_dim]
+        inference_gif(solver.writer.log_dir, args.model_type, args, train_data, val_data, position_encoder,
+                      direction_encoder, model_coarse, model_fine, model_dependent)
+
     elif args.model_type == 'vertex_sphere':
         solver = VertexSphereSolver(model_coarse, model_fine, position_encoder, direction_encoder, args, torch.optim.Adam,
                                     torch.nn.MSELoss())
