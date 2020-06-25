@@ -3,7 +3,7 @@ from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 
 from models.nerf_pipeline import NerfPipeline
-from utils import PositionalEncoder, tensorboard_rerenders
+from utils import PositionalEncoder, tensorboard_rerenders, vedo_data
 
 
 class NerfSolver():
@@ -80,7 +80,7 @@ class NerfSolver():
                     data[j] = element.to(self.device)
                 rgb_truth = data[-1]
 
-                rgb, rgb_fine = self.pipeline(data)
+                rgb, rgb_fine, ray_samples, densities = self.pipeline(data)
 
                 self.optim.zero_grad()
 
@@ -101,7 +101,7 @@ class NerfSolver():
                                 data[j] = element.to(self.device)
                             rgb_truth = data[-1]
 
-                            rgb, rgb_fine = self.pipeline(data)
+                            rgb, rgb_fine, _, _ = self.pipeline(data)
 
                             loss = self.nerf_loss(rgb, rgb_fine, rgb_truth)
                             val_loss += loss.item()
@@ -118,22 +118,37 @@ class NerfSolver():
             self.model_fine.eval()
             val_loss = 0
             rerender_images = []
+            samples = []
             ground_truth_images = []
+            densities_list = []
             for i, data in enumerate(val_loader):
                 for j, element in enumerate(data):
                     data[j] = element.to(self.device)
                 rgb_truth = data[-1]
 
-                rgb, rgb_fine = self.pipeline(data)
+                rgb, rgb_fine, ray_samples, densities = self.pipeline(data)
 
                 loss = self.nerf_loss(rgb, rgb_fine, rgb_truth)
                 val_loss += loss.item()
+
                 ground_truth_images.append(rgb_truth.detach().cpu().numpy())
                 rerender_images.append(rgb_fine.detach().cpu().numpy())
+                samples.append(ray_samples.detach().cpu().numpy())
+                densities_list.append(densities.detach().cpu().numpy())
             if len(val_loader) != 0:
                 rerender_images = np.concatenate(rerender_images, 0).reshape((-1, h, w, 3))
                 ground_truth_images = np.concatenate(ground_truth_images).reshape((-1, h, w, 3))
 
+                samples = np.concatenate(samples)
+                samples = samples.reshape(
+                    (-1, h * w * samples.shape[-2], 3))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
+
+                densities_list = np.concatenate(densities_list)
+                densities_list = densities_list.reshape(
+                    (-1,
+                     h * w * densities_list.shape[-1]))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
+
+            vedo_data(self.writer, densities_list, samples, warps=None, step=epoch + 1)
             tensorboard_rerenders(self.writer, args.number_validation_images, rerender_images, ground_truth_images,
                                   step=epoch, warps=None)
 

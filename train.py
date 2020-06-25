@@ -10,6 +10,7 @@ from datasets.smpl_nerf_dataset import SmplNerfDataset
 from datasets.smpl_estimator_dataset import SmplEstimatorDataset
 from datasets.transforms import CoarseSampling, ToTensor, NormalizeRGB, NormalizeRGBImage
 from datasets.vertex_sphere_dataset import VertexSphereDataset
+from datasets.original_nerf_dataset import OriginalNerfDataset
 from models.debug_model import DebugModel
 from models.render_ray_net import RenderRayNet
 from models.warp_field_net import WarpFieldNet
@@ -32,7 +33,7 @@ np.random.seed(0)
 def train():
     parser = config_parser()
     args = parser.parse_args()
-    if args.model_type not in ["nerf", "smpl_nerf", "append_to_nerf", "smpl", "warp", 'vertex_sphere', "smpl_estimator"]:
+    if args.model_type not in ["nerf", "smpl_nerf", "append_to_nerf", "smpl", "warp", 'vertex_sphere', "smpl_estimator", "original_nerf"]:
         raise Exception("The model type ", args.model_type, " does not exist.")
 
     transform = transforms.Compose(
@@ -56,6 +57,9 @@ def train():
         transform = NormalizeRGBImage()
         train_data = SmplEstimatorDataset(train_dir, os.path.join(train_dir, 'transforms.json'), args.vertex_sphere_radius, transform)
         val_data = SmplEstimatorDataset(val_dir, os.path.join(val_dir, 'transforms.json'), args.vertex_sphere_radius, transform)
+    elif args.model_type == "original_nerf":
+        train_data = OriginalNerfDataset(args.dataset_dir, os.path.join(args.dataset_dir, 'transforms_train.json'), transform)
+        val_data = OriginalNerfDataset(args.dataset_dir, os.path.join(args.dataset_dir, 'transforms_val.json'), transform)
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=args.batchsize, shuffle=True, num_workers=0)
     val_loader = torch.utils.data.DataLoader(val_data, batch_size=args.batchsize_val, shuffle=False, num_workers=0)
     position_encoder = PositionalEncoder(args.number_frequencies_postitional, args.use_identity_positional)
@@ -92,7 +96,7 @@ def train():
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
         save_run(solver.writer.log_dir, [model_coarse, model_fine],
                  ['model_coarse.pt', 'model_fine.pt'], parser)
-    elif args.model_type == 'nerf':
+    elif args.model_type == 'nerf' or args.model_type == "original_nerf":
         solver = NerfSolver(model_coarse, model_fine, position_encoder, direction_encoder, args, torch.optim.Adam,
                             torch.nn.MSELoss())
         solver.train(train_loader, val_loader, train_data.h, train_data.w)

@@ -1,4 +1,4 @@
-experiment_name = testing gif animation
+experiment_name = append_to_nerf_with_many_images
 number_validation_images = 2
 model_type = append_to_nerf
 dataset_dir = data
@@ -9,9 +9,9 @@ run_fine = 0
 netdepth_fine = 8
 
 log_iterations = 5
-batchsize = 2048
-batchsize_val = 256
-num_epochs = 2
+batchsize = 1024
+batchsize_val = 128
+num_epochs = 200
 mesh_epochs = [1]
 skips = [4]
 skips_fine= [4]
@@ -20,4 +20,4 @@ coarse_samples_from_prior=0
 vertex_sphere_radius=0.01
 white_background = 1
 sigma_noise_std = 1
-lrate = 1e-4
+lrate = 4e-5
