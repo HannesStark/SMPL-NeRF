@@ -123,7 +123,7 @@ def inference():
                                                   num_workers=0)
         pipeline = NerfPipeline(model_coarse, args_training, position_encoder, direction_encoder)
     camera_transforms = dataset.image_transform_map
-    for i, data in tqdm(enumerate(data_loader)):
+    for i, data in enumerate(tqdm(data_loader)):
         for j, element in enumerate(data):
             data[j] = element.to(device)
         rgb_truth = data[-1]
