@@ -168,6 +168,11 @@ def config_parser_inference():
 
 
 def inference_gif(run_dir, model_type, args, train_data, val_data, position_encoder, direction_encoder, model_coarse, model_fine, model_dependent):
+    """
+    Create an animated GIF for the whole training distribution (training + validation set)
+    in the correct original order
+
+    """
 
     parser_data = create_dataset.config_parser()
     config_file_data = os.path.join(run_dir, "create_dataset_config.txt")
