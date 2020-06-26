@@ -462,7 +462,7 @@ def vedo_data(writer: SummaryWriter, densities, samples, warps, step, max_number
 
 def vedo_data_imagewise(writer: SummaryWriter, image_densities, image_samples, image_warps, epoch, image_idx, max_number_saved_points=10000):
     print('Saving data for vedo...')
-    logdir = os.path.join(writer.get_logdir(), "pyrender_data")
+    logdir = os.path.join(writer.get_logdir(), "vedo_data")
     if not os.path.exists(logdir):
         os.makedirs(logdir)
     if len(image_densities) < max_number_saved_points:
@@ -476,6 +476,6 @@ def vedo_data_imagewise(writer: SummaryWriter, image_densities, image_samples, i
         image_warps = image_warps[sampled_indices]
     else:
         image_warps = []
-    np.savez(os.path.join(logdir, "densities_samples_warps_epoch_{}_image_{}".format(epoch, image_idx)), densities=image_densities, samples=image_samples,
+    np.savez(os.path.join(logdir, "densities_samples_warps_epoch_{}_image_{}".format(epoch, image_idx)) + '.npz', densities=image_densities, samples=image_samples,
              warps=image_warps)
     print('Finish saving data for vedo')

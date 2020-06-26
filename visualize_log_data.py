@@ -62,7 +62,7 @@ def visualize_log_data():
     for image_index in range(args.number_images):
         try:
             densities_samples_warps = np.load(
-                os.path.join(run_dir, 'pyrender_data',
+                os.path.join(run_dir, 'vedo_data',
                              "densities_samples_warps_epoch_" + str(epoch) + '_image_' + str(image_index) + '.npz'))
             densities, samples, warps = densities_samples_warps['densities'], densities_samples_warps['samples'], \
                                         densities_samples_warps['warps']

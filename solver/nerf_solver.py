@@ -145,7 +145,7 @@ class NerfSolver():
                     samples = np.concatenate(samples)
                     image_samples = samples[:h*w].reshape(-1)
                     samples = [samples[h*w:]]
-                    vedo_data_imagewise(self.writer, image_densities, image_samples, image_warps=None, epoch=epoch, image_idx=val_loader.batch_size*i//(h*w))
+                    vedo_data_imagewise(self.writer, image_densities, image_samples, image_warps=None, epoch=epoch + 1, image_idx=val_loader.batch_size*i//(h*w))
             if len(val_loader) != 0:
                 rerender_images = np.concatenate(rerender_images, 0).reshape((-1, h, w, 3))
                 ground_truth_images = np.concatenate(ground_truth_images).reshape((-1, h, w, 3))
