@@ -145,8 +145,8 @@ def save_rerenders(rgb_images, run_file, output_dir='renders'):
         os.makedirs(output_dir)
     for i, image in enumerate(rgb_images):
         cv2.imwrite(os.path.join(output_dir, 'img_{:03d}.png'.format(i)), image[..., ::-1])
-    imageio.mimwrite(os.path.join(output_dir, 'animated.mp4'), rgb_images,
-                     fps=30, quality=8)
+    imageio.mimwrite(os.path.join(output_dir, 'animated.mp4'), rgb_images[..., ::-1],
+                     fps=40, quality=8)
 
 
 def config_parser_inference():
@@ -159,7 +159,7 @@ def config_parser_inference():
     parser.add_argument('--save_dir', default="renders",
                         help='save directory for inference output (appended to run_dir')
     parser.add_argument('--run_dir', default="runs/Jun23_09-32-18_korhal", help='path to load model')
-    parser.add_argument('--ground_truth_dir', default="data/render_append_to_nerf/train",
+    parser.add_argument('--ground_truth_dir', default="data/render_512_folder/train",
                         help='path to load ground truth, created with create_dataset.py')
     parser.add_argument('--model_type', default="append_to_nerf", type=str,
                         help='choose dataset type for model [smpl_nerf, nerf, pix2pix, smpl, append_to_nerf]')
@@ -168,6 +168,5 @@ def config_parser_inference():
 
 if __name__ == '__main__':
     rgb_images = inference()
-    print(rgb_images.shape)
     plt.imshow(rgb_images[0])
     plt.show()

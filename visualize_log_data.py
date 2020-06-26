@@ -79,8 +79,6 @@ def visualize_log_data():
         normalized_densities = densities[image_index] / max_density
 
         radii = normalized_densities * 0.1
-        print(radii.shape)
-        print(samples[image_index].shape)
 
         ats.append(image_index)
         images.append(Spheres(samples[image_index], r=radii, c="lb", res=8))
