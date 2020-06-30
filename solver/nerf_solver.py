@@ -121,7 +121,6 @@ class NerfSolver():
             samples = []
             ground_truth_images = []
             densities_list = []
-            counter = 0
             for i, data in enumerate(val_loader):
                 for j, element in enumerate(data):
                     data[j] = element.to(self.device)
@@ -136,9 +135,7 @@ class NerfSolver():
                 rerender_images.append(rgb_fine.detach().cpu().numpy())
                 samples.append(ray_samples.detach().cpu().numpy())
                 densities_list.append(densities.detach().cpu().numpy())
-                counter += 1
                 if np.concatenate(densities_list).shape[0]>=(h*w):
-                    counter = 0
                     densities_list = np.concatenate(densities_list)
                     image_densities = densities_list[:h*w].reshape(-1)
                     densities_list = [densities_list[h*w:]]
