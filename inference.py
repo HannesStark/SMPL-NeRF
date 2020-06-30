@@ -19,6 +19,7 @@ from models.warp_field_net import WarpFieldNet
 from models.smpl_pipeline import SmplPipeline
 from models.smpl_nerf_pipeline import SmplNerfPipeline
 from models.nerf_pipeline import NerfPipeline
+from models.vertex_sphere_pipeline import VertexSpherePipeline
 
 from datasets.smpl_nerf_dataset import SmplNerfDataset
 from datasets.rays_from_images_dataset import RaysFromImagesDataset
@@ -210,6 +211,11 @@ def inference_gif(run_dir, model_type, args, train_data, val_data, position_enco
 
     elif model_type == 'nerf':
         pipeline = NerfPipeline(model_coarse, args, position_encoder, direction_encoder)
+
+    # add inference for new vertex_sphere approach
+    elif args.model_type == 'vertex_sphere':
+        pipeline = VertexSpherePipeline(model_coarse, model_fine, args, position_encoder, direction_encoder)
+
 
     for i, data in enumerate(data_loader):
         for j, element in enumerate(data):
