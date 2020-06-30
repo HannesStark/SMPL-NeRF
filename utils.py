@@ -448,12 +448,12 @@ def vedo_data(writer: SummaryWriter, densities, samples, warps, step, max_number
 
         densities_all.append(image_densities[sampled_indices])
         samples_all.append(samples[image_index][sampled_indices])
-        if warps != None:
+        if warps is not None:
             warps_all.append(warps[image_index][sampled_indices])
 
     densities_all = np.stack(densities_all)
     samples_all = np.stack(samples_all)
-    if warps != None:
+    if warps is not None:
         warps_all = np.stack(warps_all)
 
     np.savez(os.path.join(logdir, "densities_samples_warps" + str(step)), densities=densities_all, samples=samples_all,
