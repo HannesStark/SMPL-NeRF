@@ -428,7 +428,7 @@ def tensorboard_warps(writer: SummaryWriter, number_validation_images, samples,
 
 def vedo_data(writer: SummaryWriter, densities, samples, warps, step, max_number_saved_points=10000):
     print('Saving data for vedo...')
-    logdir = os.path.join(writer.get_logdir(), "pyrender_data")
+    logdir = os.path.join(writer.get_logdir(), "vedo_data")
     if not os.path.exists(logdir):
         os.makedirs(logdir)
 
@@ -458,4 +458,24 @@ def vedo_data(writer: SummaryWriter, densities, samples, warps, step, max_number
 
     np.savez(os.path.join(logdir, "densities_samples_warps" + str(step)), densities=densities_all, samples=samples_all,
              warps=warps_all)
+    print('Finish saving data for vedo')
+
+def vedo_data_imagewise(writer: SummaryWriter, image_densities, image_samples, image_warps, epoch, image_idx, max_number_saved_points=10000):
+    print('Saving data for vedo...')
+    logdir = os.path.join(writer.get_logdir(), "vedo_data")
+    if not os.path.exists(logdir):
+        os.makedirs(logdir)
+    if len(image_densities) < max_number_saved_points:
+        max_number_saved_points = len(image_densities)
+    densities_distribution = image_densities / image_densities.sum()
+    sampled_indices = np.random.choice(np.arange(len(image_densities)),
+                                           max_number_saved_points, p=densities_distribution)
+    image_densities = image_densities[sampled_indices]
+    image_samples = image_samples[sampled_indices]
+    if image_warps != None:
+        image_warps = image_warps[sampled_indices]
+    else:
+        image_warps = []
+    np.savez(os.path.join(logdir, "densities_samples_warps_epoch_{}_image_{}".format(epoch, image_idx)) + '.npz', densities=image_densities, samples=image_samples,
+             warps=image_warps)
     print('Finish saving data for vedo')

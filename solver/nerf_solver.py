@@ -3,7 +3,7 @@ from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 
 from models.nerf_pipeline import NerfPipeline
-from utils import PositionalEncoder, tensorboard_rerenders, vedo_data
+from utils import PositionalEncoder, tensorboard_rerenders, vedo_data, vedo_data_imagewise
 
 
 class NerfSolver():
@@ -121,6 +121,7 @@ class NerfSolver():
             samples = []
             ground_truth_images = []
             densities_list = []
+            counter = 0
             for i, data in enumerate(val_loader):
                 for j, element in enumerate(data):
                     data[j] = element.to(self.device)
@@ -135,6 +136,16 @@ class NerfSolver():
                 rerender_images.append(rgb_fine.detach().cpu().numpy())
                 samples.append(ray_samples.detach().cpu().numpy())
                 densities_list.append(densities.detach().cpu().numpy())
+                counter += 1
+                if val_loader.batch_size*counter//(h*w) == 1:
+                    counter = 0
+                    densities_list = np.concatenate(densities_list)
+                    image_densities = densities_list[:h*w].reshape(-1)
+                    densities_list = [densities_list[h*w:]]
+                    samples = np.concatenate(samples)
+                    image_samples = samples[:h*w].reshape(-1)
+                    samples = [samples[h*w:]]
+                    vedo_data_imagewise(self.writer, image_densities, image_samples, image_warps=None, epoch=epoch + 1, image_idx=val_loader.batch_size*i//(h*w))
             if len(val_loader) != 0:
                 rerender_images = np.concatenate(rerender_images, 0).reshape((-1, h, w, 3))
                 ground_truth_images = np.concatenate(ground_truth_images).reshape((-1, h, w, 3))
@@ -148,7 +159,6 @@ class NerfSolver():
                     (-1,
                      h * w * densities_list.shape[-1]))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
 
-            vedo_data(self.writer, densities_list, samples, warps=None, step=epoch + 1)
             tensorboard_rerenders(self.writer, args.number_validation_images, rerender_images, ground_truth_images,
                                   step=epoch, warps=None)
 
