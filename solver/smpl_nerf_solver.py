@@ -4,7 +4,7 @@ import numpy as np
 from models.smpl_nerf_pipeline import SmplNerfPipeline
 from solver.nerf_solver import NerfSolver
 from utils import PositionalEncoder, tensorboard_rerenders, tensorboard_warps, GaussianMixture, \
-    vedo_data
+    vedo_data, vedo_data
 
 
 class SmplNerfSolver(NerfSolver):
@@ -115,8 +115,8 @@ class SmplNerfSolver(NerfSolver):
             ground_truth_images = []
             samples = []
             warps = []
+            ray_warp_magnitudes = []
             densities_list = []
-            warped_samples_list = []
             for i, data in enumerate(val_loader):
                 for j, element in enumerate(data):
                     data[j] = element.to(self.device)
@@ -131,36 +131,33 @@ class SmplNerfSolver(NerfSolver):
                 ground_truth_images.append(rgb_truth.detach().cpu().numpy())
                 rerender_images.append(rgb_fine.detach().cpu().numpy())
                 samples.append(ray_samples.detach().cpu().numpy())
-                warped_samples_list.append(warped_samples.detach().cpu().numpy())
                 warps.append(warp.detach().cpu().numpy())
                 densities_list.append(densities.detach().cpu().numpy())
+                warp_magnitude = np.linalg.norm(warp.cpu(), axis=-1)  # [batchsize, number_samples]
+                ray_warp_magnitudes.append(warp_magnitude.mean(axis=1))  # mean over the samples => [batchsize]
+                if np.concatenate(densities_list).shape[0] >= (h * w):
+                    densities_list = np.concatenate(densities_list)
+                    image_densities = densities_list[:h * w].reshape(-1)
+                    densities_list = [densities_list[h * w:]]
 
+                    samples = np.concatenate(samples)
+                    image_samples = samples[:h * w].reshape(-1, 3)
+                    samples = [samples[h * w:]]
+
+                    warps = np.concatenate(warps)
+                    image_warps = warps[:h * w].reshape(-1, 3)
+                    warps = [warps[h * w:]]
+
+                    vedo_data(self.writer, image_densities, image_samples, image_warps=image_warps,
+                              epoch=epoch + 1,
+                              image_idx=val_loader.batch_size * i // (h * w))
             if len(val_loader) != 0:
                 rerender_images = np.concatenate(rerender_images, 0).reshape((-1, h, w, 3))
                 ground_truth_images = np.concatenate(ground_truth_images).reshape((-1, h, w, 3))
-                samples = np.concatenate(samples)
-                samples = samples.reshape(
-                    (-1, h * w * samples.shape[-2], 3))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
-                warped_samples_list = np.concatenate(warped_samples_list)
-                warped_samples_list = warped_samples_list.reshape(
-                    (-1, h * w * warped_samples_list.shape[-2],
-                     3))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
-                densities_list = np.concatenate(densities_list)
-                densities_list = densities_list.reshape(
-                    (-1,
-                     h * w * densities_list.shape[-1]))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
-                warps = np.concatenate(warps)
-                warps_mesh = warps.reshape(
-                    (-1, h * w * warps.shape[-2], 3))  # [number_images, h*w*(n_fine_samples + n_coarse_samples), 3]
-                warps = warps.reshape((-1, h, w, warps.shape[-2], 3)) # [number_images, h, w, (n_fine_samples + n_coarse_samples), 3]
-
-            if epoch in np.floor(np.array(args.mesh_epochs) * (args.num_epochs - 1)):  # bc it takes too much storage
-                tensorboard_warps(self.writer, args.number_validation_images, samples, warps_mesh, epoch + 1)
-
-            vedo_data(self.writer, densities_list, samples, warps_mesh, step=epoch + 1)
+                ray_warp_magnitudes = np.concatenate(ray_warp_magnitudes).reshape((-1, h, w))
 
             tensorboard_rerenders(self.writer, args.number_validation_images, rerender_images, ground_truth_images,
-                                  step=epoch + 1, warps=warps)
+                                  step=epoch + 1, ray_warps=ray_warp_magnitudes)
 
             print('[Epoch %d] VAL loss: %.7f' % (epoch + 1, val_loss / (len(val_loader) or not len(val_loader))))
             self.writer.add_scalars('Loss Curve', {'train loss': train_loss / iter_per_epoch,
