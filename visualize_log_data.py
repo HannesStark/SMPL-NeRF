@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import random
+import re
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -48,12 +49,12 @@ def visualize_log_data():
         try:
             filenames = os.listdir(os.path.join(run_dir, 'vedo_data'))
         except:
-            raise ValueError("There seems to be no pyrender data generated for the specified run since the path ",
+            raise ValueError("There seems to be no vedo data generated for the specified run since the path ",
                              os.path.join(run_dir, 'vedo_data'), '  was not found')
 
         if len(filenames) == 0:
             raise ValueError('No epoch in the vedo_data folder')
-        epoch = len(filenames)
+        epoch = re.findall(r'\d+', filenames[-1])[0]
     else:
         epoch = args.epoch
 
@@ -66,7 +67,7 @@ def visualize_log_data():
                              "densities_samples_warps_epoch_" + str(epoch) + '_image_' + str(image_index) + '.npz'))
             densities, samples, warps = densities_samples_warps['densities'], densities_samples_warps['samples'], \
                                         densities_samples_warps['warps']
-
+            print(warps)
 
             max_density = np.max(densities)
             if max_density == 0:
@@ -75,12 +76,10 @@ def visualize_log_data():
             normalized_densities = densities / max_density
 
             radii = normalized_densities * 0.1
-            print(samples.shape)
-            print(radii.shape)
             ats.append(image_index)
             images.append(Spheres(samples, r=radii, c="lb", res=8))
         except FileNotFoundError as err:
-            print('Skipping the iteration with image index ', image_index, ' because the file for that image'
+            print('Skipping the iteration with image index ', image_index, ' because the file for that image '
                                                                            'was not found: ', err)
 
     show(images, at=ats, axes=2)

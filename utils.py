@@ -448,12 +448,12 @@ def vedo_data(writer: SummaryWriter, densities, samples, warps, step, max_number
 
         densities_all.append(image_densities[sampled_indices])
         samples_all.append(samples[image_index][sampled_indices])
-        if warps != None:
+        if warps is not None:
             warps_all.append(warps[image_index][sampled_indices])
 
     densities_all = np.stack(densities_all)
     samples_all = np.stack(samples_all)
-    if warps != None:
+    if warps is not None:
         warps_all = np.stack(warps_all)
 
     np.savez(os.path.join(logdir, "densities_samples_warps" + str(step)), densities=densities_all, samples=samples_all,
@@ -461,7 +461,6 @@ def vedo_data(writer: SummaryWriter, densities, samples, warps, step, max_number
     print('Finish saving data for vedo')
 
 def vedo_data_imagewise(writer: SummaryWriter, image_densities, image_samples, image_warps, epoch, image_idx, max_number_saved_points=10000):
-    print('Saving data for vedo...')
     logdir = os.path.join(writer.get_logdir(), "vedo_data")
     if not os.path.exists(logdir):
         os.makedirs(logdir)
@@ -472,10 +471,9 @@ def vedo_data_imagewise(writer: SummaryWriter, image_densities, image_samples, i
                                            max_number_saved_points, p=densities_distribution)
     image_densities = image_densities[sampled_indices]
     image_samples = image_samples[sampled_indices]
-    if image_warps != None:
+    if image_warps is not None:
         image_warps = image_warps[sampled_indices]
     else:
         image_warps = []
     np.savez(os.path.join(logdir, "densities_samples_warps_epoch_{}_image_{}".format(epoch, image_idx)) + '.npz', densities=image_densities, samples=image_samples,
              warps=image_warps)
-    print('Finish saving data for vedo')
