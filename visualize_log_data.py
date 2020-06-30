@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 import random
+import re
 
 import matplotlib.pyplot as plt
 import numpy as np
 import os
 import configargparse
-from vedo import show, Spheres
+from vedo import show, Spheres, Arrows
 import pyrender
 import trimesh
 from tqdm import tqdm
@@ -22,8 +23,11 @@ def config_parser():
                         help='if 0 it will choose the newest epoch')
     parser.add_argument('--number_images', default=2, type=int,
                         help='images that will be visualized')
+    parser.add_argument('--mode', default='warp', type=str,
+                        help='whether to visualize densities or warps [density, warp]')
     parser.add_argument('--number_of_points_to_visualize', default=20000, type=int,
                         help='only visualize this many points. Chooses the highest points of the provided points ')
+
     return parser
 
 
@@ -48,12 +52,12 @@ def visualize_log_data():
         try:
             filenames = os.listdir(os.path.join(run_dir, 'vedo_data'))
         except:
-            raise ValueError("There seems to be no pyrender data generated for the specified run since the path ",
+            raise ValueError("There seems to be no vedo data generated for the specified run since the path ",
                              os.path.join(run_dir, 'vedo_data'), '  was not found')
 
         if len(filenames) == 0:
             raise ValueError('No epoch in the vedo_data folder')
-        epoch = len(filenames)
+        epoch = re.findall(r'\d+', filenames[-1])[0]
     else:
         epoch = args.epoch
 
@@ -67,20 +71,23 @@ def visualize_log_data():
             densities, samples, warps = densities_samples_warps['densities'], densities_samples_warps['samples'], \
                                         densities_samples_warps['warps']
 
+            if args.mode == "density":
+                max_density = np.max(densities)
+                if max_density == 0:
+                    print('Every density for image ', image_index,
+                          ' is 0 so your images are probably white and this visualization has spheres of radius 0')
+                normalized_densities = densities / max_density
 
-            max_density = np.max(densities)
-            if max_density == 0:
-                print('Every density for image ', image_index,
-                      ' is 0 so your images are probably white and this visualization has spheres of radius 0')
-            normalized_densities = densities / max_density
+                radii = normalized_densities * 0.1
+                ats.append(image_index)
+                images.append(Spheres(samples, r=radii, c="lb", res=8))
+            elif args.mode == "warp":
+                ats.append(image_index)
+                print(np.min(warps))
+                images.append(Arrows(samples, samples + warps, s=0.7, alpha=0.2).c("k"))
 
-            radii = normalized_densities * 0.1
-            print(samples.shape)
-            print(radii.shape)
-            ats.append(image_index)
-            images.append(Spheres(samples, r=radii, c="lb", res=8))
         except FileNotFoundError as err:
-            print('Skipping the iteration with image index ', image_index, ' because the file for that image'
+            print('Skipping the iteration with image index ', image_index, ' because the file for that image '
                                                                            'was not found: ', err)
 
     show(images, at=ats, axes=2)

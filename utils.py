@@ -358,7 +358,7 @@ def get_dependent_rays_indices(ray_translation: np.array, ray_direction: np.arra
 
 
 def tensorboard_rerenders(writer: SummaryWriter, number_validation_images, rerender_images, ground_truth_images, step,
-                          warps=None):
+                          ray_warps=None):
     writer.add_images('{} all validation images'.format(step), rerender_images[..., ::-1].transpose((0, 3, 1, 2)), step)
     if number_validation_images > len(rerender_images):
         print('there are only ', len(rerender_images),
@@ -371,10 +371,8 @@ def tensorboard_rerenders(writer: SummaryWriter, number_validation_images, reren
 
     if number_validation_images > 0:
 
-        if warps is not None:
+        if ray_warps is not None:
             image_col = 3
-            warps = np.linalg.norm(warps, axis=-1)
-            warps = warps.mean(axis=3)
         else:
             image_col = 2
         fig, axarr = plt.subplots(number_validation_images, image_col, sharex=True, sharey=True)
@@ -387,8 +385,8 @@ def tensorboard_rerenders(writer: SummaryWriter, number_validation_images, reren
             axarr[i, 0].axis('off')
             axarr[i, 1].imshow(rerender_images[i][:, :, ::-1])
             axarr[i, 1].axis('off')
-            if warps is not None:
-                w = axarr[i, 2].imshow(warps[i])
+            if ray_warps is not None:
+                w = axarr[i, 2].imshow(ray_warps[i])
                 axarr[i, 2].axis('off')
 
                 last_axes = plt.gca()
@@ -401,7 +399,7 @@ def tensorboard_rerenders(writer: SummaryWriter, number_validation_images, reren
 
         axarr[0, 0].set_title('Ground Truth')
         axarr[0, 1].set_title('Rerender')
-        if warps is not None:
+        if ray_warps is not None:
             axarr[0, 2].set_title('Warp Intensity')
 
         fig.set_dpi(300)
@@ -426,42 +424,8 @@ def tensorboard_warps(writer: SummaryWriter, number_validation_images, samples,
     # config_dict=point_size_config)
 
 
-def vedo_data(writer: SummaryWriter, densities, samples, warps, step, max_number_saved_points=10000):
-    print('Saving data for vedo...')
-    logdir = os.path.join(writer.get_logdir(), "vedo_data")
-    if not os.path.exists(logdir):
-        os.makedirs(logdir)
-
-    if len(densities[0]) < max_number_saved_points:
-        max_number_saved_points = len(densities[0])
-
-    densities_all = []
-    samples_all = []
-    warps_all = []
-    for image_index in range(len(densities)):
-        image_densities = densities[image_index]
-
-        densities_distribution = image_densities / image_densities.sum()
-
-        sampled_indices = np.random.choice(np.arange(len(image_densities)),
-                                           max_number_saved_points, p=densities_distribution)
-
-        densities_all.append(image_densities[sampled_indices])
-        samples_all.append(samples[image_index][sampled_indices])
-        if warps != None:
-            warps_all.append(warps[image_index][sampled_indices])
-
-    densities_all = np.stack(densities_all)
-    samples_all = np.stack(samples_all)
-    if warps != None:
-        warps_all = np.stack(warps_all)
-
-    np.savez(os.path.join(logdir, "densities_samples_warps" + str(step)), densities=densities_all, samples=samples_all,
-             warps=warps_all)
-    print('Finish saving data for vedo')
-
-def vedo_data_imagewise(writer: SummaryWriter, image_densities, image_samples, image_warps, epoch, image_idx, max_number_saved_points=10000):
-    print('Saving data for vedo...')
+def vedo_data(writer: SummaryWriter, image_densities, image_samples, image_warps, epoch, image_idx,
+              max_number_saved_points=10000):
     logdir = os.path.join(writer.get_logdir(), "vedo_data")
     if not os.path.exists(logdir):
         os.makedirs(logdir)
@@ -469,13 +433,13 @@ def vedo_data_imagewise(writer: SummaryWriter, image_densities, image_samples, i
         max_number_saved_points = len(image_densities)
     densities_distribution = image_densities / image_densities.sum()
     sampled_indices = np.random.choice(np.arange(len(image_densities)),
-                                           max_number_saved_points, p=densities_distribution)
+                                       max_number_saved_points, p=densities_distribution)
     image_densities = image_densities[sampled_indices]
     image_samples = image_samples[sampled_indices]
-    if image_warps != None:
+    if image_warps is not None:
         image_warps = image_warps[sampled_indices]
     else:
         image_warps = []
-    np.savez(os.path.join(logdir, "densities_samples_warps_epoch_{}_image_{}".format(epoch, image_idx)) + '.npz', densities=image_densities, samples=image_samples,
+    np.savez(os.path.join(logdir, "densities_samples_warps_epoch_{}_image_{}".format(epoch, image_idx)) + '.npz',
+             densities=image_densities, samples=image_samples,
              warps=image_warps)
-    print('Finish saving data for vedo')
