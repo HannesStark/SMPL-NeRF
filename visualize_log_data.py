@@ -67,16 +67,18 @@ def visualize_log_data():
             densities, samples, warps = densities_samples_warps['densities'], densities_samples_warps['samples'], \
                                         densities_samples_warps['warps']
 
-            max_density = np.max(densities[image_index])
+
+            max_density = np.max(densities)
             if max_density == 0:
                 print('Every density for image ', image_index,
                       ' is 0 so your images are probably white and this visualization has spheres of radius 0')
-            normalized_densities = densities[image_index] / max_density
+            normalized_densities = densities / max_density
 
             radii = normalized_densities * 0.1
-
+            print(samples.shape)
+            print(radii.shape)
             ats.append(image_index)
-            images.append(Spheres(samples[image_index], r=radii, c="lb", res=8))
+            images.append(Spheres(samples, r=radii, c="lb", res=8))
         except FileNotFoundError as err:
             print('Skipping the iteration with image index ', image_index, ' because the file for that image'
                                                                            'was not found: ', err)
