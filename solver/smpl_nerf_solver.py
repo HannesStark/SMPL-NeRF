@@ -144,8 +144,12 @@ class SmplNerfSolver(NerfSolver):
                         samples = np.concatenate(samples)
                         image_samples = samples[:h*w].reshape(-1, 3)
                         samples = [samples[h*w:]]
+                        warps = np.concatenate(warps)
+                        image_warps = warps[:h * w].reshape(-1, 3)
+                        warps = [samples[h * w:]]
+                        print(np.max(image_warps))
                         vedo_data(self.writer, image_densities, image_samples, 
-                                  image_warps=None, epoch=epoch + 1, 
+                                  image_warps=image_warps, epoch=epoch + 1,
                                   image_idx=image_counter)
                         image_counter += 1
             if len(val_loader) != 0:

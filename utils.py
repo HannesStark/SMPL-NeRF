@@ -432,14 +432,20 @@ def vedo_data(writer: SummaryWriter, image_densities, image_samples, image_warps
     if len(image_densities) < max_number_saved_points:
         max_number_saved_points = len(image_densities)
     densities_distribution = image_densities / image_densities.sum()
-    sampled_indices = np.random.choice(np.arange(len(image_densities)),
+    indices_densities = np.random.choice(np.arange(len(image_densities)),
                                        max_number_saved_points, p=densities_distribution)
-    image_densities = image_densities[sampled_indices]
-    image_samples = image_samples[sampled_indices]
+    image_densities = image_densities[indices_densities]
+    samples_densities = image_samples[indices_densities]
     if image_warps is not None:
-        image_warps = image_warps[sampled_indices]
+        warp_magnitude = np.linalg.norm(image_warps, axis=-1)
+        warp_distribution = warp_magnitude / warp_magnitude.sum()
+        indices_warps = np.random.choice(np.arange(len(image_warps)),
+                                             max_number_saved_points, p=warp_distribution)
+        image_warps = image_warps[indices_warps]
+        samples_warps = image_samples[indices_warps]
     else:
         image_warps = []
+        samples_warps = []
     np.savez(os.path.join(logdir, "densities_samples_warps_epoch_{}_image_{}".format(epoch, image_idx)) + '.npz',
-             densities=image_densities, samples=image_samples,
+             densities=image_densities, samples_density=samples_densities, samples_warp=samples_warps,
              warps=image_warps)
