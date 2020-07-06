@@ -200,6 +200,7 @@ def get_warp(canonical: trimesh.base.Trimesh, goal: trimesh.base.Trimesh,
     unique_goal_intersect_points = []
     unique_goal_intersect_face_indices = []
     unique_goal_intersect_ray_indices = []
+    depth = np.zeros((w*h))
     intersect_indices = np.arange(len(goal_intersections_points))
     for ray in np.unique(goal_intersections_ray_indices):
         ray_mask = goal_intersections_ray_indices == ray
@@ -210,7 +211,7 @@ def get_warp(canonical: trimesh.base.Trimesh, goal: trimesh.base.Trimesh,
         unique_goal_intersect_points.append(goal_intersections_points[closest_intersect_index])
         unique_goal_intersect_face_indices.append(goal_intersections_face_indices[closest_intersect_index])
         unique_goal_intersect_ray_indices.append(goal_intersections_ray_indices[closest_intersect_index])
-
+        depth[ray] = np.min(distances_camera)
     assert(len(unique_goal_intersect_points)==len(unique_goal_intersect_face_indices)==len(unique_goal_intersect_ray_indices))
     assert((np.unique(goal_intersections_ray_indices) == unique_goal_intersect_ray_indices).all())
     goal_intersections_points = np.array(unique_goal_intersect_points)
@@ -248,7 +249,7 @@ def get_warp(canonical: trimesh.base.Trimesh, goal: trimesh.base.Trimesh,
         primitive_mesh = pyrender.Mesh(primitive)
         scene.add(primitive_mesh)
         pyrender.Viewer(scene, use_raymond_lighting=True)
-    return warp_img
+    return warp_img, depth.reshape((h, w))
 
 
 def render_scene(mesh: pyrender.Mesh, camera_pose: np.array,
