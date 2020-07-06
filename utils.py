@@ -431,9 +431,12 @@ def vedo_data(writer: SummaryWriter, image_densities, image_samples, image_warps
         os.makedirs(logdir)
     if len(image_densities) < max_number_saved_points:
         max_number_saved_points = len(image_densities)
-    densities_distribution = image_densities / image_densities.sum()
-    indices_densities = np.random.choice(np.arange(len(image_densities)),
-                                       max_number_saved_points, p=densities_distribution)
+    if image_densities.sum() == 0:
+        indices_densities = np.arange(len(image_densities))
+    else:
+        densities_distribution = image_densities / image_densities.sum()
+        indices_densities = np.random.choice(np.arange(len(image_densities)),
+                                           max_number_saved_points, p=densities_distribution)
     image_densities = image_densities[indices_densities]
     samples_densities = image_samples[indices_densities]
     if image_warps is not None:
