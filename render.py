@@ -113,8 +113,8 @@ def get_smpl_vertices(betas, expression,
         uv_map_file_name = "textures/smpl_uv_map.npy"
     model = smplx.create(smpl_file_name, model_type='smpl')
     # set betas and expression to fixed values
-    betas = torch.tensor(betas)
-    expression = torch.tensor(expression)
+    betas = torch.tensor(betas).float()
+    expression = torch.tensor(expression).float()
     output = model(betas=betas, expression=expression,
                    return_verts=True, body_pose=body_pose)
     vertices = output.vertices.detach().cpu().numpy().squeeze()
