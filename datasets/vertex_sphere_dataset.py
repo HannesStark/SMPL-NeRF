@@ -87,14 +87,23 @@ class VertexSphereDataset(Dataset):
                 intersections = intersector.intersects_location([rays_translation.numpy()[ray_index]],
                                                                 [rays_direction.numpy()[ray_index]])
                 canonical_intersections_points = torch.from_numpy(intersections[0])  # (N_intersects, 3)
-                if args.number_coarse_samples == 1:
+                if args.number_coarse_samples <= 10:
                     if len(canonical_intersections_points) == 0:
-                        z_vals = torch.DoubleTensor([args.far])[0]  # [1]
+                        if args.number_coarse_samples == 1:
+                            z_vals = torch.DoubleTensor([args.far])[0]  # [1]
+                        else:
+                            z_vals = z_vals_simple
                     else:
                         distances_camera = torch.norm(canonical_intersections_points - rays_translation[ray_index],
                                                       dim=1)
-                        z_vals = torch.min(distances_camera)  # [1]
-                elif len(canonical_intersections_points) == 0 or args.coarse_samples_from_prior != 1:
+                        if args.number_coarse_samples == 1:
+                            z_vals = torch.min(distances_camera)  # [1]
+                        else:
+                            mean = torch.min(distances_camera)
+                            gauss = D.Normal(mean,
+                                             torch.ones_like(mean) * args.std_dev_coarse_sample_prior)
+                            z_vals, _ = torch.sort(gauss.sample((args.number_coarse_samples,)))
+                elif len(canonical_intersections_points) == 1 or args.coarse_samples_from_prior != 1:
                     z_vals = z_vals_simple
                 else:
                     mix = D.Categorical(torch.ones(len(canonical_intersections_points), ))
@@ -108,7 +117,6 @@ class VertexSphereDataset(Dataset):
                 z_vals_image = z_vals_image.view(-1, 1)
             rays_samples = rays_translation[:, None, :] + rays_direction[:, None, :] * z_vals_image[:, :,
                                                                                        None]  # [h*w, number_coarse_samples, 3]
-
             goal_smpl = torch.from_numpy(get_smpl_vertices(self.betas, self.expression, body_pose=goal_pose[None, :]))
 
             warps_of_image = []
@@ -149,7 +157,6 @@ class VertexSphereDataset(Dataset):
                     warp = warp * assignments[:, None]  # [h*w, 3]
                     warps_of_image.append(warp)
             warps_of_image = torch.stack(warps_of_image, -2).cpu()  # [h*w, number_samples, 3]
-            print(torch.max(warps_of_image))
             rays_samples = rays_samples.cpu()
 
             self.all_z_vals.append(z_vals_image)

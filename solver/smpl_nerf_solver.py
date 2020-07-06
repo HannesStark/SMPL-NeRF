@@ -122,9 +122,7 @@ class SmplNerfSolver(NerfSolver):
                 for j, element in enumerate(data):
                     data[j] = element.to(self.device)
                 rgb_truth = data[-1]
-
                 rgb, rgb_fine, warp, ray_samples, warped_samples, densities = self.pipeline(data)
-
                 loss, loss_coarse, loss_fine = self.smpl_nerf_loss(rgb, rgb_fine, rgb_truth, warp, densities,
                                                                    warped_samples)
                 val_loss += loss.item()
@@ -146,8 +144,7 @@ class SmplNerfSolver(NerfSolver):
                         samples = [samples[h*w:]]
                         warps = np.concatenate(warps)
                         image_warps = warps[:h * w].reshape(-1, 3)
-                        warps = [samples[h * w:]]
-                        print(np.max(image_warps))
+                        warps = [warps[h * w:]]
                         vedo_data(self.writer, image_densities, image_samples, 
                                   image_warps=image_warps, epoch=epoch + 1,
                                   image_idx=image_counter)
