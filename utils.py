@@ -438,9 +438,12 @@ def vedo_data(writer: SummaryWriter, image_densities, image_samples, image_warps
     samples_densities = image_samples[indices_densities]
     if image_warps is not None:
         warp_magnitude = np.linalg.norm(image_warps, axis=-1)
-        warp_distribution = warp_magnitude / warp_magnitude.sum()
-        indices_warps = np.random.choice(np.arange(len(image_warps)),
-                                             max_number_saved_points, p=warp_distribution)
+        if warp_magnitude.sum()==0:
+            indices_warps = np.arange(max_number_saved_points)
+        else:
+            warp_distribution = warp_magnitude / (warp_magnitude.sum())
+            indices_warps = np.random.choice(np.arange(len(image_warps)),
+                                                 max_number_saved_points, p=warp_distribution)
         image_warps = image_warps[indices_warps]
         samples_warps = image_samples[indices_warps]
     else:
