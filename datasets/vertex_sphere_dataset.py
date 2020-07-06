@@ -76,6 +76,7 @@ class VertexSphereDataset(Dataset):
             rays_translation = torch.from_numpy(np.copy(rays_translation)).view(-1,
                                                                                 3)  # copy because array not writable
             rays_direction = torch.from_numpy(rays_direction).view(-1, 3)
+            rays_direction = rays_direction / np.linalg.norm(rays_direction, axis=-1, keepdims=True)
             translation_direction_rgb_stack = torch.stack(
                 [rays_translation, rays_direction, image], -2)
 
@@ -96,6 +97,7 @@ class VertexSphereDataset(Dataset):
                     else:
                         distances_camera = torch.norm(canonical_intersections_points - rays_translation[ray_index],
                                                       dim=1)
+
                         if args.number_coarse_samples == 1:
                             z_vals = torch.min(distances_camera)  # [1]
                         else:
@@ -118,7 +120,6 @@ class VertexSphereDataset(Dataset):
             rays_samples = rays_translation[:, None, :] + rays_direction[:, None, :] * z_vals_image[:, :,
                                                                                        None]  # [h*w, number_coarse_samples, 3]
             goal_smpl = torch.from_numpy(get_smpl_vertices(self.betas, self.expression, body_pose=goal_pose[None, :]))
-
             warps_of_image = []
 
             rays_samples = rays_samples.to(device)
