@@ -425,7 +425,7 @@ def tensorboard_warps(writer: SummaryWriter, number_validation_images, samples,
 
 
 def vedo_data(writer: SummaryWriter, image_densities, image_samples, image_warps, epoch, image_idx,
-              max_number_saved_points=10000):
+              max_number_saved_points=1000):
     logdir = os.path.join(writer.get_logdir(), "vedo_data")
     if not os.path.exists(logdir):
         os.makedirs(logdir)
