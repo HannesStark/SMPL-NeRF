@@ -88,24 +88,24 @@ class VertexSphereDataset(Dataset):
                 intersections = intersector.intersects_location([rays_translation.numpy()[ray_index]],
                                                                 [rays_direction.numpy()[ray_index]])
                 canonical_intersections_points = torch.from_numpy(intersections[0])  # (N_intersects, 3)
-                if args.number_coarse_samples <= 10:
+                if args.number_coarse_samples == 1:
                     if len(canonical_intersections_points) == 0:
-                        if args.number_coarse_samples == 1:
-                            z_vals = torch.DoubleTensor([args.far])[0]  # [1]
-                        else:
-                            z_vals = z_vals_simple
+                        z_vals = torch.DoubleTensor([args.far])[0]  # [1]
                     else:
                         distances_camera = torch.norm(canonical_intersections_points - rays_translation[ray_index],
                                                       dim=1)
-
-                        if args.number_coarse_samples == 1:
-                            z_vals = torch.min(distances_camera)  # [1]
-                        else:
-                            mean = torch.min(distances_camera)
-                            gauss = D.Normal(mean,
-                                             torch.ones_like(mean) * args.std_dev_coarse_sample_prior)
-                            z_vals, _ = torch.sort(gauss.sample((args.number_coarse_samples,)))
-                elif len(canonical_intersections_points) == 1 or args.coarse_samples_from_prior != 1:
+                        z_vals = torch.min(distances_camera)  # [1]
+                elif args.coarse_samples_from_intersect == 1:
+                    if len(canonical_intersections_points) == 0:
+                        z_vals = z_vals_simple
+                    else:
+                        distances_camera = torch.norm(canonical_intersections_points - rays_translation[ray_index],
+                                                      dim=1)
+                        mean = torch.min(distances_camera)
+                        gauss = D.Normal(mean,
+                                         torch.ones_like(mean) * args.std_dev_coarse_sample_prior)
+                        z_vals, _ = torch.sort(gauss.sample((args.number_coarse_samples,)))
+                elif len(canonical_intersections_points) == 0 or args.coarse_samples_from_prior != 1:
                     z_vals = z_vals_simple
                 else:
                     mix = D.Categorical(torch.ones(len(canonical_intersections_points), ))
