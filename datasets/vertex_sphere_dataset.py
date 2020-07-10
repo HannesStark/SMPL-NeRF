@@ -149,7 +149,6 @@ class VertexSphereDataset(Dataset):
                     warp = warp * assignments[:, None]  # [h*w, 3]
                     warps_of_image.append(warp)
             warps_of_image = torch.stack(warps_of_image, -2).cpu()  # [h*w, number_samples, 3]
-            print(torch.max(warps_of_image))
             rays_samples = rays_samples.cpu()
 
             self.all_z_vals.append(z_vals_image)

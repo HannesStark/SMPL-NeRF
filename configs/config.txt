@@ -1,6 +1,6 @@
 experiment_name = append_to_nerf_with_many_images
 number_validation_images = 2
-model_type = vertex_sphere
+model_type = dummy_dynamic
 dataset_dir = data
 
 netdepth = 8
@@ -9,8 +9,8 @@ run_fine = 0
 netdepth_fine = 8
 
 log_iterations = 5
-batchsize = 1024
-batchsize_val = 256
+batchsize = 64
+batchsize_val = 32
 num_epochs = 3
 mesh_epochs = [1]
 skips = [4]

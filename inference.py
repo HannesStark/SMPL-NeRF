@@ -16,13 +16,13 @@ from models.append_to_nerf_pipeline import AppendToNerfPipeline
 
 from models.render_ray_net import RenderRayNet
 from models.warp_field_net import WarpFieldNet
-from models.smpl_pipeline import SmplPipeline
+from models.singe_sample_pipeline import SmplPipeline
 from models.smpl_nerf_pipeline import SmplNerfPipeline
 from models.nerf_pipeline import NerfPipeline
 
 from datasets.smpl_nerf_dataset import SmplNerfDataset
 from datasets.rays_from_images_dataset import RaysFromImagesDataset
-from datasets.smpl_dataset import SmplDataset
+from datasets.single_sample_dataset import SmplDataset
 from datasets.transforms import CoarseSampling, ToTensor, NormalizeRGB
 
 from utils import PositionalEncoder
