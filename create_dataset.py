@@ -8,6 +8,7 @@ import json
 from skimage.color import gray2rgb
 import configargparse
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 np.random.seed(0)
 
@@ -89,7 +90,7 @@ def save_split(save_dir, camera_transforms, indices, split,
             trimesh_canonical = get_smpl_mesh(return_pyrender=False)
             img, depth = render_scene(mesh_goal, camera_pose, get_pose_matrix(), camera_pose,
                                       height, width, camera_angle_x, return_depth=True)
-            warp = get_warp(trimesh_canonical, trimesh_goal, np.array(camera_pose), height, width, camera_angle_x)
+            warp, depth1 = get_warp(trimesh_canonical, trimesh_goal, np.array(camera_pose), height, width, camera_angle_x)
             np.save(os.path.join(directory, warp_names[i]), warp)
             np.save(os.path.join(directory, depth_names[i]), depth)
         save_render(img, os.path.join(directory, image_name))
