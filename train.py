@@ -153,7 +153,7 @@ def train():
         smpl_model = smplx.create(smpl_file_name, model_type='smpl')
         smpl_model.batchsize = args.batchsize
         smpl_estimator = DummySmplEstimatorModel(train_data.goal_poses, train_data.betas, train_data.expression)
-        print(smpl_estimator.parameters())
+        parameters = smpl_estimator.parameters()
         solver = DynamicSolver(model_fine, model_coarse, smpl_estimator, smpl_model, position_encoder,
                                direction_encoder, args)
         solver.train(train_loader, val_loader, train_data.h, train_data.w)

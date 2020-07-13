@@ -10,7 +10,7 @@ netdepth_fine = 8
 
 log_iterations = 5
 batchsize = 64
-batchsize_val = 32
+batchsize_val = 64
 num_epochs = 3
 mesh_epochs = [1]
 skips = [4]

@@ -93,52 +93,47 @@ for sample_index in tqdm(range(number_samples), desc='Samples'):
     distances = torch.norm(distances, dim=-1)  # [h*w, number_vertices]
     warp = canonical_smpl - goal_smpl  # [number_vertices, 3]
 
-    #attentions = distances  # [h*w, number_vertices]
-    #attentions = attentions - vertex_sphere_radius
-    #mask = F.relu(-attentions)
-    #attentions = torch.exp(attentions)
-    #attentions = 1 / attentions
-    #warp_differentiable = warp[None, :, :] * attentions[:, :, None] * mask[:, :, None]  # [h*w, number_vertices, 3]
-    #warp_differentiable = warp_differentiable.sum(dim=1)  # [h*w, 3]
-    #warp_differentiable = warp_differentiable  # [h*w, 3]
-    #warps_differentiable.append(warp_differentiable)
+
+    # attentions = distances  # [h*w, number_vertices]
+    # attentions = attentions - vertex_sphere_radius
+    # mask = F.relu(-attentions)
+    # attentions = torch.exp(attentions)
+    # attentions = 1 / attentions
+    # warp_differentiable = warp[None, :, :] * attentions[:, :, None] * mask[:, :, None]  # [h*w, number_vertices, 3]
+    # warp_differentiable = warp_differentiable.sum(dim=1)  # [h*w, 3]
+    # warp_differentiable = warp_differentiable  # [h*w, 3]
+    # warps_differentiable.append(warp_differentiable)
 
     def softmax(x):
-        exp = torch.exp(x)
-        return (exp-1) / exp.sum(-1, keepdim=True)
+        exp = torch.exp(x - torch.max(x))
+        return (exp - torch.exp(-torch.max(x))) / exp.sum(-1, keepdim=True)
+
 
     # subtract 1/number_vertices after the softmax
-    #attentions = distances  # [h*w, number_vertices]
-    #attentions = attentions - vertex_sphere_radius
-    #attentions = -attentions
-    #mask = F.relu(attentions)
-    #attentions = mask * attentions
-    #attentions = softmax(100000*attentions)
-    #attentions = attentions - 1/attentions.shape[-1]
-    #print(torch.max(attentions))
-    #print(torch.isnan(attentions).any())
-    #print(torch.min(attentions))
-    #warp_differentiable = warp[None, :, :] * attentions[:, :, None] # [h*w, number_vertices, 3]
-    #warp_differentiable = warp_differentiable.sum(dim=1)  # [h*w, 3]
-    #warp_differentiable = warp_differentiable  # [h*w, 3]
-    #warps_differentiable.append(warp_differentiable)
+    # attentions = distances  # [h*w, number_vertices]
+    # attentions = attentions - vertex_sphere_radius
+    # attentions = -attentions
+    # mask = F.relu(attentions)
+    # attentions = mask * attentions
+    # attentions = softmax(100000*attentions)
+    # attentions = attentions - 1/attentions.shape[-1]
+    # print(torch.max(attentions))
+    # print(torch.isnan(attentions).any())
+    # print(torch.min(attentions))
+    # warp_differentiable = warp[None, :, :] * attentions[:, :, None] # [h*w, number_vertices, 3]
+    # warp_differentiable = warp_differentiable.sum(dim=1)  # [h*w, 3]
+    # warp_differentiable = warp_differentiable  # [h*w, 3]
+    # warps_differentiable.append(warp_differentiable)
 
     attentions = distances  # [h*w, number_vertices]
     attentions = attentions - vertex_sphere_radius
     attentions = -attentions
     attentions = F.relu(attentions)
     attentions = softmax(10000 * attentions)
-    print(torch.max(attentions))
-    if torch.isnan(attentions).any():
-        raise Exception("nan encountered")
-    print(torch.min(attentions))
     warp_differentiable = warp[None, :, :] * attentions[:, :, None]  # [h*w, number_vertices, 3]
     warp_differentiable = warp_differentiable.sum(dim=1)  # [h*w, 3]
     warp_differentiable = warp_differentiable  # [h*w, 3]
     warps_differentiable.append(warp_differentiable)
-
-
-
 
     if warp_by_vertex_mean:
         assignments = distances  # [h*w, number_vertices]
@@ -227,5 +222,6 @@ vertices = output.vertices.detach().cpu().numpy().squeeze()
 faces = model.faces
 smpl_mesh = Mesh([vertices, faces], alpha=0.3)
 images = [[Arrows(samples, samples + warps, s=0.3), Spheres(samples, r=0.004, res=8, alpha=0.1), smpl_mesh],
-          [Arrows(samples, samples + warps_differentiable, s=0.3), Spheres(samples, r=0.004, res=8, alpha=0.1), smpl_mesh]]
+          [Arrows(samples, samples + warps_differentiable, s=0.3), Spheres(samples, r=0.004, res=8, alpha=0.1),
+           smpl_mesh]]
 show(images, at=[0, 1])

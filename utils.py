@@ -52,10 +52,9 @@ def get_rays(H: int, W: int, focal: float,
     rays_translation = np.broadcast_to(camera_transform[:3, -1], np.shape(rays_direction))
     return rays_translation, rays_direction
 
-#TODO make numerically stable
 def modified_softmax(x):
-    exp = torch.exp(x)
-    return (exp - 1) / exp.sum(-1, keepdim=True)
+    exp = torch.exp(x - torch.max(x))
+    return (exp - torch.exp(-torch.max(x))) / exp.sum(-1, keepdim=True)
 
 
 class GaussianMixture():
