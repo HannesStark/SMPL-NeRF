@@ -207,10 +207,11 @@ def inference_gif(run_dir, model_type, args, train_data, val_data, position_enco
         pipeline = AppendToNerfPipeline(model_coarse, model_fine, args, position_encoder, direction_encoder, human_pose_encoder)
 
     elif model_type == "smpl":
-        pipeline = SmplPipeline(model_coarse, args, position_encoder, direction_encoder)
+        pipeline = SmplPipeline(model_coarse, model_fine, args, position_encoder, direction_encoder)
 
     elif model_type == 'nerf':
-        pipeline = NerfPipeline(model_coarse, args, position_encoder, direction_encoder)
+        print(direction_encoder)
+        pipeline = NerfPipeline(model_coarse, model_fine, args, position_encoder, direction_encoder)
 
     # add inference for new vertex_sphere approach
     elif args.model_type == 'vertex_sphere':
@@ -227,14 +228,21 @@ def inference_gif(run_dir, model_type, args, train_data, val_data, position_enco
 
     # sort according to names in train, val directories
     split_indices = args_create_data.train_index + args_create_data.val_index
+
+    n_images = len(train_data.image_transform_map) + len(val_data.image_transform_map)
+
+    temp = np.concatenate(rgb_images, 0)
+    rgb_images = np.vsplit(temp, n_images)
+
     rgb_images = [image for _, image in sorted(zip(split_indices, rgb_images))]
 
-    rgb_images = np.concatenate(rgb_images, 0).reshape((len(train_data.image_transform_map) + len(val_data.image_transform_map), train_data.h, train_data.w, 3))
+    rgb_images = np.concatenate(rgb_images, 0).reshape((n_images, train_data.h, train_data.w, 3))
     rgb_images = np.clip(rgb_images, 0, 1) * 255
 
     rgb_images = rgb_images.astype(np.uint8)
 
     save_rerenders(rgb_images, run_dir, run_dir + "/animated")
+    print("Created Animation of the whole training distribution!")
     return rgb_images
 
 if __name__ == '__main__':
