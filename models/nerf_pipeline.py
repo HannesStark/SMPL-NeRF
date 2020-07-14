@@ -1,6 +1,6 @@
 import torch
 
-from models.smpl_pipeline import SmplPipeline
+from models.singe_sample_pipeline import SmplPipeline
 from utils import PositionalEncoder, raw2outputs, fine_sampling
 
 

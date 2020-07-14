@@ -1,45 +1,42 @@
 import torch
 import numpy as np
 
-from models.smpl_nerf_pipeline import SmplNerfPipeline
+from models.dynamic_pipeline import DynamicPipeline
 from solver.nerf_solver import NerfSolver
-from utils import PositionalEncoder, tensorboard_rerenders, tensorboard_warps, GaussianMixture, \
-    vedo_data, vedo_data
+from utils import PositionalEncoder, tensorboard_rerenders, vedo_data
 
 
-class SmplNerfSolver(NerfSolver):
+class DynamicSolver(NerfSolver):
     '''
-    Solver that runs with a network as warpfield where the network is supposed to estimate the correct warp for every
-    sample which is added to the sample and then the sample is passed to the NeRF.
+    Solver for the full pipeline with smpl estimator that produces an smpl that is used to calculate the warp
+    which is added to each sample that is then passed to the NeRF to get an output. The loss of the output is taken
+    and backpropagated to optimize the NeRF and the smpl estimator.
     '''
 
-    def __init__(self, model_coarse, model_fine, model_warp_field, positions_encoder: PositionalEncoder,
-                 directions_encoder: PositionalEncoder, human_pose_encoder: PositionalEncoder,
-                 canonical_smpl, args,
+    def __init__(self, model_coarse, model_fine, smpl_estimator, smpl_model, positions_encoder: PositionalEncoder,
+                 directions_encoder: PositionalEncoder, args,
                  optim=torch.optim.Adam, loss_func=torch.nn.MSELoss()):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.model_warp_field = model_warp_field.to(self.device)
-        self.human_pose_encoder = human_pose_encoder
-        self.canonical_mixture = GaussianMixture(canonical_smpl, args.gmm_std, self.device)
-        super(SmplNerfSolver, self).__init__(model_coarse, model_fine, positions_encoder, directions_encoder, args,
-                                             optim, loss_func)
+        self.smpl_estimator = smpl_estimator.to(self.device)
+        self.smpl_model = smpl_model.to(self.device)
+        super(DynamicSolver, self).__init__(model_coarse, model_fine, positions_encoder, directions_encoder, args,
+                                            optim, loss_func)
+        print(list(model_fine.parameters()))
+        print(list(self.smpl_estimator.parameters()))
         self.optim = optim(
-            list(model_coarse.parameters()) + list(model_fine.parameters()) + list(model_warp_field.parameters()),
+            list(model_coarse.parameters()) + list(model_fine.parameters()) + list(self.smpl_estimator.parameters()),
             **self.optim_args_merged)
 
     def init_pipeline(self):
-        return SmplNerfPipeline(self.model_coarse, self.model_fine, self.model_warp_field, self.args,
-                                self.positions_encoder,
-                                self.directions_encoder, self.human_pose_encoder)
+        return DynamicPipeline(self.model_coarse, self.model_fine, self.smpl_estimator, self.smpl_model,
+                               self.args,
+                               self.positions_encoder,
+                               self.directions_encoder)
 
-    def smpl_nerf_loss(self, rgb, rgb_fine, rgb_truth, warp, densities, ray_samples):
+    def loss(self, rgb, rgb_fine, rgb_truth, warp, densities, ray_samples):
         loss_coarse = self.loss_func(rgb, rgb_truth)
         loss_fine = self.loss_func(rgb_fine, rgb_truth)
         loss = loss_coarse + loss_fine
-        if self.args.use_gmm_loss and not self.args.restrict_gmm_loss:
-            loss_canonical_densities = self.loss_func(self.canonical_mixture.pdf(ray_samples), densities)
-            loss = loss_coarse + loss_fine + loss_canonical_densities
-        # loss += 0.5 * torch.mean(torch.norm(warp, p=1, dim=-1))
         return loss, loss_coarse, loss_fine
 
     def train(self, train_loader, val_loader, h: int, w: int):
@@ -63,6 +60,7 @@ class SmplNerfSolver(NerfSolver):
         for epoch in range(args.num_epochs):  # loop over the dataset multiple times
             self.model_coarse.train()
             self.model_fine.train()
+            self.smpl_estimator.train()
             train_loss = 0
             train_coarse_loss = 0
             train_fine_loss = 0
@@ -74,16 +72,22 @@ class SmplNerfSolver(NerfSolver):
                 rgb, rgb_fine, warp, ray_samples, warped_samples, densities = self.pipeline(data)
 
                 self.optim.zero_grad()
-                loss, loss_coarse, loss_fine, = self.smpl_nerf_loss(rgb, rgb_fine, rgb_truth,
-                                                                    warp, densities,
-                                                                    warped_samples)
+                loss, loss_coarse, loss_fine, = self.loss(rgb, rgb_fine, rgb_truth,
+                                                          warp, densities,
+                                                          warped_samples)
+
                 loss.backward()
+
+                print('beta: ', self.smpl_estimator.betas)
+                print('betagrad: ', self.smpl_estimator.betas.grad)
+
                 self.optim.step()
 
                 loss_item = loss.item()
                 if i % args.log_iterations == args.log_iterations - 1:
                     print('[Epoch %d, Iteration %5d/%5d] TRAIN loss: %.7f' %
                           (epoch + 1, i + 1, iter_per_epoch, loss_item))
+
                     if args.early_validation:
                         self.model_coarse.eval()
                         self.model_fine.eval()
@@ -95,11 +99,11 @@ class SmplNerfSolver(NerfSolver):
 
                             rgb, rgb_fine, warp, ray_samples, warped_samples, densities = self.pipeline(data)
 
-                            loss, loss_coarse, loss_fine, = self.smpl_nerf_loss(rgb, rgb_fine,
-                                                                                rgb_truth,
-                                                                                warp,
-                                                                                densities,
-                                                                                warped_samples)
+                            loss, loss_coarse, loss_fine, = self.loss(rgb, rgb_fine,
+                                                                      rgb_truth,
+                                                                      warp,
+                                                                      densities,
+                                                                      warped_samples)
                             val_loss += loss.item()
                         self.writer.add_scalars('Loss curve every nth iteration', {'train loss': loss_item,
                                                                                    'val loss': val_loss / len(
@@ -115,6 +119,7 @@ class SmplNerfSolver(NerfSolver):
 
             self.model_coarse.eval()
             self.model_fine.eval()
+            self.smpl_estimator.eval()
             val_loss = 0
             rerender_images = []
             ground_truth_images = []
@@ -130,8 +135,8 @@ class SmplNerfSolver(NerfSolver):
 
                 rgb, rgb_fine, warp, ray_samples, warped_samples, densities = self.pipeline(data)
 
-                loss, loss_coarse, loss_fine = self.smpl_nerf_loss(rgb, rgb_fine, rgb_truth, warp, densities,
-                                                                   warped_samples)
+                loss, loss_coarse, loss_fine = self.loss(rgb, rgb_fine, rgb_truth, warp, densities,
+                                                         warped_samples)
                 val_loss += loss.item()
 
                 ground_truth_images.append(rgb_truth.detach().cpu().numpy())
@@ -139,7 +144,7 @@ class SmplNerfSolver(NerfSolver):
                 samples.append(ray_samples.detach().cpu().numpy())
                 warps.append(warp.detach().cpu().numpy())
                 densities_list.append(densities.detach().cpu().numpy())
-                warp_magnitude = np.linalg.norm(warp.cpu(), axis=-1)  # [batchsize, number_samples]
+                warp_magnitude = np.linalg.norm(warp.detach().cpu(), axis=-1)  # [batchsize, number_samples]
                 ray_warp_magnitudes.append(warp_magnitude.mean(axis=1))  # mean over the samples => [batchsize]
                 if np.concatenate(densities_list).shape[0] >= (h * w):
                     while np.concatenate(densities_list).shape[0] >= (h * w):
@@ -152,7 +157,7 @@ class SmplNerfSolver(NerfSolver):
                         warps = np.concatenate(warps)
                         image_warps = warps[:h * w].reshape(-1, 3)
                         warps = [warps[h * w:]]
-                        vedo_data(self.writer, image_densities, image_samples, 
+                        vedo_data(self.writer, image_densities, image_samples,
                                   image_warps=image_warps, epoch=epoch + 1,
                                   image_idx=image_counter)
                         image_counter += 1

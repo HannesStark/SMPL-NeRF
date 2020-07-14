@@ -1,6 +1,6 @@
 import torch
 
-from models.smpl_pipeline import SmplPipeline
+from models.singe_sample_pipeline import SmplPipeline
 from solver.nerf_solver import NerfSolver
 from utils import PositionalEncoder
 
