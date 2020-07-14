@@ -8,6 +8,7 @@ class SmplPipeline(nn.Module):
     def __init__(self, model_coarse, args, position_encoder: PositionalEncoder,
                  direction_encoder: PositionalEncoder):
         super(SmplPipeline, self).__init__()
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.args = args
         self.model_coarse = model_coarse
         self.position_encoder = position_encoder

@@ -10,7 +10,7 @@ def config_parser():
     parser.add_argument('--config', is_config_file=True, default="configs/config.txt", help='config file path')
     parser.add_argument("--experiment_name", type=str, default='default', help='experiment name')
     parser.add_argument('--model_type', default="nerf", type=str,
-                        help='choose model type for model [smpl_nerf, nerf, append_to_nerf, smpl, warp, vertex_sphere, smpl_estimator, original_nerf]')
+                        help='choose model type for model [smpl_nerf, nerf, append_to_nerf, smpl, warp, vertex_sphere, smpl_estimator, original_nerf, dynamic]')
     parser.add_argument("--dataset_dir", type=str, default='data', help='directory with specific dataset structure')
     parser.add_argument("--number_validation_images", type=int, default=1,
                         help='number of images to take from the validation images directory and use to render validation images')
@@ -33,14 +33,20 @@ def config_parser():
     parser.add_argument("--use_gmm_loss", default=0, type=int,
                         help='additional gaussian mixture loss')
     parser.add_argument("--vertex_sphere_radius", type=float, default=0.01,
-                        help='the radius around the smpl vertices which the samples are assigned to and warped like the vertex. Is only used for model_type true_warp')
+                        help='the radius around the smpl vertices which the samples are assigned to and warped like the vertex. Is only used for model_type vertex_sphere')
     parser.add_argument("--warp_by_vertex_mean", type=int, default=0,
                         help='If this is on: A sample will be warped a according to the mean of all vertices in which spheres it is instead of only according to the closest vertex in which sphere it is')
 
     parser.add_argument("--coarse_samples_from_prior", type=int, default=0,
                         help='If this is on: For the rays that intersect the goal smpl the standard coarse samples are replaced by samples from a gaussian mixture with the intersections as the mean')
+    parser.add_argument("--coarse_samples_from_intersect", type=int, default=0,
+                        help='If this is on: For the rays that intersect the goal smpl the standard coarse samples are replaced by samples from a gaussian with the closest intersection as the mean')
     parser.add_argument("--std_dev_coarse_sample_prior", type=float, default=0.03,
                         help='the standard deviation for the option coarse_samples_from_prior')
+
+    parser.add_argument("--warp_radius", type=float, default=0.01, help='radius around smpl vertices where the vertex can impact the warp of a sample. Used with model_type=dynamic')
+    parser.add_argument("--warp_temperature", type=float, default=10000,
+                        help='temperature parameter that is multiplied with input of modified softmax for calculating the attention scores that tell us according to which vertex of the smpl we warp. Used with model_type=dynamic')
 
 
 

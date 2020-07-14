@@ -62,7 +62,7 @@ class VertexSphereDataset(Dataset):
         self.rays = []
         self.all_warps = []
         self.all_z_vals = []
-        for i, image_path in tqdm(enumerate(image_paths), desc='Images', leave=False):
+        for i, image_path in enumerate(tqdm(image_paths, desc='Images', leave=False)):
             camera_transform = np.array(image_transform_map[os.path.basename(image_path)])
             goal_pose = torch.tensor(image_pose_map[os.path.basename(image_path)])
 
@@ -76,6 +76,7 @@ class VertexSphereDataset(Dataset):
             rays_translation = torch.from_numpy(np.copy(rays_translation)).view(-1,
                                                                                 3)  # copy because array not writable
             rays_direction = torch.from_numpy(rays_direction).view(-1, 3)
+            rays_direction = rays_direction / np.linalg.norm(rays_direction, axis=-1, keepdims=True)
             translation_direction_rgb_stack = torch.stack(
                 [rays_translation, rays_direction, image], -2)
 
@@ -89,10 +90,21 @@ class VertexSphereDataset(Dataset):
                 canonical_intersections_points = torch.from_numpy(intersections[0])  # (N_intersects, 3)
                 if args.number_coarse_samples == 1:
                     if len(canonical_intersections_points) == 0:
-                        z_vals = torch.DoubleTensor([args.far])[0] # [1]
+                        z_vals = torch.DoubleTensor([args.far])[0]  # [1]
                     else:
-                        distances_camera = torch.norm(canonical_intersections_points-rays_translation[ray_index], dim=1)
-                        z_vals = torch.min(distances_camera) # [1]
+                        distances_camera = torch.norm(canonical_intersections_points - rays_translation[ray_index],
+                                                      dim=1)
+                        z_vals = torch.min(distances_camera)  # [1]
+                elif args.coarse_samples_from_intersect == 1:
+                    if len(canonical_intersections_points) == 0:
+                        z_vals = z_vals_simple
+                    else:
+                        distances_camera = torch.norm(canonical_intersections_points - rays_translation[ray_index],
+                                                      dim=1)
+                        mean = torch.min(distances_camera)
+                        gauss = D.Normal(mean,
+                                         torch.ones_like(mean) * args.std_dev_coarse_sample_prior)
+                        z_vals, _ = torch.sort(gauss.sample((args.number_coarse_samples,)))
                 elif len(canonical_intersections_points) == 0 or args.coarse_samples_from_prior != 1:
                     z_vals = z_vals_simple
                 else:
@@ -107,9 +119,7 @@ class VertexSphereDataset(Dataset):
                 z_vals_image = z_vals_image.view(-1, 1)
             rays_samples = rays_translation[:, None, :] + rays_direction[:, None, :] * z_vals_image[:, :,
                                                                                        None]  # [h*w, number_coarse_samples, 3]
-
             goal_smpl = torch.from_numpy(get_smpl_vertices(self.betas, self.expression, body_pose=goal_pose[None, :]))
-
             warps_of_image = []
 
             rays_samples = rays_samples.to(device)
