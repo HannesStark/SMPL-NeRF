@@ -72,6 +72,73 @@ def get_smpl_mesh(smpl_file_name: str = None, texture_file_name: str = None,
         return mesh, betas, expression
     return mesh
 
+def get_smpl_mesh_distorted(smpl_file_name: str = None, texture_file_name: str = None,
+                  uv_map_file_name: str = None, body_pose: torch.Tensor = None,
+                  return_betas_exps=False, return_pyrender=True, var=None, mean=None, beta=None) -> pyrender.Mesh:
+    """
+    Load SMPL model, texture file and uv-map.
+    Set arm angles and convert to mesh.
+
+    Parameters
+    ----------
+    smpl_file_name : str
+        file name of smpl model (.pkl).
+    texture_file_name : str
+        file name of texture for smpl (.jpg).
+    uv_map_file_name : str
+        file name of uv-map for smpl (.npy).
+    right_arm_angle : float, optional
+        desired right arm angle in radians. The default is 0..
+    left_arm_angle : float, optional
+        desired left arm angle in radians. The default is 0.
+    body_pose : torch.Tensor[1, 69]
+        Body poses for SMPL
+
+    Returns
+    -------
+    mesh : pyrender.Mesh
+        SMPL mesh with texture and desired body pose.
+
+    """
+    if smpl_file_name is None:
+        smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
+    if texture_file_name is None:
+        texture_file_name = "textures/texture.jpg"
+    if uv_map_file_name is None:
+        uv_map_file_name = "textures/smpl_uv_map.npy"
+    model = smplx.create(smpl_file_name, model_type='smpl')
+    # set betas and expression to fixed values
+    betas = torch.tensor([[-0.3596, -1.0232, -1.7584, -2.0465, 0.3387,
+                           -0.8562, 0.8869, 0.5013, 0.5338, -0.0210]])
+    expression = torch.tensor([[2.7228, -1.8139, 0.6270, -0.5565, 0.3251,
+                                0.5643, -1.2158, 1.4149, 0.4050, 0.6516]])
+
+    if var is not None:
+        betas += (var**0.5)*torch.randn(10)
+        # alternative: betas += (var**0.5)*torch.randn(10)
+    if mean is not None:
+        betas[0] + mean
+
+    if beta is not None:
+        betas[0] = beta
+
+    output = model(betas=betas, expression=expression,
+                   return_verts=True, body_pose=body_pose)
+    vertices = output.vertices.detach().cpu().numpy().squeeze()
+    with open(texture_file_name, 'rb') as file:
+        texture = Image.open(BytesIO(file.read()))
+    uv = np.load(uv_map_file_name)
+    smpl_mesh = trimesh.Trimesh(vertices, model.faces,
+                                visual=trimesh.visual.TextureVisuals(uv=uv, image=texture),
+                                process=False)
+    mesh = pyrender.Mesh.from_trimesh(smpl_mesh)
+    if not return_pyrender:
+        mesh = smpl_mesh
+    if return_betas_exps:
+        return mesh, betas, expression
+    return mesh
+
+
 def get_smpl_vertices(betas, expression, 
                   smpl_file_name: str = None, texture_file_name: str = None,
                   uv_map_file_name: str = None, body_pose: torch.Tensor = None,
