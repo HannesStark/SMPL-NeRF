@@ -78,15 +78,11 @@ class DynamicSolver(NerfSolver):
 
                 loss.backward()
 
-                print('beta: ', self.smpl_estimator.betas)
-                print('betagrad: ', self.smpl_estimator.betas.grad)
 
                 self.optim.step()
 
                 loss_item = loss.item()
                 if i % args.log_iterations == args.log_iterations - 1:
-                    print('[Epoch %d, Iteration %5d/%5d] TRAIN loss: %.7f' %
-                          (epoch + 1, i + 1, iter_per_epoch, loss_item))
 
                     if args.early_validation:
                         self.model_coarse.eval()
