@@ -54,8 +54,15 @@ def get_rays(H: int, W: int, focal: float,
 
 def modified_softmax(x):
     exp = torch.exp(x - torch.max(x))
+    exp.register_hook(lambda x: print_max('in', x))
     return (exp - torch.exp(-torch.max(x))) / exp.sum(-1, keepdim=True)
 
+def print_max(string, x):
+    print(string,' max ', torch.max(x))
+    print(string, ' min ', torch.min(x))
+
+def print_number_nans(string, x):
+    print(string, ' number nans: ', torch.isnan(x.view(-1)).sum().item())
 
 class GaussianMixture():
     def __init__(self, means: np.ndarray, std, device):
