@@ -48,6 +48,8 @@ import imageio
 from kaolin.graphics import NeuralMeshRenderer as Renderer
 from kaolin.graphics.nmr.util import get_points_from_angles
 from kaolin.rep import TriangleMesh
+
+from models.dummy_smpl_estimator_model import DummySmplEstimatorModel
 from util_nmr import normalize_vertices
 
 import smplx
@@ -89,74 +91,77 @@ def main():
     texture_file_name = "textures/texture.jpg"
     with open(texture_file_name, 'rb') as file:
         texture = Image.open(BytesIO(file.read()))
-    
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
     model = smplx.create(smpl_file_name, model_type='smpl')
     
     
     betas = torch.tensor([[-0.3596, -1.0232, -1.7584, -2.0465, 0.3387,
-                           -0.8562, 0.8869, 0.5013, 0.5338, -0.0210]])
+                           -0.8562, 0.8869, 0.5013, 0.5338, -0.0210]]).to(device)
     expression = torch.tensor([[2.7228, -1.8139, 0.6270, -0.5565, 0.3251,
-                                0.5643, -1.2158, 1.4149, 0.4050, 0.6516]])
-    goal_pose = torch.zeros(69).view(1, -1)
+                                0.5643, -1.2158, 1.4149, 0.4050, 0.6516]]).to(device)
+    goal_pose = torch.zeros(69).view(1, -1).to(device)
     goal_pose[0, 38] = np.deg2rad(30)
     goal_pose[0, 41] = np.deg2rad(30)
-    
-    vertices_goal = model(betas=betas, expression=expression,
-                   return_verts=True, body_pose=goal_pose).vertices[0]
-    vertices_canonical = model(betas=betas, expression=expression,
-                   return_verts=True, body_pose=None).vertices[0]
-    output = model(betas=betas, expression=expression,
-                       return_verts=True, body_pose=goal_pose)
-    vertices = output.vertices[0]
-    faces = torch.Tensor(model.faces*1.0)
-    print(vertices.shape)
-    print(faces.shape)
-    mesh = TriangleMesh.from_tensors(vertices, faces)
-    #mesh = TriangleMesh.from_obj(args.mesh)
-    mesh.cuda()
+
+    smpl_model = DummySmplEstimatorModel(goal_pose, expression, betas)
+    smpl_model = smpl_model.to(device)
+
+    canonical_output = model(betas=betas, expression=expression,
+                               return_verts=True, body_pose=None)
+    faces = torch.tensor(canonical_output.faces * 1.0).to(device)
+    mesh = TriangleMesh.from_tensors(canonical_output.vertices, faces)
+    # mesh = TriangleMesh.from_obj(args.mesh)
     # Normalize into unit cube, and expand such that batch size = 1
     vertices = normalize_vertices(mesh.vertices).unsqueeze(0)
     faces = mesh.faces.unsqueeze(0)
-    
-    ###########################
-    # Generate texture (NMR format)
-    ###########################
 
     textures = torch.ones(
         1, faces.shape[1], args.texture_size, args.texture_size, args.texture_size,
         3, dtype=torch.float32,
         device='cuda'
     )
-    print(textures.shape)
-
-    ###########################
-    # Render
-    ###########################
-
     renderer = Renderer(camera_mode='look_at')
-
-    loop = tqdm.tqdm(range(0, 360, 4))
-    loop.set_description('Drawing')
-
-    os.makedirs(args.output_path, exist_ok=True)
     azimuth = 180
     renderer.eye = get_points_from_angles(
-            args.camera_distance, args.elevation, azimuth)
+        args.camera_distance, args.elevation, azimuth)
     images, _, _ = renderer(vertices, faces, textures)
-    image = images.detach()[0].permute(1, 2, 0).cpu().numpy()  # [image_size, image_size, RGB]
-    imageio.imwrite(os.path.join(
-        args.output_path, 'example1.png'), (255 * image).astype(np.uint8))
-    
-    """for azimuth in loop:
+    true_image = images[0].permute(1, 2, 0)
+
+    for i in range(10):
+        output = model(betas=smpl_model.betas, expression=smpl_model.expression,
+                       return_verts=True, body_pose=smpl_model.goal_pose)
+
+        vertices_goal = output.vertices[0]
+
+        mesh = TriangleMesh.from_tensors(vertices_goal, faces)
+        #mesh = TriangleMesh.from_obj(args.mesh)
+
+        # Normalize into unit cube, and expand such that batch size = 1
+        vertices = normalize_vertices(mesh.vertices).unsqueeze(0)
+        faces = mesh.faces.unsqueeze(0)
+
+        renderer = Renderer(camera_mode='look_at')
+
+        loop = tqdm.tqdm(range(0, 360, 4))
+        loop.set_description('Drawing')
+
+        os.makedirs(args.output_path, exist_ok=True)
+        azimuth = 180
         renderer.eye = get_points_from_angles(
-            args.camera_distance, args.elevation, azimuth)
-
+                args.camera_distance, args.elevation, azimuth)
         images, _, _ = renderer(vertices, faces, textures)
+        image = images[0]
+        loss = (image.permute(1, 2, 0)-true_image).sum()
+        loss.backward()
+        with torch.no_grad():
+            grad = smpl_model.goal_poses.grad
+            print('grads of poses ', grad)
+            print('armangle grad ', grad[0, 38],' armagnle2 grad ', grad[0, 41])
+            print('armangle', smpl_model.goal_poses[0, 38], ' armagnle2 ', smpl_model.goal_poses[0, 41])
+            smpl_model.goal_poses -= 1e-4 * grad
+            smpl_model.goal_poses.grad.zero_()
 
-        image = images.detach()[0].permute(1, 2, 0).cpu().numpy()  # [image_size, image_size, RGB]
-        writer.append_data((255 * image).astype(np.uint8))
-
-    writer.close()"""
 
 
 if __name__ == '__main__':

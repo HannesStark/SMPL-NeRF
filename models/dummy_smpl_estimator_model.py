@@ -14,9 +14,9 @@ class DummySmplEstimatorModel(nn.Module):
 
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-        self.expression = torch.nn.Parameter(expression.data, requires_grad=True)  # [1, 10]
-        self.betas = torch.nn.Parameter(betas.data, requires_grad=True)  # [1, 10]
-        self.goal_poses = torch.nn.Parameter(goal_poses.data, requires_grad=False)  # [number_images*h*w, 69]
+        self.expression = torch.nn.Parameter(expression.data, requires_grad=False)  # [1, 10]
+        self.betas = torch.nn.Parameter(betas.data, requires_grad=False)  # [1, 10]
+        self.goal_poses = torch.nn.Parameter(goal_poses.data, requires_grad=True)  # [number_images*h*w, 69]
 
 
     def forward(self, x):
