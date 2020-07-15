@@ -466,3 +466,9 @@ def vedo_data(writer: SummaryWriter, image_densities, image_samples, image_warps
     np.savez(os.path.join(logdir, "densities_samples_warps_epoch_{}_image_{}".format(epoch, image_idx)) + '.npz',
              densities=image_densities, samples_density=samples_densities, samples_warp=samples_warps,
              warps=image_warps)
+
+def mse2psnr(mse):
+    # For numerical stability, avoid a zero mse loss.
+    if mse == 0:
+        mse = 1e-5
+    return -10.0 * np.log10(mse)
