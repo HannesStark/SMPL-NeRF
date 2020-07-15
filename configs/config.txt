@@ -20,4 +20,4 @@ coarse_samples_from_prior=0
 vertex_sphere_radius=0.01
 white_background = 1
 sigma_noise_std = 1
-lrate = 4e-5
+lrate = 4e-6
