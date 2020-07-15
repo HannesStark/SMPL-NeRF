@@ -9,6 +9,7 @@ import torch
 from PIL import Image
 from io import BytesIO
 import tqdm
+import cv2
 
 
 mesh_canonical = get_smpl_mesh()
@@ -21,6 +22,12 @@ camera_angle_x = np.pi/3
 camera_pose = get_sphere_pose(0, 0, 2.4)
 img_canonical = render_scene(mesh_canonical, camera_pose, get_pose_matrix(), camera_pose,
                                height, width, camera_angle_x)/255.0
+#plt.imshow(img_canonical)
+
+blur = cv2.GaussianBlur(img_canonical,(5,5), 0)
+plt.imshow(blur)
+plt.show()
+
 num_pixels = img_canonical.reshape((-1)).shape[0]
 
 photo_l1_losses = []
@@ -94,35 +101,43 @@ plt.show()
 
 ###### vary smpl parameter by adding Gaussian Noise on all SMPL Parameter #######
 
-variances = np.linspace(0, 2, 100)
+variances = np.linspace(0, 2, 50)
 
 photo_l1_losses = []
 photo_l2_losses = []
 photo_huber_losses = []
-
-for var in tqdm(variances):
-
+counter = 0
+for var in variances:
+    counter +=1
+    print(counter)
     temp_l1 = []
     temp_l2 = []
     temp_lH = []
     for i in range(100):
-
         mesh_goal = get_smpl_mesh_distorted(var=var)
         img_goal = render_scene(mesh_goal, camera_pose, get_pose_matrix(), camera_pose,
                                    height, width, camera_angle_x)/255.0
         #plt.imshow(img_goal)
         photo_loss_1 = 1/num_pixels * np.sum(np.abs(img_canonical - img_goal))
-        photo_loss_2 = 1/num_pixels * np.linalg.norm(img_canonical - img_goal)
-        photo_loss_huber = 1/num_pixels * np.sum(sc.special.huber(1, img_canonical - img_goal))
+        #photo_loss_2 = 1/num_pixels * np.linalg.norm(img_canonical - img_goal)
+        #photo_loss_huber = 1/num_pixels * np.sum(sc.special.huber(1, img_canonical - img_goal))
 
         temp_l1.append(photo_loss_1)
-        temp_l2.append(photo_loss_2)
-        temp_lH.append(photo_loss_2)
+        #temp_l2.append(photo_loss_2)
+        #temp_lH.append(photo_loss_2)
 
     photo_l1_losses.append(np.mean(temp_l1))
-    photo_l2_losses.append(np.mean(temp_l2))
-    photo_huber_losses.append(np.mean(temp_lH))
+    #photo_l2_losses.append(np.mean(temp_l2))
+    #photo_huber_losses.append(np.mean(temp_lH))
 
+print("Ready for plotting!")
+
+
+plt.plot(variances, photo_l1_losses)
+plt.title("Varying variance of Gaussian Noise: L1")
+plt.show()
+
+"""
 fig, axs = plt.subplots(1, 3)
 axs[0].plot(variances, photo_l1_losses)
 axs[0].set_title("L1")
@@ -133,7 +148,7 @@ axs[2].set_title("Huber Loss")
 fig.suptitle('Varying variance of Gaussian Noise')
 plt.show()
 
-def printLosses(x, l1, l2, l3):
+def printLosses(x, l1, l2, l3, title):
     fig, axs = plt.subplots(1, 3)
     axs[0].plot(x, l1)
     axs[0].set_title("L1")
@@ -141,9 +156,10 @@ def printLosses(x, l1, l2, l3):
     axs[1].set_title("L2")
     axs[2].plot(x, l3)
     axs[2].set_title("Huber Loss")
-    fig.suptitle('Varying variance of Gaussian Noise')
+    fig.suptitle(title)
     plt.show()
 
+"""
 
 
 
