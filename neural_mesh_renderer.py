@@ -104,7 +104,7 @@ def main():
     canonical_pose1 = torch.zeros(38).view(1, -1).to(device)
     canonical_pose2 = torch.zeros(2).view(1, -1).to(device)
     canonical_pose3 = torch.zeros(27).view(1, -1).to(device)
-    arm_angle_l = Variable(torch.tensor([np.deg2rad(30)]).float().view(1, -1).to(device), requires_grad=True)
+    arm_angle_l = Variable(torch.tensor([-np.deg2rad(30)]).float().view(1, -1).to(device), requires_grad=True)
     arm_angle_r = Variable(torch.tensor([np.deg2rad(30)]).float().view(1, -1).to(device), requires_grad=True)
 
 
@@ -144,7 +144,7 @@ def main():
     true_image = true_image.detach()
 
     # optim = torch.optim.Adam(list(perturbed_pose), lr=1e-2)
-    optim = torch.optim.Adam([arm_angle_l, arm_angle_r], lr=5e-3)
+    optim = torch.optim.Adam([arm_angle_l, arm_angle_r], lr=1e-2)
     results = []
     imageio.imwrite("results/" + experiment_name + "_true.png", (255 * true_image.cpu().numpy()).astype(np.uint8))
     for i in range(200):
