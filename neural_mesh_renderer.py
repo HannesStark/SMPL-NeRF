@@ -147,7 +147,7 @@ def main():
     optim = torch.optim.Adam([arm_angle_l, arm_angle_r], lr=1e-2)
     results = []
     imageio.imwrite("results/" + experiment_name + "_true.png", (255 * true_image.cpu().numpy()).astype(np.uint8))
-    for i in range(1000):
+    for i in range(200):
         optim.zero_grad()
         perturbed_pose = torch.cat([canonical_pose1, arm_angle_l, canonical_pose2, arm_angle_r, canonical_pose3], dim=-1)
         output = model(betas=betas, expression=expression,
