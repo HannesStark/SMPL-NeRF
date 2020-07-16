@@ -102,7 +102,7 @@ def main():
                            -0.8562, 0.8869, 0.5013, 0.5338, -0.0210]]).to(device)
     expression = torch.tensor([[2.7228, -1.8139, 0.6270, -0.5565, 0.3251,
                                 0.5643, -1.2158, 1.4149, 0.4050, 0.6516]]).to(device)
-    pose_init = torch.zeros(69).view(1, -1)
+    pose_init = torch.zeros(69).view(1, -1).to(device)
     pose_init[0, 38] = -np.deg2rad(45)
     pose_init[0, 41] = np.deg2rad(45)
     pose_init[0, 14] = np.deg2rad(45)
@@ -110,7 +110,7 @@ def main():
     pose_init[0, 63] = np.deg2rad(45)
     pose_init[0, 1] = np.deg2rad(45)
     pose_init[0, 30] = np.deg2rad(45)
-    perturbed_pose = Variable(pose_init.to(device), requires_grad=True)
+    perturbed_pose = Variable(pose_init, requires_grad=True)
     canonical_pose1 = torch.zeros(38).view(1, -1).to(device)
     canonical_pose2 = torch.zeros(2).view(1, -1).to(device)
     canonical_pose3 = torch.zeros(27).view(1, -1).to(device)
