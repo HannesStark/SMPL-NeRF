@@ -48,6 +48,7 @@ from torch.autograd import Variable
 
 from matplotlib import pyplot as plt
 import matplotlib
+
 matplotlib.use('Agg')
 from kaolin.graphics import NeuralMeshRenderer as Renderer
 from kaolin.graphics.nmr.util import get_points_from_angles
@@ -86,7 +87,7 @@ def main():
     args = parse_arguments()
 
     experiment_name = 'lots_of_changes'
-    arm_only=False
+    arm_only = True
     torch.autograd.set_detect_anomaly(True)
     smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
     uv_map_file_name = "textures/smpl_uv_map.npy"
@@ -116,8 +117,6 @@ def main():
     canonical_pose3 = torch.zeros(27).view(1, -1).to(device)
     arm_angle_l = Variable(torch.tensor([-np.deg2rad(60)]).float().view(1, -1).to(device), requires_grad=True)
     arm_angle_r = Variable(torch.tensor([np.deg2rad(60)]).float().view(1, -1).to(device), requires_grad=True)
-
-
 
     canonical_output = model(betas=betas, expression=expression,
                              return_verts=True, body_pose=None)
@@ -153,7 +152,6 @@ def main():
     true_image = images[0].permute(1, 2, 0)
     true_image = true_image.detach()
 
-
     if arm_only:
         optim = torch.optim.Adam([arm_angle_l, arm_angle_r], lr=1e-2)
     else:
@@ -165,7 +163,8 @@ def main():
     for i in range(200):
         optim.zero_grad()
         if arm_only:
-            perturbed_pose = torch.cat([canonical_pose1, arm_angle_l, canonical_pose2, arm_angle_r, canonical_pose3], dim=-1)
+            perturbed_pose = torch.cat([canonical_pose1, arm_angle_l, canonical_pose2, arm_angle_r, canonical_pose3],
+                                       dim=-1)
         output = model(betas=betas, expression=expression,
                        return_verts=True, body_pose=perturbed_pose)
 
@@ -202,7 +201,6 @@ def main():
     plt.plot(arm_parameters_l)
     plt.title("left arm angle")
     plt.savefig("results/" + experiment_name + "_left.gif")
-
 
 
 if __name__ == '__main__':
