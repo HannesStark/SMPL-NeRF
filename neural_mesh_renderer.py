@@ -50,7 +50,7 @@ from kaolin.graphics.nmr.util import get_points_from_angles
 from kaolin.rep import TriangleMesh
 
 from models.dummy_smpl_estimator_model import DummySmplEstimatorModel
-from util_nmr import normalize_vertices
+from util_nmr import normalize_vertices, pre_normalize_vertices
 
 import smplx
 from PIL import Image
@@ -85,6 +85,7 @@ def main():
     ###########################
     # Load mesh
     ###########################
+    torch.autograd.set_detect_anomaly(True)
     smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
     uv_map_file_name = "textures/smpl_uv_map.npy"
     uv = np.load(uv_map_file_name)
@@ -94,7 +95,7 @@ def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     model = smplx.create(smpl_file_name, model_type='smpl')
-    
+    model = model.to(device)
     
     betas = torch.tensor([[-0.3596, -1.0232, -1.7584, -2.0465, 0.3387,
                            -0.8562, 0.8869, 0.5013, 0.5338, -0.0210]]).to(device)
@@ -109,11 +110,27 @@ def main():
 
     canonical_output = model(betas=betas, expression=expression,
                                return_verts=True, body_pose=None)
-    faces = torch.tensor(canonical_output.faces * 1.0).to(device)
-    mesh = TriangleMesh.from_tensors(canonical_output.vertices, faces)
+    #Normalize vertices
+    output = model(betas=smpl_model.betas, expression=smpl_model.expression,
+                       return_verts=True, body_pose=smpl_model.goal_poses)
+
+    vertices_goal = output.vertices[0]
+    print("vertices goal: ", vertices_goal.abs().max())
+
+    vertices_abs_max = torch.abs(vertices_goal).max().detach()
+    vertices_min = vertices_goal.min(0)[0][None, :].detach()
+    vertices_max = vertices_goal.max(0)[0][None, :].detach()
+    
+    faces = torch.tensor(model.faces * 1.0).to(device)
+    print(faces.shape)
+    print(canonical_output.vertices[0].shape)
+    mesh = TriangleMesh.from_tensors(canonical_output.vertices[0], faces)
     # mesh = TriangleMesh.from_obj(args.mesh)
     # Normalize into unit cube, and expand such that batch size = 1
-    vertices = normalize_vertices(mesh.vertices).unsqueeze(0)
+    print("vertices can: ", mesh.vertices.abs().max())
+    vertices = mesh.vertices.unsqueeze(0)
+    #vertices = pre_normalize_vertices(mesh.vertices, vertices_min, vertices_max, 
+    #                                  vertices_abs_max).unsqueeze(0)
     faces = mesh.faces.unsqueeze(0)
 
     textures = torch.ones(
@@ -127,10 +144,16 @@ def main():
         args.camera_distance, args.elevation, azimuth)
     images, _, _ = renderer(vertices, faces, textures)
     true_image = images[0].permute(1, 2, 0)
-
-    for i in range(10):
+    true_image = true_image.detach()
+    print(true_image.requires_grad)
+    print(list(smpl_model.parameters()))
+    optim=torch.optim.Adam(list(smpl_model.parameters()), lr=1e-2)
+    
+    imageio.imwrite("results/img_true.png", (255 * true_image.cpu().numpy()).astype(np.uint8))
+    for i in range(1000):
+        optim.zero_grad()
         output = model(betas=smpl_model.betas, expression=smpl_model.expression,
-                       return_verts=True, body_pose=smpl_model.goal_pose)
+                       return_verts=True, body_pose=smpl_model.goal_poses)
 
         vertices_goal = output.vertices[0]
 
@@ -138,30 +161,28 @@ def main():
         #mesh = TriangleMesh.from_obj(args.mesh)
 
         # Normalize into unit cube, and expand such that batch size = 1
-        vertices = normalize_vertices(mesh.vertices).unsqueeze(0)
-        faces = mesh.faces.unsqueeze(0)
-
-        renderer = Renderer(camera_mode='look_at')
-
-        loop = tqdm.tqdm(range(0, 360, 4))
-        loop.set_description('Drawing')
-
-        os.makedirs(args.output_path, exist_ok=True)
-        azimuth = 180
-        renderer.eye = get_points_from_angles(
-                args.camera_distance, args.elevation, azimuth)
+        vertices = vertices_goal.unsqueeze(0)
+        #vertices = pre_normalize_vertices(mesh.vertices, vertices_min, vertices_max, 
+        #                              vertices_abs_max).unsqueeze(0)
+        #print("vertices goal: ", vertices.max())
         images, _, _ = renderer(vertices, faces, textures)
         image = images[0]
-        loss = (image.permute(1, 2, 0)-true_image).sum()
+        loss = (image.permute(1, 2, 0)-true_image).abs().mean()
+        imageio.imwrite("results/img_out{:03d}.png".format(i), (255 * image.permute(1, 2, 0).detach().cpu().numpy()).astype(np.uint8))
+        
         loss.backward()
+        
+        print("Loss: ", loss.item())
+        optim.step()
         with torch.no_grad():
             grad = smpl_model.goal_poses.grad
-            print('grads of poses ', grad)
-            print('armangle grad ', grad[0, 38],' armagnle2 grad ', grad[0, 41])
-            print('armangle', smpl_model.goal_poses[0, 38], ' armagnle2 ', smpl_model.goal_poses[0, 41])
-            smpl_model.goal_poses -= 1e-4 * grad
-            smpl_model.goal_poses.grad.zero_()
-
+            #print('grads of poses ', grad)
+            #print('armangle grad ', grad[0, 38],' armagnle2 grad ', grad[0, 41])
+            #print('armangle', smpl_model.goal_poses[0, 38], ' armagnle2 ', smpl_model.goal_poses[0, 41])
+            #smpl_model.goal_poses -= 1e-4 * grad
+            #smpl_model.goal_poses.grad.zero_()
+            smpl_model.goal_poses.grad.detach_()
+            loss.detach_()
 
 
 if __name__ == '__main__':

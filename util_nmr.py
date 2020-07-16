@@ -53,3 +53,14 @@ def normalize_vertices(vertices):
     vertices *= 2
     vertices -= vertices.max(0)[0][None, :] / 2
     return vertices
+
+def pre_normalize_vertices(vertices, vertices_min, vertices_max, 
+                                      vertices_abs_max):
+    """
+    Normalize mesh vertices into a unit cube centered at zero.
+    """
+    vertices = vertices - vertices_min
+    vertices /= vertices_abs_max
+    vertices *= 2
+    vertices -= vertices_max / 2
+    return vertices
