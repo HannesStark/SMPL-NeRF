@@ -172,7 +172,7 @@ def main():
 
         results.append((255 * image.permute(1, 2, 0).detach().cpu().numpy()).astype(np.uint8))
         arm_parameters_l.append(arm_angle_l.item())
-        arm_parameters_r.append(arm_parameters_r.item())
+        arm_parameters_r.append(arm_angle_r.item())
         losses.append(loss.item())
         print("Loss: ", loss.item())
     imageio.mimsave("results/" + experiment_name + "_gif.gif", results, fps=30)
