@@ -110,6 +110,7 @@ def main():
     perturbed_pose[0, 63] = np.deg2rad(45)
     perturbed_pose[0, 1] = np.deg2rad(45)
     perturbed_pose[0, 30] = np.deg2rad(45)
+    perturbed_pose.detach()
     perturbed_pose = Variable(perturbed_pose.to(device), requires_grad=True)
     canonical_pose1 = torch.zeros(38).view(1, -1).to(device)
     canonical_pose2 = torch.zeros(2).view(1, -1).to(device)
