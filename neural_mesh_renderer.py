@@ -82,7 +82,7 @@ def parse_arguments():
 def main():
     args = parse_arguments()
 
-    experiment_name = 'only_arm_angle_45_degrees'
+    experiment_name = 'only_arm_angle_60_degrees'
     torch.autograd.set_detect_anomaly(True)
     smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
     uv_map_file_name = "textures/smpl_uv_map.npy"
@@ -104,8 +104,8 @@ def main():
     canonical_pose1 = torch.zeros(38).view(1, -1).to(device)
     canonical_pose2 = torch.zeros(2).view(1, -1).to(device)
     canonical_pose3 = torch.zeros(27).view(1, -1).to(device)
-    arm_angle_l = Variable(torch.tensor([-np.deg2rad(45)]).float().view(1, -1).to(device), requires_grad=True)
-    arm_angle_r = Variable(torch.tensor([np.deg2rad(45)]).float().view(1, -1).to(device), requires_grad=True)
+    arm_angle_l = Variable(torch.tensor([-np.deg2rad(60)]).float().view(1, -1).to(device), requires_grad=True)
+    arm_angle_r = Variable(torch.tensor([np.deg2rad(60)]).float().view(1, -1).to(device), requires_grad=True)
 
 
 
