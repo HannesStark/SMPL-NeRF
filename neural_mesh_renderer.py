@@ -47,6 +47,8 @@ import imageio
 from torch.autograd import Variable
 
 from matplotlib import pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
 from kaolin.graphics import NeuralMeshRenderer as Renderer
 from kaolin.graphics.nmr.util import get_points_from_angles
 from kaolin.rep import TriangleMesh
@@ -83,7 +85,7 @@ def parse_arguments():
 def main():
     args = parse_arguments()
 
-    experiment_name = 'L2_only_arm_angle_60_degrees'
+    experiment_name = 'L1_only_arm_angle_60_degrees'
     torch.autograd.set_detect_anomaly(True)
     smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
     uv_map_file_name = "textures/smpl_uv_map.npy"
