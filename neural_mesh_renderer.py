@@ -44,6 +44,7 @@ import numpy as np
 import torch
 import tqdm
 import imageio
+from torch.autograd import Variable
 
 from kaolin.graphics import NeuralMeshRenderer as Renderer
 from kaolin.graphics.nmr.util import get_points_from_angles
@@ -57,7 +58,6 @@ from PIL import Image
 from io import BytesIO
 import torch
 import smplx
-
 
 ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -82,9 +82,7 @@ def parse_arguments():
 def main():
     args = parse_arguments()
 
-    ###########################
-    # Load mesh
-    ###########################
+    experiment_name = 'first'
     torch.autograd.set_detect_anomaly(True)
     smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
     uv_map_file_name = "textures/smpl_uv_map.npy"
@@ -96,41 +94,36 @@ def main():
 
     model = smplx.create(smpl_file_name, model_type='smpl')
     model = model.to(device)
-    
     betas = torch.tensor([[-0.3596, -1.0232, -1.7584, -2.0465, 0.3387,
                            -0.8562, 0.8869, 0.5013, 0.5338, -0.0210]]).to(device)
     expression = torch.tensor([[2.7228, -1.8139, 0.6270, -0.5565, 0.3251,
                                 0.5643, -1.2158, 1.4149, 0.4050, 0.6516]]).to(device)
-    goal_pose = torch.zeros(69).view(1, -1).to(device)
-    goal_pose[0, 38] = np.deg2rad(30)
-    goal_pose[0, 41] = np.deg2rad(30)
-
-    smpl_model = DummySmplEstimatorModel(goal_pose, expression, betas)
-    smpl_model = smpl_model.to(device)
+    perturbed_pose = Variable(torch.zeros(69).view(1, -1), requires_grad=True).to(device)
+    perturbed_pose[0, 38] = np.deg2rad(30)
+    perturbed_pose[0, 41] = np.deg2rad(30)
+    canonical_pose = torch.zeros(69).view(1, -1).to(device)
+    arm_angle_l = Variable(torch.tensor([np.deg2rad(30)]), requires_grad=True).to(device)
+    arm_angle_r = Variable(torch.tensor([np.deg2rad(30)]), requires_grad=True).to(device)
 
     canonical_output = model(betas=betas, expression=expression,
-                               return_verts=True, body_pose=None)
-    #Normalize vertices
-    output = model(betas=smpl_model.betas, expression=smpl_model.expression,
-                       return_verts=True, body_pose=smpl_model.goal_poses)
+                             return_verts=True, body_pose=None)
+
+    # Normalize vertices
+    output = model(betas=betas, expression=expression,
+                   return_verts=True, body_pose=perturbed_pose)
 
     vertices_goal = output.vertices[0]
-    print("vertices goal: ", vertices_goal.abs().max())
-
     vertices_abs_max = torch.abs(vertices_goal).max().detach()
     vertices_min = vertices_goal.min(0)[0][None, :].detach()
     vertices_max = vertices_goal.max(0)[0][None, :].detach()
-    
+
     faces = torch.tensor(model.faces * 1.0).to(device)
-    print(faces.shape)
-    print(canonical_output.vertices[0].shape)
+
     mesh = TriangleMesh.from_tensors(canonical_output.vertices[0], faces)
-    # mesh = TriangleMesh.from_obj(args.mesh)
-    # Normalize into unit cube, and expand such that batch size = 1
-    print("vertices can: ", mesh.vertices.abs().max())
     vertices = mesh.vertices.unsqueeze(0)
-    #vertices = pre_normalize_vertices(mesh.vertices, vertices_min, vertices_max, 
+    # vertices = pre_normalize_vertices(mesh.vertices, vertices_min, vertices_max,
     #                                  vertices_abs_max).unsqueeze(0)
+
     faces = mesh.faces.unsqueeze(0)
 
     textures = torch.ones(
@@ -145,44 +138,38 @@ def main():
     images, _, _ = renderer(vertices, faces, textures)
     true_image = images[0].permute(1, 2, 0)
     true_image = true_image.detach()
-    print(true_image.requires_grad)
-    print(list(smpl_model.parameters()))
-    optim=torch.optim.Adam(list(smpl_model.parameters()), lr=1e-2)
-    
-    imageio.imwrite("results/img_true.png", (255 * true_image.cpu().numpy()).astype(np.uint8))
+
+    # optim = torch.optim.Adam(list(perturbed_pose), lr=1e-2)
+    optim = torch.optim.Adam([arm_angle_l, arm_angle_r], lr=1e-2)
+    results = []
+    imageio.imwrite("results/" + experiment_name + "_true.png", (255 * true_image.cpu().numpy()).astype(np.uint8))
     for i in range(1000):
         optim.zero_grad()
-        output = model(betas=smpl_model.betas, expression=smpl_model.expression,
-                       return_verts=True, body_pose=smpl_model.goal_poses)
+        perturbed_pose = canonical_pose
+        perturbed_pose[0, 38] = arm_angle_l
+        perturbed_pose[0, 41] = arm_angle_r
+        output = model(betas=betas, expression=expression,
+                       return_verts=True, body_pose=perturbed_pose)
 
         vertices_goal = output.vertices[0]
 
         mesh = TriangleMesh.from_tensors(vertices_goal, faces)
-        #mesh = TriangleMesh.from_obj(args.mesh)
 
-        # Normalize into unit cube, and expand such that batch size = 1
         vertices = vertices_goal.unsqueeze(0)
-        #vertices = pre_normalize_vertices(mesh.vertices, vertices_min, vertices_max, 
+        # vertices = pre_normalize_vertices(mesh.vertices, vertices_min, vertices_max,
         #                              vertices_abs_max).unsqueeze(0)
-        #print("vertices goal: ", vertices.max())
+
         images, _, _ = renderer(vertices, faces, textures)
         image = images[0]
-        loss = (image.permute(1, 2, 0)-true_image).abs().mean()
-        imageio.imwrite("results/img_out{:03d}.png".format(i), (255 * image.permute(1, 2, 0).detach().cpu().numpy()).astype(np.uint8))
-        
+        loss = (image.permute(1, 2, 0) - true_image).abs().mean()
+        imageio.imwrite("results/" + experiment_name + "_out{:03d}.png".format(i),
+                        (255 * image.permute(1, 2, 0).detach().cpu().numpy()).astype(np.uint8))
+        results.append((255 * image.permute(1, 2, 0).detach().cpu().numpy()).astype(np.uint8))
         loss.backward()
-        
+
         print("Loss: ", loss.item())
         optim.step()
-        with torch.no_grad():
-            grad = smpl_model.goal_poses.grad
-            #print('grads of poses ', grad)
-            #print('armangle grad ', grad[0, 38],' armagnle2 grad ', grad[0, 41])
-            #print('armangle', smpl_model.goal_poses[0, 38], ' armagnle2 ', smpl_model.goal_poses[0, 41])
-            #smpl_model.goal_poses -= 1e-4 * grad
-            #smpl_model.goal_poses.grad.zero_()
-            smpl_model.goal_poses.grad.detach_()
-            loss.detach_()
+    imageio.mimsave("results/" + experiment_name + "_gif.gif", results, fps=30)
 
 
 if __name__ == '__main__':
