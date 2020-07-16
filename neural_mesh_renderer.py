@@ -85,7 +85,8 @@ def parse_arguments():
 def main():
     args = parse_arguments()
 
-    experiment_name = 'L1_only_arm_angle_60_degrees'
+    experiment_name = 'lots_of_changes'
+    arm_only=False
     torch.autograd.set_detect_anomaly(True)
     smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
     uv_map_file_name = "textures/smpl_uv_map.npy"
@@ -104,6 +105,11 @@ def main():
     perturbed_pose = Variable(torch.zeros(69).view(1, -1), requires_grad=True).to(device)
     perturbed_pose[0, 38] = -np.deg2rad(45)
     perturbed_pose[0, 41] = np.deg2rad(45)
+    perturbed_pose[0, 14] = np.deg2rad(45)
+    perturbed_pose[0, 2] = np.deg2rad(45)
+    perturbed_pose[0, 63] = np.deg2rad(45)
+    perturbed_pose[0, 1] = np.deg2rad(45)
+    perturbed_pose[0, 30] = np.deg2rad(45)
     canonical_pose1 = torch.zeros(38).view(1, -1).to(device)
     canonical_pose2 = torch.zeros(2).view(1, -1).to(device)
     canonical_pose3 = torch.zeros(27).view(1, -1).to(device)
@@ -146,15 +152,19 @@ def main():
     true_image = images[0].permute(1, 2, 0)
     true_image = true_image.detach()
 
-    # optim = torch.optim.Adam(list(perturbed_pose), lr=1e-2)
-    optim = torch.optim.Adam([arm_angle_l, arm_angle_r], lr=1e-2)
+
+    if arm_only:
+        optim = torch.optim.Adam([arm_angle_l, arm_angle_r], lr=1e-2)
+    else:
+        optim = torch.optim.Adam(list(perturbed_pose), lr=1e-2)
     results = []
     arm_parameters_l = []
     arm_parameters_r = []
     losses = []
     for i in range(200):
         optim.zero_grad()
-        perturbed_pose = torch.cat([canonical_pose1, arm_angle_l, canonical_pose2, arm_angle_r, canonical_pose3], dim=-1)
+        if arm_only:
+            perturbed_pose = torch.cat([canonical_pose1, arm_angle_l, canonical_pose2, arm_angle_r, canonical_pose3], dim=-1)
         output = model(betas=betas, expression=expression,
                        return_verts=True, body_pose=perturbed_pose)
 
@@ -168,16 +178,22 @@ def main():
 
         images, _, _ = renderer(vertices, faces, textures)
         image = images[0]
-        loss = ((image.permute(1, 2, 0) - true_image)**2).mean()
+        loss = (image.permute(1, 2, 0) - true_image).abs().mean()
         loss.backward()
         optim.step()
 
         results.append((255 * image.permute(1, 2, 0).detach().cpu().numpy()).astype(np.uint8))
-        arm_parameters_l.append(arm_angle_l.item())
-        arm_parameters_r.append(arm_angle_r.item())
+        if arm_only:
+            arm_parameters_l.append(arm_angle_l.item())
+            arm_parameters_r.append(arm_angle_r.item())
         losses.append(loss.item())
         print("Loss: ", loss.item())
     imageio.mimsave("results/" + experiment_name + "_gif.gif", results, fps=30)
+
+    plt.plot(losses)
+    plt.title("applied loss")
+    plt.savefig("results/" + experiment_name + "_loss.gif")
+    plt.clf()
     plt.plot(arm_parameters_r)
     plt.title("right arm angle")
     plt.savefig("results/" + experiment_name + "_right.gif")
@@ -185,10 +201,7 @@ def main():
     plt.plot(arm_parameters_l)
     plt.title("left arm angle")
     plt.savefig("results/" + experiment_name + "_left.gif")
-    plt.clf()
-    plt.plot(losses)
-    plt.title("applied loss")
-    plt.savefig("results/" + experiment_name + "_loss.gif")
+
 
 
 if __name__ == '__main__':
