@@ -82,7 +82,7 @@ def parse_arguments():
 def main():
     args = parse_arguments()
 
-    experiment_name = 'first'
+    experiment_name = 'only_arm_angle_45_degrees'
     torch.autograd.set_detect_anomaly(True)
     smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
     uv_map_file_name = "textures/smpl_uv_map.npy"
@@ -99,8 +99,8 @@ def main():
     expression = torch.tensor([[2.7228, -1.8139, 0.6270, -0.5565, 0.3251,
                                 0.5643, -1.2158, 1.4149, 0.4050, 0.6516]]).to(device)
     perturbed_pose = Variable(torch.zeros(69).view(1, -1), requires_grad=True).to(device)
-    perturbed_pose[0, 38] = np.deg2rad(30)
-    perturbed_pose[0, 41] = np.deg2rad(30)
+    perturbed_pose[0, 38] = np.deg2rad(45)
+    perturbed_pose[0, 41] = np.deg2rad(45)
     canonical_pose1 = torch.zeros(38).view(1, -1).to(device)
     canonical_pose2 = torch.zeros(2).view(1, -1).to(device)
     canonical_pose3 = torch.zeros(27).view(1, -1).to(device)
@@ -164,8 +164,8 @@ def main():
         images, _, _ = renderer(vertices, faces, textures)
         image = images[0]
         loss = (image.permute(1, 2, 0) - true_image).abs().mean()
-        imageio.imwrite("results/" + experiment_name + "_out{:03d}.png".format(i),
-                        (255 * image.permute(1, 2, 0).detach().cpu().numpy()).astype(np.uint8))
+        #imageio.imwrite("results/" + experiment_name + "_out{:03d}.png".format(i),
+        #                (255 * image.permute(1, 2, 0).detach().cpu().numpy()).astype(np.uint8))
         results.append((255 * image.permute(1, 2, 0).detach().cpu().numpy()).astype(np.uint8))
         loss.backward()
 
