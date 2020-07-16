@@ -164,8 +164,9 @@ def main():
         images, _, _ = renderer(vertices, faces, textures)
         image = images[0]
         loss = (image.permute(1, 2, 0) - true_image).abs().mean()
-        #imageio.imwrite("results/" + experiment_name + "_out{:03d}.png".format(i),
-        #                (255 * image.permute(1, 2, 0).detach().cpu().numpy()).astype(np.uint8))
+        if i == 0:
+            imageio.imwrite("results/" + experiment_name + "_start{:03d}.png".format(i),
+                            (255 * image.permute(1, 2, 0).detach().cpu().numpy()).astype(np.uint8))
         results.append((255 * image.permute(1, 2, 0).detach().cpu().numpy()).astype(np.uint8))
         loss.backward()
 
