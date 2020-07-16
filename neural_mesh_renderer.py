@@ -102,8 +102,8 @@ def main():
     perturbed_pose[0, 38] = np.deg2rad(30)
     perturbed_pose[0, 41] = np.deg2rad(30)
     canonical_pose = torch.zeros(69).view(1, -1).to(device)
-    arm_angle_l = Variable(torch.tensor([np.deg2rad(30)]), requires_grad=True).to(device)
-    arm_angle_r = Variable(torch.tensor([np.deg2rad(30)]), requires_grad=True).to(device)
+    arm_angle_l = Variable(torch.tensor([np.deg2rad(30)]).to(device), requires_grad=True)
+    arm_angle_r = Variable(torch.tensor([np.deg2rad(30)]).to(device), requires_grad=True)
 
     canonical_output = model(betas=betas, expression=expression,
                              return_verts=True, body_pose=None)
