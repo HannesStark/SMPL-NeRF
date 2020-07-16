@@ -82,7 +82,7 @@ def parse_arguments():
 def main():
     args = parse_arguments()
 
-    experiment_name = 'only_arm_angle_60_degrees'
+    experiment_name = 'L2_only_arm_angle_60_degrees'
     torch.autograd.set_detect_anomaly(True)
     smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
     uv_map_file_name = "textures/smpl_uv_map.npy"
@@ -163,7 +163,7 @@ def main():
 
         images, _, _ = renderer(vertices, faces, textures)
         image = images[0]
-        loss = (image.permute(1, 2, 0) - true_image).abs().mean()
+        loss = ((image.permute(1, 2, 0) - true_image)**2).mean()
         if i == 0:
             imageio.imwrite("results/" + experiment_name + "_start{:03d}.png".format(i),
                             (255 * image.permute(1, 2, 0).detach().cpu().numpy()).astype(np.uint8))
