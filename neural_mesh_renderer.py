@@ -46,6 +46,7 @@ import tqdm
 import imageio
 from torch.autograd import Variable
 
+from matplotlib import pyplot as plt
 from kaolin.graphics import NeuralMeshRenderer as Renderer
 from kaolin.graphics.nmr.util import get_points_from_angles
 from kaolin.rep import TriangleMesh
@@ -146,7 +147,9 @@ def main():
     # optim = torch.optim.Adam(list(perturbed_pose), lr=1e-2)
     optim = torch.optim.Adam([arm_angle_l, arm_angle_r], lr=1e-2)
     results = []
-    imageio.imwrite("results/" + experiment_name + "_true.png", (255 * true_image.cpu().numpy()).astype(np.uint8))
+    arm_parameters_l = []
+    arm_parameters_r = []
+    losses = []
     for i in range(200):
         optim.zero_grad()
         perturbed_pose = torch.cat([canonical_pose1, arm_angle_l, canonical_pose2, arm_angle_r, canonical_pose3], dim=-1)
@@ -164,15 +167,26 @@ def main():
         images, _, _ = renderer(vertices, faces, textures)
         image = images[0]
         loss = ((image.permute(1, 2, 0) - true_image)**2).mean()
-        if i == 0:
-            imageio.imwrite("results/" + experiment_name + "_start{:03d}.png".format(i),
-                            (255 * image.permute(1, 2, 0).detach().cpu().numpy()).astype(np.uint8))
-        results.append((255 * image.permute(1, 2, 0).detach().cpu().numpy()).astype(np.uint8))
         loss.backward()
-
-        print("Loss: ", loss.item())
         optim.step()
+
+        results.append((255 * image.permute(1, 2, 0).detach().cpu().numpy()).astype(np.uint8))
+        arm_parameters_l.append(arm_angle_l.item())
+        arm_parameters_r.append(arm_parameters_r.item())
+        losses.append(loss.item())
+        print("Loss: ", loss.item())
     imageio.mimsave("results/" + experiment_name + "_gif.gif", results, fps=30)
+    plt.plot(arm_parameters_r)
+    plt.title("right arm angle")
+    plt.savefig("results/" + experiment_name + "_right.gif")
+    plt.clf()
+    plt.plot(arm_parameters_l)
+    plt.title("left arm angle")
+    plt.savefig("results/" + experiment_name + "_left.gif")
+    plt.clf()
+    plt.plot(losses)
+    plt.title("applied loss")
+    plt.savefig("results/" + experiment_name + "_loss.gif")
 
 
 if __name__ == '__main__':
