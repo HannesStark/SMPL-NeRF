@@ -101,9 +101,13 @@ def main():
     perturbed_pose = Variable(torch.zeros(69).view(1, -1), requires_grad=True).to(device)
     perturbed_pose[0, 38] = np.deg2rad(30)
     perturbed_pose[0, 41] = np.deg2rad(30)
-    canonical_pose = torch.zeros(69).view(1, -1).to(device)
-    arm_angle_l = Variable(torch.tensor([np.deg2rad(30)]).to(device), requires_grad=True)
-    arm_angle_r = Variable(torch.tensor([np.deg2rad(30)]).to(device), requires_grad=True)
+    canonical_pose1 = torch.zeros(38).view(1, -1).to(device)
+    canonical_pose2 = torch.zeros(2).view(1, -1).to(device)
+    canonical_pose3 = torch.zeros(27).view(1, -1).to(device)
+    arm_angle_l = Variable(torch.tensor([np.deg2rad(30)]).float().view(1, -1).to(device), requires_grad=True)
+    arm_angle_r = Variable(torch.tensor([np.deg2rad(30)]).float().view(1, -1).to(device), requires_grad=True)
+
+
 
     canonical_output = model(betas=betas, expression=expression,
                              return_verts=True, body_pose=None)
@@ -145,9 +149,7 @@ def main():
     imageio.imwrite("results/" + experiment_name + "_true.png", (255 * true_image.cpu().numpy()).astype(np.uint8))
     for i in range(1000):
         optim.zero_grad()
-        perturbed_pose = canonical_pose
-        perturbed_pose[0, 38] = arm_angle_l
-        perturbed_pose[0, 41] = arm_angle_r
+        perturbed_pose = torch.cat([canonical_pose1, arm_angle_l, canonical_pose2, arm_angle_r, canonical_pose3], dim=-1)
         output = model(betas=betas, expression=expression,
                        return_verts=True, body_pose=perturbed_pose)
 
