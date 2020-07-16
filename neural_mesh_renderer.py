@@ -144,7 +144,7 @@ def main():
     true_image = true_image.detach()
 
     # optim = torch.optim.Adam(list(perturbed_pose), lr=1e-2)
-    optim = torch.optim.Adam([arm_angle_l, arm_angle_r], lr=1e-2)
+    optim = torch.optim.Adam([arm_angle_l, arm_angle_r], lr=5e-3)
     results = []
     imageio.imwrite("results/" + experiment_name + "_true.png", (255 * true_image.cpu().numpy()).astype(np.uint8))
     for i in range(200):
