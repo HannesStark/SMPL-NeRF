@@ -61,6 +61,7 @@ def main():
     model = model.to(device)
     specific_angles_only = True
     perturb_betas = True
+    gaussian_blur = False
     betas = torch.tensor([[-0.3596, -1.0232, -1.7584, -2.0465, 0.3387,
                            -0.8562, 0.8869, 0.5013, 0.5338, -0.0210]]).to(device)
     if perturb_betas:
@@ -159,7 +160,7 @@ def main():
             arm_parameters_l.append(arm_angle_l.item())
             arm_parameters_r.append(arm_angle_r.item())
         if perturb_betas:
-            beta_diffs.append((betas-perturb_betas).abs().mean().item())
+            beta_diffs.append((betas-perturbed_betas).abs().mean().item())
         losses.append(loss.item())
         print("Loss: ", loss.item())
     imageio.mimsave("results/" + experiment_name + "_gif.gif", results, fps=30)
