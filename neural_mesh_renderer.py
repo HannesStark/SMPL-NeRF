@@ -1,3 +1,4 @@
+import kornia
 import matplotlib
 
 matplotlib.use('Agg')
@@ -60,8 +61,8 @@ def main():
     model = smplx.create(smpl_file_name, model_type='smpl')
     model = model.to(device)
     specific_angles_only = True
-    perturb_betas = True
-    gaussian_blur = False
+    perturb_betas = False
+    gaussian_blur = True
     betas = torch.tensor([[-0.3596, -1.0232, -1.7584, -2.0465, 0.3387,
                            -0.8562, 0.8869, 0.5013, 0.5338, -0.0210]]).to(device)
     if perturb_betas:
@@ -116,6 +117,8 @@ def main():
         args.camera_distance, args.elevation, azimuth)
     images, _, _ = renderer(vertices, faces, textures)
     true_image = images[0].permute(1, 2, 0)
+    if gaussian_blur:
+        true_image = kornia.filters.gaussian_blur2d(true_image, (5, 5), sigma=(1, 1))
     true_image = true_image.detach()
 
     if specific_angles_only and perturb_betas:
@@ -150,17 +153,19 @@ def main():
         #                              vertices_abs_max).unsqueeze(0)
 
         images, _, _ = renderer(vertices, faces, textures)
-        image = images[0]
-        loss = (image.permute(1, 2, 0) - true_image).abs().mean()
+        image = images[0].permute(1, 2, 0)
+        if gaussian_blur:
+            image = kornia.filters.gaussian_blur2d(image, (5, 5), sigma=(1, 1))
+        loss = (image - true_image).abs().mean()
         loss.backward()
         optim.step()
 
-        results.append((255 * image.permute(1, 2, 0).detach().cpu().numpy()).astype(np.uint8))
+        results.append((255 * image.detach().cpu().numpy()).astype(np.uint8))
         if specific_angles_only:
             arm_parameters_l.append(arm_angle_l.item())
             arm_parameters_r.append(arm_angle_r.item())
         if perturb_betas:
-            beta_diffs.append((betas-perturbed_betas).abs().mean().item())
+            beta_diffs.append((betas - perturbed_betas).abs().mean().item())
         losses.append(loss.item())
         print("Loss: ", loss.item())
     imageio.mimsave("results/" + experiment_name + "_gif.gif", results, fps=30)
