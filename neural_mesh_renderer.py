@@ -86,7 +86,7 @@ def parse_arguments():
 def main():
     args = parse_arguments()
 
-    experiment_name = 'lots_of_changes'
+    experiment_name = 'change_arms_and_0_and_1'
     arm_only = False
     torch.autograd.set_detect_anomaly(True)
     smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
@@ -103,19 +103,11 @@ def main():
                            -0.8562, 0.8869, 0.5013, 0.5338, -0.0210]]).to(device)
     expression = torch.tensor([[2.7228, -1.8139, 0.6270, -0.5565, 0.3251,
                                 0.5643, -1.2158, 1.4149, 0.4050, 0.6516]]).to(device)
-    pose_init = torch.zeros(69).view(1, -1).to(device)
-    print(pose_init.is_leaf)
-    pose_init[0, 38] = -np.deg2rad(45)
-    pose_init[0, 41] = np.deg2rad(45)
-    pose_init[0, 14] = np.deg2rad(45)
-    pose_init[0, 2] = np.deg2rad(45)
-    pose_init[0, 63] = np.deg2rad(45)
-    pose_init[0, 1] = np.deg2rad(45)
-    pose_init[0, 30] = np.deg2rad(45)
-    print(pose_init.is_leaf)
-    print(pose_init.detach().to(device).requires_grad_(True).is_leaf)
-    perturbed_pose = Variable(pose_init, requires_grad=True)
-    print(perturbed_pose.is_leaf)
+    perturbed_pose = Variable(torch.zeros(69).view(1, -1).to(device), requires_grad=True)
+    perturbed_pose[0, 38] = -np.deg2rad(60)
+    perturbed_pose[0, 41] = np.deg2rad(60)
+    perturbed_pose[0, 1] = np.deg2rad(60)
+    perturbed_pose[0, 0] = np.deg2rad(60)
     canonical_pose1 = torch.zeros(38).view(1, -1).to(device)
     canonical_pose2 = torch.zeros(2).view(1, -1).to(device)
     canonical_pose3 = torch.zeros(27).view(1, -1).to(device)
@@ -127,7 +119,7 @@ def main():
 
     # Normalize vertices
     #output = model(betas=betas, expression=expression,
-    #               return_verts=True, body_pose=pose_init)
+    #               return_verts=True, body_pose=perturbed_pose)
 
     #vertices_goal = output.vertices[0]
     #vertices_abs_max = torch.abs(vertices_goal).max().detach()
