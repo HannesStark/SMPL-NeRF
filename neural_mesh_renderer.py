@@ -117,8 +117,12 @@ def main():
     true_image = images[0].permute(1, 2, 0)
     true_image = true_image.detach()
 
-    if specific_angles_only:
+    if specific_angles_only and perturb_betas:
+        optim = torch.optim.Adam([arm_angle_l, arm_angle_r, leg_angle_l, perturbed_betas], lr=1e-2)
+    elif specific_angles_only:
         optim = torch.optim.Adam([arm_angle_l, arm_angle_r, leg_angle_l], lr=1e-2)
+    elif perturbed_betas:
+        optim = torch.optim.Adam([perturbed_pose, perturbed_betas], lr=1e-2)
     else:
         optim = torch.optim.Adam([perturbed_pose], lr=1e-2)
     results = []
