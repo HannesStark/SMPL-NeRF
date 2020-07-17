@@ -1,3 +1,5 @@
+import math
+
 import matplotlib
 
 matplotlib.use('Agg')
@@ -47,6 +49,7 @@ def parse_arguments():
 def main():
     args = parse_arguments()
 
+
     experiment_name = 'all_params_10_degrees'
     torch.autograd.set_detect_anomaly(True)
     smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
@@ -62,6 +65,32 @@ def main():
     specific_angles_only = False
     perturb_betas = False
     gaussian_blur = True
+    kernel_size = 15
+    sigma = 3
+    channels = 3
+
+    # Create a x, y coordinate grid of shape (kernel_size, kernel_size, 2)
+    x_cord = torch.arange(kernel_size)
+    x_grid = x_cord.repeat(kernel_size).view(kernel_size, kernel_size)
+    y_grid = x_grid.t()
+    xy_grid = torch.stack([x_grid, y_grid], dim=-1)
+    mean = (kernel_size - 1) / 2.
+    variance = sigma ** 2.
+    gaussian_kernel = (1. / (2. * math.pi * variance)) * \
+                      torch.exp(
+                          -torch.sum((xy_grid - mean) ** 2., dim=-1) / \
+                          (2 * variance)
+                      )
+    gaussian_kernel = gaussian_kernel / torch.sum(gaussian_kernel)
+    gaussian_kernel = gaussian_kernel.view(1, 1, kernel_size, kernel_size)
+    gaussian_kernel = gaussian_kernel.repeat(channels, 1, 1, 1)
+
+    gaussian_filter = torch.nn.Conv2d(in_channels=channels, out_channels=channels,
+                                      kernel_size=kernel_size, groups=channels, bias=False)
+    gaussian_filter.weight.data = gaussian_kernel
+    gaussian_filter.weight.requires_grad = False
+    gaussian_filter = gaussian_filter.to(device)
+
     betas = torch.tensor([[-0.3596, -1.0232, -1.7584, -2.0465, 0.3387,
                            -0.8562, 0.8869, 0.5013, 0.5338, -0.0210]]).to(device)
     if perturb_betas:
@@ -117,7 +146,8 @@ def main():
         args.camera_distance, args.elevation, azimuth)
     images, _, _ = renderer(vertices, faces, textures)
     true_image = images[0].permute(1, 2, 0)
-
+    if gaussian_blur:
+        true_image = gaussian_filter(true_image.unsqueeze(0).permute(0,3,2,1)).permute(0,3,2,1)[0]
     true_image = true_image.detach()
 
     if specific_angles_only and perturb_betas:
@@ -153,7 +183,8 @@ def main():
 
         images, _, _ = renderer(vertices, faces, textures)
         image = images[0].permute(1, 2, 0)
-
+        if gaussian_blur:
+            image = gaussian_filter(image.unsqueeze(0).permute(0, 3, 2, 1)).permute(0, 3, 2, 1)[0]
         loss = (image - true_image).abs().mean()
         loss.backward()
         optim.step()
