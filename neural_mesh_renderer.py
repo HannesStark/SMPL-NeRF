@@ -73,8 +73,8 @@ def main():
     expression = torch.tensor([[2.7228, -1.8139, 0.6270, -0.5565, 0.3251,
                                 0.5643, -1.2158, 1.4149, 0.4050, 0.6516]]).to(device)
     perturbed_pose = torch.ones(69).view(1, -1).to(device) * np.deg2rad(10)
-    perturbed_pose[0, 38] = -np.deg2rad(60)
-    perturbed_pose[0, 41] = np.deg2rad(60)
+    #perturbed_pose[0, 38] = -np.deg2rad(60)
+    #perturbed_pose[0, 41] = np.deg2rad(60)
 
     perturbed_pose = Variable(perturbed_pose, requires_grad=True)
     canonical_pose0 = torch.zeros(2).view(1, -1).to(device)
