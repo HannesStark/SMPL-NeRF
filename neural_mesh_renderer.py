@@ -47,7 +47,7 @@ def parse_arguments():
 def main():
     args = parse_arguments()
 
-    experiment_name = 'change_arms_leg_betas'
+    experiment_name = 'optimize_all_perturb_arm_leg'
     torch.autograd.set_detect_anomaly(True)
     smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
     uv_map_file_name = "textures/smpl_uv_map.npy"
@@ -59,7 +59,7 @@ def main():
 
     model = smplx.create(smpl_file_name, model_type='smpl')
     model = model.to(device)
-    specific_angles_only = True
+    specific_angles_only = False
     perturb_betas = False
     gaussian_blur = True
     betas = torch.tensor([[-0.3596, -1.0232, -1.7584, -2.0465, 0.3387,
@@ -75,6 +75,7 @@ def main():
     perturbed_pose = torch.zeros(69).view(1, -1).to(device)
     perturbed_pose[0, 38] = -np.deg2rad(60)
     perturbed_pose[0, 41] = np.deg2rad(60)
+    perturbed_pose[0, 2] = np.deg2rad(20)
     perturbed_pose = Variable(perturbed_pose, requires_grad=True)
     canonical_pose0 = torch.zeros(2).view(1, -1).to(device)
     canonical_pose1 = torch.zeros(35).view(1, -1).to(device)
