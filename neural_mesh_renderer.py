@@ -60,12 +60,12 @@ def main():
     model = smplx.create(smpl_file_name, model_type='smpl')
     model = model.to(device)
     specific_angles_only = True
-    perturb_betas = False
+    perturb_betas = True
     betas = torch.tensor([[-0.3596, -1.0232, -1.7584, -2.0465, 0.3387,
                            -0.8562, 0.8869, 0.5013, 0.5338, -0.0210]]).to(device)
     if perturb_betas:
-        perturbed_betas = Variable(torch.tensor([[0.3596, -1.0232, 1.7584, -2.0465, -0.3387,
-                                                  0.8562, 0.8869, -0.5013, 0.5338, 0.0210]]).to(device),
+        perturbed_betas = Variable(torch.tensor([[0.8, -1.0232, 1.8, -2.0465, -0.3387,
+                                                  0.9, 0.8869, -0.5013, -1, 2]]).to(device),
                                    requires_grad=True)
     else:
         perturbed_betas = betas
