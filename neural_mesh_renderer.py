@@ -47,7 +47,7 @@ def parse_arguments():
 def main():
     args = parse_arguments()
 
-    experiment_name = '75_degrees_optimize_specific'
+    experiment_name = 'perturb_betas_many_iterations'
     torch.autograd.set_detect_anomaly(True)
     smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
     uv_map_file_name = "textures/smpl_uv_map.npy"
@@ -60,7 +60,7 @@ def main():
     model = smplx.create(smpl_file_name, model_type='smpl')
     model = model.to(device)
     specific_angles_only = True
-    perturb_betas = False
+    perturb_betas = True
     gaussian_blur = True
     betas = torch.tensor([[-0.3596, -1.0232, -1.7584, -2.0465, 0.3387,
                            -0.8562, 0.8869, 0.5013, 0.5338, -0.0210]]).to(device)
@@ -81,8 +81,8 @@ def main():
     canonical_pose1 = torch.zeros(35).view(1, -1).to(device)
     canonical_pose2 = torch.zeros(2).view(1, -1).to(device)
     canonical_pose3 = torch.zeros(27).view(1, -1).to(device)
-    arm_angle_l = Variable(torch.tensor([-np.deg2rad(75)]).float().view(1, -1).to(device), requires_grad=True)
-    arm_angle_r = Variable(torch.tensor([np.deg2rad(75)]).float().view(1, -1).to(device), requires_grad=True)
+    arm_angle_l = Variable(torch.tensor([-np.deg2rad(60)]).float().view(1, -1).to(device), requires_grad=True)
+    arm_angle_r = Variable(torch.tensor([np.deg2rad(60)]).float().view(1, -1).to(device), requires_grad=True)
     leg_angle_l = Variable(torch.tensor([np.deg2rad(20)]).float().view(1, -1).to(device), requires_grad=True)
 
     canonical_output = model(betas=betas, expression=expression,
@@ -133,7 +133,7 @@ def main():
     arm_parameters_r = []
     beta_diffs = []
     losses = []
-    for i in range(200):
+    for i in range(400):
         optim.zero_grad()
         if specific_angles_only:
             perturbed_pose = torch.cat(
