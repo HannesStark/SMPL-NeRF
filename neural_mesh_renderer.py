@@ -64,7 +64,7 @@ def main():
     betas = torch.tensor([[-0.3596, -1.0232, -1.7584, -2.0465, 0.3387,
                            -0.8562, 0.8869, 0.5013, 0.5338, -0.0210]]).to(device)
     if perturb_betas:
-        perturbed_betas = Variable(torch.tensor([[0.8, -1.0232, 1.8, -2.0465, -0.3387,
+        perturbed_betas = Variable(torch.tensor([[3, -1.0232, 1.8, 2.0465, -0.3387,
                                                   0.9, 0.8869, -0.5013, -1, 2]]).to(device),
                                    requires_grad=True)
     else:
@@ -128,6 +128,7 @@ def main():
     results = []
     arm_parameters_l = []
     arm_parameters_r = []
+    beta_diffs = []
     losses = []
     for i in range(200):
         optim.zero_grad()
@@ -157,6 +158,8 @@ def main():
         if specific_angles_only:
             arm_parameters_l.append(arm_angle_l.item())
             arm_parameters_r.append(arm_angle_r.item())
+        if perturb_betas:
+            beta_diffs.append((betas-perturb_betas).abs().mean().item())
         losses.append(loss.item())
         print("Loss: ", loss.item())
     imageio.mimsave("results/" + experiment_name + "_gif.gif", results, fps=30)
@@ -165,6 +168,11 @@ def main():
     plt.title("applied loss")
     plt.savefig("results/" + experiment_name + "_loss.png")
     plt.clf()
+    if perturb_betas:
+        plt.plot(beta_diffs)
+        plt.title("difference in betas")
+        plt.savefig("results/" + experiment_name + "_betas.png")
+        plt.clf()
     plt.plot(arm_parameters_r)
     plt.title("right arm angle")
     plt.savefig("results/" + experiment_name + "_right.png")
