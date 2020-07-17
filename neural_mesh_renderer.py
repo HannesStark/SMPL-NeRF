@@ -149,7 +149,7 @@ def main():
     arm_parameters_r = []
     beta_diffs = []
     losses = []
-    for i in range(400):
+    for i in range(200):
         optim.zero_grad()
         if specific_angles_only:
             perturbed_pose = torch.cat(
