@@ -50,7 +50,7 @@ def main():
     args = parse_arguments()
 
 
-    experiment_name = 'gaussian_blur'
+    experiment_name = 'all_params_4'
     torch.autograd.set_detect_anomaly(True)
     smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
     uv_map_file_name = "textures/smpl_uv_map.npy"
@@ -101,7 +101,7 @@ def main():
         perturbed_betas = betas
     expression = torch.tensor([[2.7228, -1.8139, 0.6270, -0.5565, 0.3251,
                                 0.5643, -1.2158, 1.4149, 0.4050, 0.6516]]).to(device)
-    perturbed_pose = torch.ones(69).view(1, -1).to(device) * np.deg2rad(10)
+    perturbed_pose = torch.ones(69).view(1, -1).to(device) * np.deg2rad(4)
     #perturbed_pose[0, 38] = -np.deg2rad(60)
     #perturbed_pose[0, 41] = np.deg2rad(60)
 
