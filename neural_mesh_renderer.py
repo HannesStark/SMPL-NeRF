@@ -86,7 +86,7 @@ def parse_arguments():
 def main():
     args = parse_arguments()
 
-    experiment_name = 'change_arms_and_0_and_1'
+    experiment_name = 'change_arms_2_betas'
     arm_only = False
     torch.autograd.set_detect_anomaly(True)
     smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
@@ -101,13 +101,14 @@ def main():
     model = model.to(device)
     betas = torch.tensor([[-0.3596, -1.0232, -1.7584, -2.0465, 0.3387,
                            -0.8562, 0.8869, 0.5013, 0.5338, -0.0210]]).to(device)
+    perturbed_betas = Variable(torch.tensor([[0.3596, -1.0232, 1.7584, -2.0465, -0.3387,
+                           0.8562, 0.8869, -0.5013, 0.5338, 0.0210]]).to(device), requires_grad=True)
     expression = torch.tensor([[2.7228, -1.8139, 0.6270, -0.5565, 0.3251,
                                 0.5643, -1.2158, 1.4149, 0.4050, 0.6516]]).to(device)
     perturbed_pose = torch.zeros(69).view(1, -1).to(device)
     perturbed_pose[0, 38] = -np.deg2rad(60)
     perturbed_pose[0, 41] = np.deg2rad(60)
-    perturbed_pose[0, 1] = np.deg2rad(60)
-    perturbed_pose[0, 0] = np.deg2rad(60)
+    perturbed_pose[0, 2] = np.deg2rad(60)
     perturbed_pose = Variable(perturbed_pose, requires_grad=True)
     canonical_pose1 = torch.zeros(38).view(1, -1).to(device)
     canonical_pose2 = torch.zeros(2).view(1, -1).to(device)
@@ -162,7 +163,7 @@ def main():
         if arm_only:
             perturbed_pose = torch.cat([canonical_pose1, arm_angle_l, canonical_pose2, arm_angle_r, canonical_pose3],
                                        dim=-1)
-        output = model(betas=betas, expression=expression,
+        output = model(betas=perturbed_betas, expression=expression,
                        return_verts=True, body_pose=perturbed_pose)
 
         vertices_goal = output.vertices[0]
