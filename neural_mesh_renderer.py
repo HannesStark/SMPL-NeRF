@@ -115,6 +115,7 @@ def main():
     print(pose_init.is_leaf)
     print(pose_init.detach().to(device).requires_grad_(True).is_leaf)
     perturbed_pose = Variable(pose_init, requires_grad=True)
+    print(perturbed_pose.is_leaf)
     canonical_pose1 = torch.zeros(38).view(1, -1).to(device)
     canonical_pose2 = torch.zeros(2).view(1, -1).to(device)
     canonical_pose3 = torch.zeros(27).view(1, -1).to(device)
