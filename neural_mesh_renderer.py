@@ -62,7 +62,7 @@ def main():
 
     model = smplx.create(smpl_file_name, model_type='smpl')
     model = model.to(device)
-    specific_angles_only = False
+    specific_angles_only = True
     perturb_betas = False
     gaussian_blur = True
     kernel_size = 15
