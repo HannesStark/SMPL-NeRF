@@ -111,7 +111,7 @@ def main():
     pose_init[0, 63] = np.deg2rad(45)
     pose_init[0, 1] = np.deg2rad(45)
     pose_init[0, 30] = np.deg2rad(45)
-    perturbed_pose = Variable(pose_init.detach(), requires_grad=True)
+    perturbed_pose = Variable(pose_init, requires_grad=True)
     canonical_pose1 = torch.zeros(38).view(1, -1).to(device)
     canonical_pose2 = torch.zeros(2).view(1, -1).to(device)
     canonical_pose3 = torch.zeros(27).view(1, -1).to(device)
@@ -122,13 +122,13 @@ def main():
                              return_verts=True, body_pose=None)
 
     # Normalize vertices
-    output = model(betas=betas, expression=expression,
-                   return_verts=True, body_pose=pose_init)
+    #output = model(betas=betas, expression=expression,
+    #               return_verts=True, body_pose=pose_init)
 
-    vertices_goal = output.vertices[0]
-    vertices_abs_max = torch.abs(vertices_goal).max().detach()
-    vertices_min = vertices_goal.min(0)[0][None, :].detach()
-    vertices_max = vertices_goal.max(0)[0][None, :].detach()
+    #vertices_goal = output.vertices[0]
+    #vertices_abs_max = torch.abs(vertices_goal).max().detach()
+    #vertices_min = vertices_goal.min(0)[0][None, :].detach()
+    #vertices_max = vertices_goal.max(0)[0][None, :].detach()
 
     faces = torch.tensor(model.faces * 1.0).to(device)
 
