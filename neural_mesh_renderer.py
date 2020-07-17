@@ -118,7 +118,7 @@ def main():
     images, _, _ = renderer(vertices, faces, textures)
     true_image = images[0].permute(1, 2, 0)
     if gaussian_blur:
-        true_image = kornia.filters.gaussian_blur2d(true_image, (5, 5), sigma=(1, 1))
+        true_image = kornia.filters.gaussian_blur2d(true_image.unsqueeze(0), (5, 5), sigma=(1, 1))[0]
     true_image = true_image.detach()
 
     if specific_angles_only and perturb_betas:
@@ -155,7 +155,7 @@ def main():
         images, _, _ = renderer(vertices, faces, textures)
         image = images[0].permute(1, 2, 0)
         if gaussian_blur:
-            image = kornia.filters.gaussian_blur2d(image, (5, 5), sigma=(1, 1))
+            image = kornia.filters.gaussian_blur2d(image.unsqueeze(0), (5, 5), sigma=(1, 1))[0]
         loss = (image - true_image).abs().mean()
         loss.backward()
         optim.step()
