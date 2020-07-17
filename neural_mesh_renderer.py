@@ -115,7 +115,7 @@ def main():
     perturbed_pose[0, 41] = np.deg2rad(60)
     perturbed_pose = Variable(perturbed_pose, requires_grad=True)
     canonical_pose0 = torch.zeros(2).view(1, -1).to(device)
-    canonical_pose1 = torch.zeros(36).view(1, -1).to(device)
+    canonical_pose1 = torch.zeros(35).view(1, -1).to(device)
     canonical_pose2 = torch.zeros(2).view(1, -1).to(device)
     canonical_pose3 = torch.zeros(27).view(1, -1).to(device)
     arm_angle_l = Variable(torch.tensor([-np.deg2rad(60)]).float().view(1, -1).to(device), requires_grad=True)
