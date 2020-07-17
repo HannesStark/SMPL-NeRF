@@ -60,7 +60,7 @@ def main():
     model = smplx.create(smpl_file_name, model_type='smpl')
     model = model.to(device)
     specific_angles_only = True
-    perturb_betas = True
+    perturb_betas = False
     betas = torch.tensor([[-0.3596, -1.0232, -1.7584, -2.0465, 0.3387,
                            -0.8562, 0.8869, 0.5013, 0.5338, -0.0210]]).to(device)
     if perturb_betas:
@@ -68,7 +68,7 @@ def main():
                                                   0.8562, 0.8869, -0.5013, 0.5338, 0.0210]]).to(device),
                                    requires_grad=True)
     else:
-        perturb_betas = betas
+        perturbed_betas = betas
     expression = torch.tensor([[2.7228, -1.8139, 0.6270, -0.5565, 0.3251,
                                 0.5643, -1.2158, 1.4149, 0.4050, 0.6516]]).to(device)
     perturbed_pose = torch.zeros(69).view(1, -1).to(device)
@@ -81,7 +81,7 @@ def main():
     canonical_pose3 = torch.zeros(27).view(1, -1).to(device)
     arm_angle_l = Variable(torch.tensor([-np.deg2rad(60)]).float().view(1, -1).to(device), requires_grad=True)
     arm_angle_r = Variable(torch.tensor([np.deg2rad(60)]).float().view(1, -1).to(device), requires_grad=True)
-    leg_angle_l = Variable(torch.tensor([np.deg2rad(60)]).float().view(1, -1).to(device), requires_grad=True)
+    leg_angle_l = Variable(torch.tensor([np.deg2rad(20)]).float().view(1, -1).to(device), requires_grad=True)
 
     canonical_output = model(betas=betas, expression=expression,
                              return_verts=True, body_pose=None)
