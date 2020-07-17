@@ -47,7 +47,7 @@ def parse_arguments():
 def main():
     args = parse_arguments()
 
-    experiment_name = 'change_arms_leg'
+    experiment_name = 'change_arms_leg_betas'
     torch.autograd.set_detect_anomaly(True)
     smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
     uv_map_file_name = "textures/smpl_uv_map.npy"
