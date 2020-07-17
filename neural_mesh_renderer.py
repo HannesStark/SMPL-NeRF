@@ -50,7 +50,7 @@ def main():
     args = parse_arguments()
 
 
-    experiment_name = 'all_params_4'
+    experiment_name = '70_arm_and_leg'
     torch.autograd.set_detect_anomaly(True)
     smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
     uv_map_file_name = "textures/smpl_uv_map.npy"
@@ -62,7 +62,7 @@ def main():
 
     model = smplx.create(smpl_file_name, model_type='smpl')
     model = model.to(device)
-    specific_angles_only = False
+    specific_angles_only = True
     perturb_betas = False
     gaussian_blur = False
     kernel_size = 15
@@ -110,8 +110,8 @@ def main():
     canonical_pose1 = torch.zeros(35).view(1, -1).to(device)
     canonical_pose2 = torch.zeros(2).view(1, -1).to(device)
     canonical_pose3 = torch.zeros(27).view(1, -1).to(device)
-    arm_angle_l = Variable(torch.tensor([-np.deg2rad(60)]).float().view(1, -1).to(device), requires_grad=True)
-    arm_angle_r = Variable(torch.tensor([np.deg2rad(60)]).float().view(1, -1).to(device), requires_grad=True)
+    arm_angle_l = Variable(torch.tensor([-np.deg2rad(70)]).float().view(1, -1).to(device), requires_grad=True)
+    arm_angle_r = Variable(torch.tensor([np.deg2rad(70)]).float().view(1, -1).to(device), requires_grad=True)
     leg_angle_l = Variable(torch.tensor([np.deg2rad(20)]).float().view(1, -1).to(device), requires_grad=True)
 
     canonical_output = model(betas=betas, expression=expression,
