@@ -59,8 +59,8 @@ def main():
 
     model = smplx.create(smpl_file_name, model_type='smpl')
     model = model.to(device)
-    specific_angles_only = True
-    perturb_betas = True
+    specific_angles_only = False
+    perturb_betas = False
     gaussian_blur = True
     betas = torch.tensor([[-0.3596, -1.0232, -1.7584, -2.0465, 0.3387,
                            -0.8562, 0.8869, 0.5013, 0.5338, -0.0210]]).to(device)
@@ -75,7 +75,23 @@ def main():
     perturbed_pose = torch.zeros(69).view(1, -1).to(device)
     perturbed_pose[0, 38] = -np.deg2rad(60)
     perturbed_pose[0, 41] = np.deg2rad(60)
-    perturbed_pose[0, 2] = np.deg2rad(20)
+    perturbed_pose[0, 2] = np.deg2rad(10)
+    perturbed_pose[0, 4] = np.deg2rad(10)
+    perturbed_pose[0, 6] = np.deg2rad(10)
+    perturbed_pose[0, 28] = np.deg2rad(10)
+    perturbed_pose[0, 17] = np.deg2rad(10)
+    perturbed_pose[0, 11] = np.deg2rad(10)
+    perturbed_pose[0, 13] = np.deg2rad(10)
+    perturbed_pose[0, 39] = np.deg2rad(10)
+    perturbed_pose[0, 59] = np.deg2rad(10)
+    perturbed_pose[0, 48] = np.deg2rad(10)
+    perturbed_pose[0, 27] = np.deg2rad(10)
+    perturbed_pose[0, 34] = np.deg2rad(10)
+    perturbed_pose[0, 52] = np.deg2rad(10)
+    perturbed_pose[0, 22] = np.deg2rad(10)
+    perturbed_pose[0, 18] = np.deg2rad(10)
+    perturbed_pose[0, 47] = np.deg2rad(10)
+    perturbed_pose[0, 62] = np.deg2rad(10)
     perturbed_pose = Variable(perturbed_pose, requires_grad=True)
     canonical_pose0 = torch.zeros(2).view(1, -1).to(device)
     canonical_pose1 = torch.zeros(35).view(1, -1).to(device)
