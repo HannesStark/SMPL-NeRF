@@ -159,7 +159,7 @@ def main():
     if arm_only:
         optim = torch.optim.Adam([arm_angle_l, arm_angle_r], lr=1e-2)
     else:
-        optim = torch.optim.Adam(list(perturbed_pose), lr=1e-2)
+        optim = torch.optim.Adam([perturbed_pose], lr=1e-2)
     results = []
     arm_parameters_l = []
     arm_parameters_r = []
