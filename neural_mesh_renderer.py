@@ -87,7 +87,6 @@ def main():
     args = parse_arguments()
 
     experiment_name = 'change_arms_2_betas'
-    arm_only = False
     torch.autograd.set_detect_anomaly(True)
     smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
     uv_map_file_name = "textures/smpl_uv_map.npy"
@@ -99,34 +98,41 @@ def main():
 
     model = smplx.create(smpl_file_name, model_type='smpl')
     model = model.to(device)
+    specific_angles_only = True
+    perturb_betas = True
     betas = torch.tensor([[-0.3596, -1.0232, -1.7584, -2.0465, 0.3387,
                            -0.8562, 0.8869, 0.5013, 0.5338, -0.0210]]).to(device)
-    perturbed_betas = Variable(torch.tensor([[0.3596, -1.0232, 1.7584, -2.0465, -0.3387,
-                           0.8562, 0.8869, -0.5013, 0.5338, 0.0210]]).to(device), requires_grad=True)
+    if perturb_betas:
+        perturbed_betas = Variable(torch.tensor([[0.3596, -1.0232, 1.7584, -2.0465, -0.3387,
+                                                  0.8562, 0.8869, -0.5013, 0.5338, 0.0210]]).to(device),
+                                   requires_grad=True)
+    else:
+        perturb_betas = betas
     expression = torch.tensor([[2.7228, -1.8139, 0.6270, -0.5565, 0.3251,
                                 0.5643, -1.2158, 1.4149, 0.4050, 0.6516]]).to(device)
     perturbed_pose = torch.zeros(69).view(1, -1).to(device)
     perturbed_pose[0, 38] = -np.deg2rad(60)
     perturbed_pose[0, 41] = np.deg2rad(60)
-    perturbed_pose[0, 2] = np.deg2rad(60)
     perturbed_pose = Variable(perturbed_pose, requires_grad=True)
-    canonical_pose1 = torch.zeros(38).view(1, -1).to(device)
+    canonical_pose0 = torch.zeros(2).view(1, -1).to(device)
+    canonical_pose1 = torch.zeros(36).view(1, -1).to(device)
     canonical_pose2 = torch.zeros(2).view(1, -1).to(device)
     canonical_pose3 = torch.zeros(27).view(1, -1).to(device)
     arm_angle_l = Variable(torch.tensor([-np.deg2rad(60)]).float().view(1, -1).to(device), requires_grad=True)
     arm_angle_r = Variable(torch.tensor([np.deg2rad(60)]).float().view(1, -1).to(device), requires_grad=True)
+    leg_angle_l = Variable(torch.tensor([np.deg2rad(60)]).float().view(1, -1).to(device), requires_grad=True)
 
     canonical_output = model(betas=betas, expression=expression,
                              return_verts=True, body_pose=None)
 
     # Normalize vertices
-    #output = model(betas=betas, expression=expression,
+    # output = model(betas=betas, expression=expression,
     #               return_verts=True, body_pose=perturbed_pose)
 
-    #vertices_goal = output.vertices[0]
-    #vertices_abs_max = torch.abs(vertices_goal).max().detach()
-    #vertices_min = vertices_goal.min(0)[0][None, :].detach()
-    #vertices_max = vertices_goal.max(0)[0][None, :].detach()
+    # vertices_goal = output.vertices[0]
+    # vertices_abs_max = torch.abs(vertices_goal).max().detach()
+    # vertices_min = vertices_goal.min(0)[0][None, :].detach()
+    # vertices_max = vertices_goal.max(0)[0][None, :].detach()
 
     faces = torch.tensor(model.faces * 1.0).to(device)
 
@@ -150,7 +156,7 @@ def main():
     true_image = images[0].permute(1, 2, 0)
     true_image = true_image.detach()
 
-    if arm_only:
+    if specific_angles_only:
         optim = torch.optim.Adam([arm_angle_l, arm_angle_r], lr=1e-2)
     else:
         optim = torch.optim.Adam([perturbed_pose], lr=1e-2)
@@ -160,9 +166,11 @@ def main():
     losses = []
     for i in range(200):
         optim.zero_grad()
-        if arm_only:
-            perturbed_pose = torch.cat([canonical_pose1, arm_angle_l, canonical_pose2, arm_angle_r, canonical_pose3],
-                                       dim=-1)
+        if specific_angles_only:
+            perturbed_pose = torch.cat(
+                [canonical_pose0, leg_angle_l, canonical_pose1, arm_angle_l, canonical_pose2, arm_angle_r,
+                 canonical_pose3],
+                dim=-1)
         output = model(betas=perturbed_betas, expression=expression,
                        return_verts=True, body_pose=perturbed_pose)
 
@@ -181,7 +189,7 @@ def main():
         optim.step()
 
         results.append((255 * image.permute(1, 2, 0).detach().cpu().numpy()).astype(np.uint8))
-        if arm_only:
+        if specific_angles_only:
             arm_parameters_l.append(arm_angle_l.item())
             arm_parameters_r.append(arm_angle_r.item())
         losses.append(loss.item())
@@ -190,15 +198,15 @@ def main():
 
     plt.plot(losses)
     plt.title("applied loss")
-    plt.savefig("results/" + experiment_name + "_loss.gif")
+    plt.savefig("results/" + experiment_name + "_loss.png")
     plt.clf()
     plt.plot(arm_parameters_r)
     plt.title("right arm angle")
-    plt.savefig("results/" + experiment_name + "_right.gif")
+    plt.savefig("results/" + experiment_name + "_right.png")
     plt.clf()
     plt.plot(arm_parameters_l)
     plt.title("left arm angle")
-    plt.savefig("results/" + experiment_name + "_left.gif")
+    plt.savefig("results/" + experiment_name + "_left.png")
 
 
 if __name__ == '__main__':
