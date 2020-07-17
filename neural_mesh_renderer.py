@@ -157,7 +157,7 @@ def main():
     true_image = true_image.detach()
 
     if specific_angles_only:
-        optim = torch.optim.Adam([arm_angle_l, arm_angle_r], lr=1e-2)
+        optim = torch.optim.Adam([arm_angle_l, arm_angle_r, leg_angle_l], lr=1e-2)
     else:
         optim = torch.optim.Adam([perturbed_pose], lr=1e-2)
     results = []
