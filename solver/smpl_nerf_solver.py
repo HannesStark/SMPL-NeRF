@@ -139,7 +139,7 @@ class SmplNerfSolver(NerfSolver):
                 samples.append(ray_samples.detach().cpu().numpy())
                 warps.append(warp.detach().cpu().numpy())
                 densities_list.append(densities.detach().cpu().numpy())
-                warp_magnitude = np.linalg.norm(warp.cpu(), axis=-1)  # [batchsize, number_samples]
+                warp_magnitude = np.linalg.norm(warp.detach().cpu().numpy(), axis=-1)  # [batchsize, number_samples]
                 ray_warp_magnitudes.append(warp_magnitude.mean(axis=1))  # mean over the samples => [batchsize]
                 if np.concatenate(densities_list).shape[0] >= (h * w):
                     while np.concatenate(densities_list).shape[0] >= (h * w):
