@@ -5,8 +5,27 @@ import torch
 from vedo import show, Mesh
 
 def load_pose_sequence(file_path: str, device: str, visualize: str = False) -> torch.Tensor:
-    npz_bdata_path = '../SMPLs/ACCAD/ACCAD/Male1Walking_c3d/Walk B17 - Walk 2 hop 2 walk_poses.npz' # the path to body data
-    smpl_file_name = "../SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
+    """
+    Load pose parameters from an AMASS-sequence.
+    (The SMPL model requires an (1, 69)-tensor but the AMASS pose-sequence
+     contains only 66 pose parameters --> set the remaining pose parameters
+     to zero?)
+
+    Parameters
+    ----------
+    file_path : str
+        path to .npz sequence file.
+    device : str
+        'cpu' or 'cuda:0'.
+    visualize : str, optional
+        visualize frames from the sequence with vedo. The default is False.
+
+    Returns
+    -------
+    pose_sequence : torch.Tensor ([n_frames, 1, 69])
+        pose tensor for SMPL model.
+
+    """
     bdata = np.load(npz_bdata_path)
     n_frames = bdata['poses'].shape[0]
     # print('Data keys available:%s'%list(bdata.keys()))
@@ -19,6 +38,7 @@ def load_pose_sequence(file_path: str, device: str, visualize: str = False) -> t
     pose_sequence[..., :63] = torch.Tensor(bdata['poses'][:, 3:66])
     pose_sequence = pose_sequence.view(-1, 1, 69)
     if visualize:
+        smpl_file_name = "../SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
         fId = 0 # frame id of the mocap sequence
         frames = np.arange(0, n_frames, 10)
         for fId in frames:
