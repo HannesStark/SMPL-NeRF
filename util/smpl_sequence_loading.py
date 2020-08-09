@@ -26,7 +26,7 @@ def load_pose_sequence(file_path: str, device: str, visualize: str = False) -> t
         pose tensor for SMPL model.
 
     """
-    bdata = np.load(npz_bdata_path)
+    bdata = np.load(file_path)
     n_frames = bdata['poses'].shape[0]
     # print('Data keys available:%s'%list(bdata.keys()))
     # print('Vector poses has %d elements for each of %d frames.'%(bdata['poses'].shape[1], bdata['poses'].shape[0]))
@@ -45,7 +45,7 @@ def load_pose_sequence(file_path: str, device: str, visualize: str = False) -> t
             # root_orient = torch.Tensor(bdata['poses'][fId:fId+1, :3]).to(device) # controls the global root orientation
             # pose_body = torch.Tensor(bdata['poses'][fId:fId+1, 3:66]).to(device) # controls the body
             # pose_hand = torch.Tensor(bdata['poses'][fId:fId+1, 66:]).to(device) # controls the finger articulation
-            # betas = torch.Tensor(bdata['betas'][:10][np.newaxis]).to(device) # controls the body shape
+            betas = torch.Tensor(bdata['betas'][:10][np.newaxis]).to(device) # controls the body shape
             # dmpls = torch.Tensor(bdata['dmpls'][fId:fId+1]).to(device) # controls soft tissue dynamics
             model = smplx.create(smpl_file_name, model_type='smpl')
             model = model.to(device)
@@ -56,7 +56,6 @@ def load_pose_sequence(file_path: str, device: str, visualize: str = False) -> t
             smpl_mesh = Mesh([vertices, faces], alpha=0.5)
             show([smpl_mesh], at=0)
         
-            print(pose)
     return pose_sequence
 
 if __name__ == "__main__":
