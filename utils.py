@@ -54,7 +54,7 @@ def get_rays(H: int, W: int, focal: float,
 
 def modified_softmax(x):
     exp = torch.exp(x - torch.max(x))
-    exp.register_hook(lambda x: print_max('in', x))
+    #exp.register_hook(lambda x: print_max('in', x))
     return (exp - torch.exp(-torch.max(x))) / exp.sum(-1, keepdim=True)
 
 def print_max(string, x):

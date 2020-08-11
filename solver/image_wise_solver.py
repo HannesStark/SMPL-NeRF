@@ -1,16 +1,18 @@
 import torch
 import numpy as np
 
+from datasets.sub_dataset import SubDataset
 from models.dynamic_pipeline import DynamicPipeline
+from models.image_wise_pipeline import ImageWisePipeline
 from solver.nerf_solver import NerfSolver
-from utils import PositionalEncoder, tensorboard_rerenders, vedo_data
+from utils import PositionalEncoder, tensorboard_rerenders, vedo_data, modified_softmax, raw2outputs
+from torch.utils.data import TensorDataset, DataLoader
 
 
-class DynamicSolver(NerfSolver):
+class ImageWiseSolver(NerfSolver):
     '''
-    Solver for the full pipeline with smpl estimator that produces an smpl that is used to calculate the warp
-    which is added to each sample that is then passed to the NeRF to get an output. The loss of the output is taken
-    and backpropagated to optimize the NeRF and the smpl estimator.
+    Solver for a dataset of images and the corresponding rays such that an the warp of each ray can be calculated and the
+    batching happens in an image.
     '''
 
     def __init__(self, model_coarse, model_fine, smpl_estimator, smpl_model, positions_encoder: PositionalEncoder,
@@ -19,7 +21,7 @@ class DynamicSolver(NerfSolver):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.smpl_estimator = smpl_estimator.to(self.device)
         self.smpl_model = smpl_model.to(self.device)
-        super(DynamicSolver, self).__init__(model_coarse, model_fine, positions_encoder, directions_encoder, args,
+        super(ImageWiseSolver, self).__init__(model_coarse, model_fine, positions_encoder, directions_encoder, args,
                                             optim, loss_func)
         print('estimator params', list(self.smpl_estimator.parameters()))
         self.optim = optim(
@@ -27,7 +29,7 @@ class DynamicSolver(NerfSolver):
             **self.optim_args_merged)
 
     def init_pipeline(self):
-        return DynamicPipeline(self.model_coarse, self.model_fine, self.smpl_estimator, self.smpl_model,
+        return ImageWisePipeline(self.model_coarse, self.model_fine, self.smpl_estimator, self.smpl_model,
                                self.args,
                                self.positions_encoder,
                                self.directions_encoder)
@@ -63,20 +65,28 @@ class DynamicSolver(NerfSolver):
             train_loss = 0
             train_coarse_loss = 0
             train_fine_loss = 0
-            for i, data in enumerate(train_loader):
-                for j, element in enumerate(data):
-                    data[j] = element.to(self.device)
-                rgb_truth = data[-1]
+            for i, image_batch in enumerate(train_loader):
+                for j, element in enumerate(image_batch):
+                    image_batch[j] = element[0].to(self.device)
+                ray_samples, samples_translations, samples_directions, z_vals, rgb = image_batch
 
-                print('iter 1')
-                rgb, rgb_fine, warp, ray_samples, warped_samples, densities = self.pipeline(data)
+                sub_dataset = SubDataset(ray_samples, samples_translations, samples_directions, rgb)
+                dataloader = DataLoader(sub_dataset, args.batchsize, shuffle=True, num_workers=0)
 
-                self.optim.zero_grad()
-                loss, loss_coarse, loss_fine, = self.loss(rgb, rgb_fine, rgb_truth,
-                                                          warp, densities,
-                                                          warped_samples)
+                for j, ray_batch in enumerate(dataloader):
+                    for j, element in enumerate(ray_batch):
+                        ray_batch[j] = element.to(self.device)
+                    rgb_truth = ray_batch[-1]
 
-                loss.backward()
+
+                    gb, rgb_fine, warp, ray_samples, warped_samples, densities = self.pipeline(ray_batch)
+
+                    self.optim.zero_grad()
+                    loss, loss_coarse, loss_fine, = self.loss(rgb, rgb_fine, rgb_truth,
+                                                              warp, densities,
+                                                              warped_samples)
+
+                    loss.backward()
 
 
                 self.optim.step()

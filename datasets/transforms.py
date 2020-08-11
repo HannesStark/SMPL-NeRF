@@ -57,7 +57,7 @@ class CoarseSampling():
 
     def __call__(self, ray):
         """
-        Performs coars sampling on ray
+        Performs coarse sampling on ray
 
         Parameters
         ----------

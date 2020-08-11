@@ -7,12 +7,12 @@ from utils import PositionalEncoder, raw2outputs, modified_softmax, print_max, p
 from torch.nn import functional as F
 
 
-class DynamicPipeline(NerfPipeline):
+class ImageWisePipeline(NerfPipeline):
 
     def __init__(self, model_coarse, model_fine, smpl_estimator, smpl_model,
                  args, position_encoder: PositionalEncoder,
                  direction_encoder: PositionalEncoder):
-        super(DynamicPipeline, self).__init__(model_coarse, model_fine, args, position_encoder, direction_encoder)
+        super(ImageWisePipeline, self).__init__(model_coarse, model_fine, args, position_encoder, direction_encoder)
         self.smpl_estimator = smpl_estimator
         self.smpl_model = smpl_model
         self.global_orient = torch.zeros([1, 3], device=self.device)
@@ -33,6 +33,7 @@ class DynamicPipeline(NerfPipeline):
             """
         ray_samples, ray_translation, ray_direction, z_vals, images, rb_truth = data
 
+        print(ray_samples.shape)
         goal_poses, expressions, betas = self.smpl_estimator(images)
         #print('betas ', self.smpl_estimator.betas)
         #print('expression ', self.smpl_estimator.expression)
