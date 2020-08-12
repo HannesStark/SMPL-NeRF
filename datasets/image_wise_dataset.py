@@ -96,6 +96,13 @@ class ImageWiseDataset(Dataset):
         z_vals = lower + (upper - lower) * np.random.rand()
         rays_samples = rays_translation[:, None, :] + rays_direction[:, None, :] * np.repeat(z_vals[None, :, None], len(rgb), axis=0)  # [N_samples, 3]
 
+        rays_samples = torch.from_numpy(rays_samples).float()
+        rays_translation = torch.from_numpy(rays_translation).float()
+        rays_direction = torch.from_numpy(rays_direction).float()
+        z_vals = torch.from_numpy(z_vals).float()
+        rgb = (np.array(rgb) / 255.).astype(np.float32)
+        rgb = torch.from_numpy(rgb).float()
+
         return rays_samples, rays_translation, rays_direction, z_vals, rgb
 
     def __len__(self) -> int:

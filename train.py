@@ -15,6 +15,7 @@ from datasets.transforms import CoarseSampling, ToTensor, NormalizeRGB, Normaliz
 from datasets.vertex_sphere_dataset import VertexSphereDataset
 from datasets.original_nerf_dataset import OriginalNerfDataset
 from models.debug_model import DebugModel
+from models.dummy_image_wise_estimator import DummyImageWiseEstimator
 from models.dummy_smpl_estimator_model import DummySmplEstimatorModel
 from models.render_ray_net import RenderRayNet
 from models.warp_field_net import WarpFieldNet
@@ -191,7 +192,10 @@ def train():
         smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
         smpl_model = smplx.create(smpl_file_name, model_type='smpl')
         smpl_model.batchsize = args.batchsize
-        smpl_estimator = DummySmplEstimatorModel(torch.tensor(train_data.goal_poses), train_data.betas, train_data.expression)
+        false_pose = torch.zeros(69).view(1, -1)
+        false_pose[0, 38] = np.deg2rad(45)
+        false_pose[0, 41] = np.deg2rad(30)
+        smpl_estimator = DummyImageWiseEstimator(false_pose, train_data.betas)
         solver = ImageWiseSolver(model_fine, model_coarse, smpl_estimator, smpl_model, position_encoder,
                                direction_encoder, args)
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
