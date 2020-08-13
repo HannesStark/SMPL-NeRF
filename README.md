@@ -21,7 +21,7 @@ tensorboard --logdir=logs/summaries --port=6006
 Navigate to `localhost:6006` in your browser and watch the model train.
 ## Requirements
 
-- PyTorch 1.4 or newer
+- PyTorch >=1.4
 - matplotlib
 - numpy
 - imageio
@@ -52,6 +52,13 @@ python create_dataset.py --dataset=pix2pix --save_dir=baseline/pytorch-CycleGAN-
 cd baseline/pytorch-CycleGAN-and-pix2pix/
 python train.py --gpu_ids=0 --model=pix2pix --dataroot=datasets/smpl --name=SMPL_pix2pix --direction=BtoA --save_epoch_freq=50
 ```
+
+
+## Model Types
+
+- nerf: the vanilla NeRF
+- image_wise_dynamic: the rays are not shuffeled between the image during processing so that the 
+warp for every ray is only calculated once.
 
 ### NeRF is from the Paper:
 

@@ -1,6 +1,6 @@
 experiment_name = append_to_nerf_with_many_images
 number_validation_images = 2
-model_type = smpl_nerf
+model_type = image_wise_dynamic
 dataset_dir = data
 
 netdepth = 8

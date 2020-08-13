@@ -6,6 +6,7 @@ from torch.utils.data import Subset
 from torchvision.transforms import transforms
 from config_parser import config_parser
 from datasets.dummy_dynamic_dataset import DummyDynamicDataset
+from datasets.image_wise_dataset import ImageWiseDataset
 from datasets.rays_from_images_dataset import RaysFromImagesDataset
 from datasets.single_sample_dataset import SmplDataset
 from datasets.smpl_nerf_dataset import SmplNerfDataset
@@ -14,10 +15,12 @@ from datasets.transforms import CoarseSampling, ToTensor, NormalizeRGB, Normaliz
 from datasets.vertex_sphere_dataset import VertexSphereDataset
 from datasets.original_nerf_dataset import OriginalNerfDataset
 from models.debug_model import DebugModel
+from models.dummy_image_wise_estimator import DummyImageWiseEstimator
 from models.dummy_smpl_estimator_model import DummySmplEstimatorModel
 from models.render_ray_net import RenderRayNet
 from models.warp_field_net import WarpFieldNet
 from solver.dynamic_solver import DynamicSolver
+from solver.image_wise_solver import ImageWiseSolver
 from solver.vertex_sphere_solver import VertexSphereSolver
 from solver.append_to_nerf_solver import AppendToNerfSolver
 from solver.nerf_solver import NerfSolver
@@ -38,7 +41,7 @@ def train():
     parser = config_parser()
     args = parser.parse_args()
     if args.model_type not in ["nerf", "smpl_nerf", "append_to_nerf", "smpl", "warp", 'vertex_sphere', "smpl_estimator",
-                               "original_nerf", 'dummy_dynamic']:
+                               "original_nerf", 'dummy_dynamic', 'image_wise_dynamic']:
         raise Exception("The model type ", args.model_type, " does not exist.")
 
     transform = transforms.Compose(
@@ -72,6 +75,9 @@ def train():
     elif args.model_type == "dummy_dynamic":
         train_data = DummyDynamicDataset(train_dir, os.path.join(train_dir, 'transforms.json'), transform)
         val_data = DummyDynamicDataset(val_dir, os.path.join(val_dir, 'transforms.json'), transform)
+    elif args.model_type == 'image_wise_dynamic':
+        train_data = ImageWiseDataset(train_dir, os.path.join(train_dir, 'transforms.json'), transform, args)
+        val_data = ImageWiseDataset(val_dir, os.path.join(val_dir, 'transforms.json'), transform, args)
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=args.batchsize, shuffle=True, num_workers=0)
     val_loader = torch.utils.data.DataLoader(val_data, batch_size=args.batchsize_val, shuffle=False, num_workers=0)
     position_encoder = PositionalEncoder(args.number_frequencies_postitional, args.use_identity_positional)
@@ -175,8 +181,22 @@ def train():
         smpl_model = smplx.create(smpl_file_name, model_type='smpl')
         smpl_model.batchsize = args.batchsize
         smpl_estimator = DummySmplEstimatorModel(train_data.goal_poses, train_data.betas, train_data.expression)
-        parameters = smpl_estimator.parameters()
         solver = DynamicSolver(model_fine, model_coarse, smpl_estimator, smpl_model, position_encoder,
+                               direction_encoder, args)
+        solver.train(train_loader, val_loader, train_data.h, train_data.w)
+        save_run(solver.writer.log_dir, [model_coarse, model_fine, smpl_estimator],
+                 ['model_coarse.pt', 'model_fine.pt', 'smpl_estimator.pt'], parser)
+    elif args.model_type == "image_wise_dynamic":
+        train_loader = torch.utils.data.DataLoader(train_data, batch_size=1, shuffle=True, num_workers=0)
+        val_loader = torch.utils.data.DataLoader(val_data, batch_size=1, shuffle=False, num_workers=0)
+        smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
+        smpl_model = smplx.create(smpl_file_name, model_type='smpl')
+        smpl_model.batchsize = args.batchsize
+        false_pose = torch.zeros(69).view(1, -1)
+        false_pose[0, 38] = np.deg2rad(45)
+        false_pose[0, 41] = np.deg2rad(30)
+        smpl_estimator = DummyImageWiseEstimator(false_pose, train_data.betas)
+        solver = ImageWiseSolver(model_fine, model_coarse, smpl_estimator, smpl_model, position_encoder,
                                direction_encoder, args)
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
         save_run(solver.writer.log_dir, [model_coarse, model_fine, smpl_estimator],

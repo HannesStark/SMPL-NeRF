@@ -21,8 +21,7 @@ class DynamicSolver(NerfSolver):
         self.smpl_model = smpl_model.to(self.device)
         super(DynamicSolver, self).__init__(model_coarse, model_fine, positions_encoder, directions_encoder, args,
                                             optim, loss_func)
-        print(list(model_fine.parameters()))
-        print(list(self.smpl_estimator.parameters()))
+        print('estimator params', list(self.smpl_estimator.parameters()))
         self.optim = optim(
             list(model_coarse.parameters()) + list(model_fine.parameters()) + list(self.smpl_estimator.parameters()),
             **self.optim_args_merged)
@@ -69,6 +68,7 @@ class DynamicSolver(NerfSolver):
                     data[j] = element.to(self.device)
                 rgb_truth = data[-1]
 
+                print('iter 1')
                 rgb, rgb_fine, warp, ray_samples, warped_samples, densities = self.pipeline(data)
 
                 self.optim.zero_grad()
@@ -128,6 +128,7 @@ class DynamicSolver(NerfSolver):
                 for j, element in enumerate(data):
                     data[j] = element.to(self.device)
                 rgb_truth = data[-1]
+
 
                 rgb, rgb_fine, warp, ray_samples, warped_samples, densities = self.pipeline(data)
 

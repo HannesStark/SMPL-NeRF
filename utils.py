@@ -54,7 +54,7 @@ def get_rays(H: int, W: int, focal: float,
 
 def modified_softmax(x):
     exp = torch.exp(x - torch.max(x))
-    exp.register_hook(lambda x: print_max('in', x))
+    #exp.register_hook(lambda x: print_max('in', x))
     return (exp - torch.exp(-torch.max(x))) / exp.sum(-1, keepdim=True)
 
 def print_max(string, x):
@@ -448,6 +448,9 @@ def vedo_data(writer: SummaryWriter, image_densities, image_samples, image_warps
         densities_distribution = image_densities / image_densities.sum()
         indices_densities = np.random.choice(np.arange(len(image_densities)),
                                            max_number_saved_points, p=densities_distribution)
+    print(image_densities.shape)
+    print(image_samples.shape)
+    print(image_warps.shape)
     image_densities = image_densities[indices_densities]
     samples_densities = image_samples[indices_densities]
     if image_warps is not None:
@@ -459,6 +462,7 @@ def vedo_data(writer: SummaryWriter, image_densities, image_samples, image_warps
             indices_warps = np.random.choice(np.arange(len(image_warps)),
                                                  max_number_saved_points, p=warp_distribution)
         image_warps = image_warps[indices_warps]
+
         samples_warps = image_samples[indices_warps]
     else:
         image_warps = []

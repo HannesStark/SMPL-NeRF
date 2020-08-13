@@ -55,12 +55,12 @@ class DynamicPipeline(NerfPipeline):
         distances = torch.norm(distances, dim=-1)  # [batchsize, number_samples, number_vertices]
         attentions_1 = distances - self.args.warp_radius  # [batchsize, number_samples, number_vertices]
         attentions_2 = F.relu(-attentions_1)
-        print('iter')
-        attentions_2.register_hook(lambda x: print_number_nans('pre', x))
-        attentions_2.register_hook(lambda x: print_max('pre',x))
+        #print('iter')
+        #attentions_2.register_hook(lambda x: print_number_nans('pre', x))
+        #attentions_2.register_hook(lambda x: print_max('pre',x))
 
         attentions_3 = modified_softmax(self.args.warp_temperature * attentions_2)
-        attentions_3.register_hook(lambda x: print_max('post',x))
+        #attentions_3.register_hook(lambda x: print_max('post',x))
         warps = warps[:, None, :, :] * attentions_3[:, :, :, None]  # [batchsize, number_samples, number_vertices, 3]
         warps = warps.sum(dim=-2)  # [batchsize, number_samples, 3]
         warped_samples = ray_samples + warps

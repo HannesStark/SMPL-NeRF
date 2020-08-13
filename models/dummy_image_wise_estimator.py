@@ -3,20 +3,19 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class DummySmplEstimatorModel(nn.Module):
+class DummyImageWiseEstimator(nn.Module):
     '''
             Uses indices instead of images to fetch preset expressions betas and goal_poses that could be for example perturbed
             Is used by the dynamic_pipeline and dynamic_solver just like the real SmplEstimator
     '''
 
-    def __init__(self, goal_poses, expression, betas):
-        super(DummySmplEstimatorModel, self).__init__()
+    def __init__(self, goal_pose, betas):
+        super(DummyImageWiseEstimator, self).__init__()
 
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-        self.expression = torch.nn.Parameter(expression.data, requires_grad=False)  # [1, 10]
         self.betas = torch.nn.Parameter(betas.data, requires_grad=False)  # [1, 10]
-        self.goal_poses = torch.nn.Parameter(goal_poses.data, requires_grad=False)  # [number_images*h*w, 69]
+        self.goal_pose = torch.nn.Parameter(goal_pose.data, requires_grad=False)  # [number_images*h*w, 69]
 
 
     def forward(self, x):
@@ -24,9 +23,8 @@ class DummySmplEstimatorModel(nn.Module):
         x are indices telling the dummy estimator what image the currently processed ray is from such that the dummy
         estimator can return the correct expressions... for that ray
         '''
-        expressions = self.expression.expand(len(x), -1)
-        betas = self.betas.expand(len(x), -1)
-        return self.goal_poses[x], expressions, betas
+
+        return self.goal_pose, self.betas
 
     @property
     def is_cuda(self):
