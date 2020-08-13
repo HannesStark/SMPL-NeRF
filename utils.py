@@ -52,17 +52,21 @@ def get_rays(H: int, W: int, focal: float,
     rays_translation = np.broadcast_to(camera_transform[:3, -1], np.shape(rays_direction))
     return rays_translation, rays_direction
 
+
 def modified_softmax(x):
     exp = torch.exp(x - torch.max(x))
-    #exp.register_hook(lambda x: print_max('in', x))
+    # exp.register_hook(lambda x: print_max('in', x))
     return (exp - torch.exp(-torch.max(x))) / exp.sum(-1, keepdim=True)
 
+
 def print_max(string, x):
-    print(string,' max ', torch.max(x))
+    print(string, ' max ', torch.max(x))
     print(string, ' min ', torch.min(x))
+
 
 def print_number_nans(string, x):
     print(string, ' number nans: ', torch.isnan(x.view(-1)).sum().item())
+
 
 class GaussianMixture():
     def __init__(self, means: np.ndarray, std, device):
@@ -447,20 +451,18 @@ def vedo_data(writer: SummaryWriter, image_densities, image_samples, image_warps
     else:
         densities_distribution = image_densities / image_densities.sum()
         indices_densities = np.random.choice(np.arange(len(image_densities)),
-                                           max_number_saved_points, p=densities_distribution)
-    print(image_densities.shape)
-    print(image_samples.shape)
-    print(image_warps.shape)
+                                             max_number_saved_points, p=densities_distribution)
+
     image_densities = image_densities[indices_densities]
     samples_densities = image_samples[indices_densities]
     if image_warps is not None:
         warp_magnitude = np.linalg.norm(image_warps, axis=-1)
-        if warp_magnitude.sum()==0:
+        if warp_magnitude.sum() == 0:
             indices_warps = np.arange(max_number_saved_points)
         else:
             warp_distribution = warp_magnitude / (warp_magnitude.sum())
             indices_warps = np.random.choice(np.arange(len(image_warps)),
-                                                 max_number_saved_points, p=warp_distribution)
+                                             max_number_saved_points, p=warp_distribution)
         image_warps = image_warps[indices_warps]
 
         samples_warps = image_samples[indices_warps]
@@ -470,6 +472,7 @@ def vedo_data(writer: SummaryWriter, image_densities, image_samples, image_warps
     np.savez(os.path.join(logdir, "densities_samples_warps_epoch_{}_image_{}".format(epoch, image_idx)) + '.npz',
              densities=image_densities, samples_density=samples_densities, samples_warp=samples_warps,
              warps=image_warps)
+
 
 def mse2psnr(mse):
     # For numerical stability, avoid a zero mse loss.

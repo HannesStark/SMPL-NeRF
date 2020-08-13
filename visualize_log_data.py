@@ -80,7 +80,6 @@ def visualize_log_data():
                                                                  densities_samples_warps['samples_density'], \
                                                                  densities_samples_warps['warps'], \
                                                                  densities_samples_warps['samples_warp']
-            print(len(warps_samples))
 
             if args.mode == "density":
                 max_density = np.max(densities)

@@ -56,8 +56,6 @@ class ImageWiseSolver(NerfSolver):
             self.model_fine.train()
             self.smpl_estimator.train()
             train_loss = 0
-            train_coarse_loss = 0
-            train_fine_loss = 0
             for i, image_batch in enumerate(train_loader):
                 for j, element in enumerate(image_batch):
                     image_batch[j] = element[0].to(self.device)
@@ -150,7 +148,7 @@ class ImageWiseSolver(NerfSolver):
                 ray_samples, samples_translations, samples_directions, z_vals, rgb = image_batch
 
                 sub_dataset = SubDataset(ray_samples, samples_translations, samples_directions, rgb)
-                dataloader = DataLoader(sub_dataset, args.batchsize, shuffle=True, num_workers=0)
+                dataloader = DataLoader(sub_dataset, args.batchsize, shuffle=False, num_workers=0)
                 iter_per_image_val = len(dataloader)
                 goal_pose, betas = self.smpl_estimator(1)
 
