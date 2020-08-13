@@ -36,13 +36,16 @@ def load_pose_sequence(file_path: str, device: str, visualize: str = False) -> t
     # print('The subject of the mocap sequence is %s.'%bdata['gender'])
     pose_sequence = torch.zeros(n_frames, 69).to(device)
     pose_sequence[..., :63] = torch.Tensor(bdata['poses'][:, 3:66])
+    print(pose_sequence[..., :3])
     pose_sequence = pose_sequence.view(-1, 1, 69)
+    root_orient = torch.Tensor(bdata['poses'][:, :3])
+    print(root_orient.shape)
     if visualize:
         smpl_file_name = "../SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
         fId = 0 # frame id of the mocap sequence
         frames = np.arange(0, n_frames, 10)
         for fId in frames:
-            # root_orient = torch.Tensor(bdata['poses'][fId:fId+1, :3]).to(device) # controls the global root orientation
+            root_orient = torch.Tensor(bdata['poses'][fId:fId+1, :3]).to(device) # controls the global root orientation
             # pose_body = torch.Tensor(bdata['poses'][fId:fId+1, 3:66]).to(device) # controls the body
             # pose_hand = torch.Tensor(bdata['poses'][fId:fId+1, 66:]).to(device) # controls the finger articulation
             betas = torch.Tensor(bdata['betas'][:10][np.newaxis]).to(device) # controls the body shape
@@ -54,12 +57,12 @@ def load_pose_sequence(file_path: str, device: str, visualize: str = False) -> t
             vertices = output.vertices.detach().cpu().numpy().squeeze()
             faces = model.faces
             smpl_mesh = Mesh([vertices, faces], alpha=0.5)
-            show([smpl_mesh], at=0)
+            show([smpl_mesh], at=root_orient)
         
-    return pose_sequence
+    return pose_sequence, root_orient
 
 if __name__ == "__main__":
     npz_bdata_path = '../SMPLs/ACCAD/ACCAD/Male1Walking_c3d/Walk B17 - Walk 2 hop 2 walk_poses.npz' # the path to body data
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    load_pose_sequence(npz_bdata_path, device, visualize=True)
+    load_pose_sequence(npz_bdata_path, device, visualize=False)
     

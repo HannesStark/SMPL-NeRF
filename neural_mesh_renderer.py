@@ -38,7 +38,7 @@ def parse_arguments():
                         help='Path to the mesh OBJ file')
     parser.add_argument('--experiment_name', type=str, default="baseline",
                         help='Experiment name')
-    parser.add_argument('--save_path', type=str, default="results",
+    parser.add_argument('--save_path', type=str, default="results/Walk B17 - Walk 2 hop 2 walk_poses",
                         help='Path to the output directory')
     parser.add_argument('--camera_distance', type=float, default=2.4,
                         help='Distance from camera to object center')
@@ -64,8 +64,11 @@ def parse_arguments():
                         help='Optimization iterations')
     parser.add_argument('--image_size', type=int, default=256,
                         help='Image size')
-    parser.add_argument('--sequence_file', type=str, default='SMPLs/Walk B17 - Walk 2 hop 2 walk_poses.npz',
+    parser.add_argument('--sequence_file', type=str, default='SMPLs/SMPL_sequences/Walk B17 - Walk 2 hop 2 walk_poses.npz',
                         help='Path to .npz  sequence')
+    parser.add_argument('--angle_prior', type=int, default=0,
+                        help='SMPLifyAnglePrior')
+    
     return parser.parse_args()
 
 def get_gaussian_filter(kernel_size, sigma, channels=3):
@@ -257,6 +260,8 @@ def optimize_sequence(gt_poses, args, save_path):
     texture_file_name = "textures/texture.jpg"
     with open(texture_file_name, 'rb') as file:
         texture = Image.open(BytesIO(file.read()))
+    results = []
+    losses = []
     model = smplx.create(smpl_file_name, model_type='smpl')
     model = model.to(device)
 
@@ -266,92 +271,106 @@ def optimize_sequence(gt_poses, args, save_path):
     betas = torch.tensor([[-0.3596, -1.0232, -1.7584, -2.0465, 0.3387,
                            -0.8562, 0.8869, 0.5013, 0.5338, -0.0210]]).to(device)
     
-    perturbed_pose = torch.ones(69).view(1, -1).to(device) * np.deg2rad(4)
+    perturbed_pose = torch.zeros(69).view(1, -1).to(device)
 
     perturbed_pose = Variable(perturbed_pose, requires_grad=True)
+    for gt_pose in gt_poses[:3]:
+        output_true = model(betas=betas, return_verts=True, body_pose=gt_poses[0])
     
-    output_true = model(betas=betas, return_verts=True, body_pose=gt_poses[0])
-
-    faces = torch.tensor(model.faces * 1.0).to(device)
-
-    mesh_true = TriangleMesh.from_tensors(output_true.vertices[0], faces)
-    vertices_true = mesh_true.vertices.unsqueeze(0)
-
-    faces = mesh_true.faces.unsqueeze(0)
-
-    textures = torch.ones(
-        1, faces.shape[1], args.texture_size, args.texture_size, args.texture_size,
-        3, dtype=torch.float32,
-        device='cuda'
-    )
-    renderer_full = Renderer(camera_mode='look_at', image_size=args.image_size)
-    azimuth = 180
-    renderer_full.eye = get_points_from_angles(
-        args.camera_distance, args.elevation, azimuth)
-    images, _, _ = renderer_full(vertices_true, faces, textures)
-    true_image = images[0].permute(1, 2, 0)
-    if args.gaussian_blur:
-        true_image = gaussian_filter(true_image.unsqueeze(0).permute(0,3,2,1)).permute(0,3,2,1)[0]
-    true_image = true_image.detach()
-    imageio.imwrite(save_path+"/true_image.png", 
-                    (255 * true_image.detach().cpu().numpy()).astype(np.uint8))
-
-    optim = torch.optim.Adam([perturbed_pose], lr=1e-2)
-    results = []
-    beta_diffs = []
-    losses = []
-    image_size = args.image_size
-    if args.coarse_to_fine:
-        image_size = int(image_size/2**args.coarse_to_fine_steps)
-    renderer = renderer_full
-    for i in range(args.iterations):
-        if args.coarse_to_fine and i % int(args.iterations/args.coarse_to_fine_steps) == 0:
-            renderer = Renderer(camera_mode='look_at', image_size=image_size)
-            azimuth = 180
-            renderer.eye = get_points_from_angles(
-                args.camera_distance, args.elevation, azimuth)
-            images, _, _ = renderer(vertices_true, faces, textures)
-            true_image = images[0].permute(1, 2, 0)
-            if args.gaussian_blur:
-                true_image = gaussian_filter(true_image.unsqueeze(0).permute(0,3,2,1)).permute(0,3,2,1)[0]
-            true_image = true_image.detach()
-            image_size *= 2
-        optim.zero_grad()
-        
-        output = model(betas=betas,
-                       return_verts=True, body_pose=perturbed_pose)
-
-        vertices_goal = output.vertices[0]
-
-        mesh = TriangleMesh.from_tensors(vertices_goal, faces)
-
-        vertices = vertices_goal.unsqueeze(0)
-        # vertices = pre_normalize_vertices(mesh.vertices, vertices_min, vertices_max,
-        #                              vertices_abs_max).unsqueeze(0)
-
-        images, _, _ = renderer(vertices, faces, textures)
-        image = images[0].permute(1, 2, 0)
-        if i == 0:
-            perturbed_images, _, _ = renderer_full(vertices, faces, textures)
-            perturbed_image = perturbed_images[0].permute(1, 2, 0)
-            perturbed_image = perturbed_image.detach()
-            imageio.imwrite(save_path+"/perturbed_image.png", 
-                    (255 * perturbed_image.detach().cpu().numpy()).astype(np.uint8))
+        faces = torch.tensor(model.faces * 1.0).to(device)
+    
+        mesh_true = TriangleMesh.from_tensors(output_true.vertices[0], faces)
+        vertices_true = mesh_true.vertices.unsqueeze(0)
+    
+        faces = mesh_true.faces.unsqueeze(0)
+    
+        textures = torch.ones(
+            1, faces.shape[1], args.texture_size, args.texture_size, args.texture_size,
+            3, dtype=torch.float32,
+            device='cuda'
+        )
+        renderer_full = Renderer(camera_mode='look_at', image_size=args.image_size)
+        azimuth = 180
+        renderer_full.eye = get_points_from_angles(
+            args.camera_distance, args.elevation, azimuth)
+        images, _, _ = renderer_full(vertices_true, faces, textures)
+        true_image = images[0].permute(1, 2, 0)
         if args.gaussian_blur:
-            image = gaussian_filter(image.unsqueeze(0).permute(0, 3, 2, 1)).permute(0, 3, 2, 1)[0]
-        loss = (image - true_image).abs().mean()
-        loss.backward()
-        optim.step()
-
-        results.append((255 * image.detach().cpu().numpy()).astype(np.uint8))
-        losses.append(loss.item())
-        print("Loss: ", loss.item())
+            true_image = gaussian_filter(true_image.unsqueeze(0).permute(0,3,2,1)).permute(0,3,2,1)[0]
+        true_image = true_image.detach()
+        imageio.imwrite(save_path+"/true_image.png", 
+                        (255 * true_image.detach().cpu().numpy()).astype(np.uint8))
+    
+        optim = torch.optim.Adam([perturbed_pose], lr=1e-2)
+        
+        image_size = args.image_size
+        if args.coarse_to_fine:
+            image_size = int(image_size/2**args.coarse_to_fine_steps)
+            image_size = args.image_size
+            kernel_size = args.kernel_size
+        renderer = renderer_full
+        for i in range(args.iterations):
+            if args.coarse_to_fine and i % int(args.iterations/args.coarse_to_fine_steps) == 0:
+                renderer = Renderer(camera_mode='look_at', image_size=image_size)
+                azimuth = 180
+                renderer.eye = get_points_from_angles(
+                    args.camera_distance, args.elevation, azimuth)
+                images, _, _ = renderer(vertices_true, faces, textures)
+                true_image = images[0].permute(1, 2, 0)
+                if args.gaussian_blur:
+                    gaussian_filter = get_gaussian_filter(kernel_size, sigma=4)
+                    gaussian_filter = gaussian_filter.to(device)
+                    true_image = gaussian_filter(true_image.unsqueeze(0).permute(0,3,2,1)).permute(0,3,2,1)[0]
+                true_image = true_image.detach()
+                image_size = args.image_size #image_size *= 2
+                kernel_size = int(kernel_size/2)
+                print("kernel size: ", kernel_size)
+            optim.zero_grad()
+            
+            output = model(betas=betas,
+                           return_verts=True, body_pose=perturbed_pose)
+    
+            vertices_goal = output.vertices[0]
+    
+            mesh = TriangleMesh.from_tensors(vertices_goal, faces)
+    
+            vertices = vertices_goal.unsqueeze(0)
+            # vertices = pre_normalize_vertices(mesh.vertices, vertices_min, vertices_max,
+            #                              vertices_abs_max).unsqueeze(0)
+    
+            images, _, _ = renderer(vertices, faces, textures)
+            image = images[0].permute(1, 2, 0)
+            if i == 0:
+                perturbed_images, _, _ = renderer_full(vertices, faces, textures)
+                perturbed_image = perturbed_images[0].permute(1, 2, 0)
+                perturbed_image = perturbed_image.detach()
+                imageio.imwrite(save_path+"/perturbed_image.png", 
+                        (255 * perturbed_image.detach().cpu().numpy()).astype(np.uint8))
+            if args.gaussian_blur:
+                image = gaussian_filter(image.unsqueeze(0).permute(0, 3, 2, 1)).permute(0, 3, 2, 1)[0]
+            loss = (image - true_image).abs().mean()**2
+            
+            # angle prior for elbow and knees
+            if args.angle_prior:
+                angle_prior_idxs = np.array([52, 55, 9, 12], dtype=np.int64)
+                angle_prior_idxs = torch.tensor(angle_prior_idxs, dtype=torch.long).to(device)
+                angle_prior_signs = np.array([1, -1, -1, -1])
+                                             
+                angle_prior_signs = torch.tensor(angle_prior_signs).to(device)
+                loss += torch.sum(0.1*torch.exp(perturbed_pose[:, angle_prior_idxs] *
+                                 angle_prior_signs).pow(2))
+            loss.backward()
+            optim.step()
+    
+            results.append((255 * image.detach().cpu().numpy()).astype(np.uint8))
+            losses.append(loss.item())
+            print("Loss: ", loss.item())
     return losses, results
 
 
 def main_single_frame():
     args = parse_arguments()
-    save_path = args.save_path + args.experiment_name
+    save_path = args.save_path + '/' + args.experiment_name
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     torch.autograd.set_detect_anomaly(True)
@@ -380,7 +399,11 @@ def main_single_frame():
 def main_sequence():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     args = parse_arguments()
-    save_path = args.save_path + args.experiment_name
+    experiment_name = "gaussian_blur{}_kernel_size{}_sigma{}_coarse_to_fine{}_\
+    coarse_to_fine_steps{}_angle_prior{}".format(args.gaussian_blur, args.kernel_size, args.sigma, 
+    args.coarse_to_fine,
+        args.coarse_to_fine_steps, args.angle_prior)
+    save_path = args.save_path + '/' + experiment_name
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     gt_poses = load_pose_sequence(args.sequence_file, device)
@@ -388,7 +411,7 @@ def main_sequence():
     
     losses, results = optimize_sequence(gt_poses, args, save_path)
     imageio.mimsave(save_path +"/gif.gif", results, fps=30)
-    for idx, image in enumerate(results):
+    for idx, image in enumerate(results[::5]):
         imageio.imwrite("{}/{:03d}.png".format(save_path, idx), image)
     plt.plot(losses)
     plt.title("applied loss")
