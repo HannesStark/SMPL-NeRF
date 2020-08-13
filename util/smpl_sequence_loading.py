@@ -36,10 +36,8 @@ def load_pose_sequence(file_path: str, device: str, visualize: str = False) -> t
     # print('The subject of the mocap sequence is %s.'%bdata['gender'])
     pose_sequence = torch.zeros(n_frames, 69).to(device)
     pose_sequence[..., :63] = torch.Tensor(bdata['poses'][:, 3:66])
-    print(pose_sequence[..., :3])
     pose_sequence = pose_sequence.view(-1, 1, 69)
-    root_orient = torch.Tensor(bdata['poses'][:, :3])
-    print(root_orient.shape)
+    root_orient = torch.Tensor(bdata['poses'][:, :3].reshape(-1, 1, 3))
     if visualize:
         smpl_file_name = "../SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
         fId = 0 # frame id of the mocap sequence
