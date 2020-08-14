@@ -47,9 +47,8 @@ def config_parser():
     parser.add_argument("--warp_radius", type=float, default=0.01, help='radius around smpl vertices where the vertex can impact the warp of a sample. Used with model_type=dynamic')
     parser.add_argument("--warp_temperature", type=float, default=10000,
                         help='temperature parameter that is multiplied with input of modified softmax for calculating the attention scores that tell us according to which vertex of the smpl we warp. Used with model_type=dynamic')
-
-
-
+    parser.add_argument("--load_coarse_model", type=str, default=None,
+                        help='For testing if the smpl parameters can be optimized with a pretrained nerf model. Used by the image wise solver')
 
     parser.add_argument("--batchsize", type=int, default=2048,
                         help='batch size (number of random rays per gradient step)')

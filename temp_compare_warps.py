@@ -106,7 +106,7 @@ for sample_index in tqdm(range(number_samples), desc='Samples'):
 
     def softmax(x):
         exp = torch.exp(x - torch.max(x))
-        return (exp - torch.exp(-torch.max(x))) / exp.sum(-1, keepdim=True)
+        return exp / exp.sum(-1, keepdim=True)
 
 
     # subtract 1/number_vertices after the softmax

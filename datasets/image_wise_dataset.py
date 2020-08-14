@@ -5,8 +5,12 @@ import json
 import cv2
 import numpy as np
 import torch
+from torch.distributions import MixtureSameFamily
 from torch.utils.data import Dataset
+from trimesh.ray.ray_triangle import RayMeshIntersector
+import torch.distributions as D
 
+from render import get_smpl_mesh
 from utils import get_rays
 
 
@@ -16,7 +20,7 @@ class ImageWiseDataset(Dataset):
     uses the indices to map a ray to the goal pose that is present in the image.
     """
 
-    def __init__(self, image_directory: str, transforms_file: str,
+    def __init__(self, image_directory: str, transforms_file: str, goal_pose,
                  transform, args) -> None:
         """
         Parameters
@@ -34,6 +38,8 @@ class ImageWiseDataset(Dataset):
         self.number_samples = args.number_coarse_samples
         self.near = args.near
         self.far = args.far
+        self.args = args
+        self.goal_pose = goal_pose
 
         with open(transforms_file, 'r') as transforms_file:
             transforms_dict = json.load(transforms_file)
@@ -83,18 +89,56 @@ class ImageWiseDataset(Dataset):
         self.focal = .5 * self.w / np.tan(.5 * self.camera_angle_x)
         rays_translation, rays_direction = get_rays(self.h, self.w, self.focal, camera_transform)
 
-        rays_translation = rays_translation.reshape(-1,3)
-        rays_direction = rays_direction.reshape(-1,3)
-        rgb = image.reshape(-1,3)
-
-        t_vals = np.linspace(0., 1., self.number_samples)
-        z_vals = 1. / (1. / self.near * (1. - t_vals) + 1. / self.far * (t_vals))
+        t_vals = np.linspace(0., 1., self.args.number_coarse_samples)
+        z_vals = 1. / (1. / self.args.near * (1. - t_vals) + 1. / self.args.far * (t_vals))
         mids = .5 * (z_vals[1:] + z_vals[:-1])
         upper = np.concatenate([mids, z_vals[-1:]], -1)
         lower = np.concatenate([z_vals[:1], mids], -1)
         # get coarse samples in each bin of the ray
-        z_vals = lower + (upper - lower) * np.random.rand()
-        rays_samples = rays_translation[:, None, :] + rays_direction[:, None, :] * np.repeat(z_vals[None, :, None], len(rgb), axis=0)  # [N_samples, 3]
+        z_vals_simple = torch.from_numpy(lower + (upper - lower) * np.random.rand())
+
+        goal_mesh = get_smpl_mesh(body_pose=self.goal_pose, return_pyrender=False)
+        intersector = RayMeshIntersector(goal_mesh)
+        z_vals_image = []
+        for ray_index in range(len(rays_translation)):
+            intersections = intersector.intersects_location([rays_translation.numpy()[ray_index]],
+                                                            [rays_direction.numpy()[ray_index]])
+            canonical_intersections_points = torch.from_numpy(intersections[0])  # (N_intersects, 3)
+            if self.args.number_coarse_samples == 1:
+                if len(canonical_intersections_points) == 0:
+                    z_vals = torch.DoubleTensor([self.args.far])[0]  # [1]
+                else:
+                    distances_camera = torch.norm(canonical_intersections_points - rays_translation[ray_index],
+                                                  dim=1)
+                    z_vals = torch.min(distances_camera)  # [1]
+            elif self.args.coarse_samples_from_intersect == 1:
+                if len(canonical_intersections_points) == 0:
+                    z_vals = z_vals_simple
+                else:
+                    distances_camera = torch.norm(canonical_intersections_points - rays_translation[ray_index],
+                                                  dim=1)
+                    mean = torch.min(distances_camera)
+                    gauss = D.Normal(mean,
+                                     torch.ones_like(mean) * self.args.std_dev_coarse_sample_prior)
+                    z_vals, _ = torch.sort(gauss.sample((self.args.number_coarse_samples,)))
+            elif len(canonical_intersections_points) == 0 or self.args.coarse_samples_from_prior != 1:
+                z_vals = z_vals_simple
+            else:
+                mix = D.Categorical(torch.ones(len(canonical_intersections_points), ))
+                means = torch.norm(canonical_intersections_points - rays_translation[ray_index], dim=-1)
+                comp = D.Normal(means, torch.ones_like(means) * self.args.std_dev_coarse_sample_prior)
+                gmm = MixtureSameFamily(mix, comp)
+                z_vals = gmm.sample((self.args.number_coarse_samples,))
+            z_vals_image.append(z_vals)
+        z_vals_image = torch.stack(z_vals_image)  # [h*w, number_coarse_samples]
+        if self.args.number_coarse_samples == 1:
+            z_vals_image = z_vals_image.view(-1, 1)
+        rays_samples = rays_translation[:, None, :] + rays_direction[:, None, :] * z_vals_image[:, :,
+                                                                                   None]  # [h*w, number_coarse_samples, 3]
+
+        rays_translation = rays_translation.reshape(-1, 3)
+        rays_direction = rays_direction.reshape(-1, 3)
+        rgb = image.reshape(-1, 3)
 
         rays_samples = torch.from_numpy(rays_samples).float()
         rays_translation = torch.from_numpy(rays_translation).float()

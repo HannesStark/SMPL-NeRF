@@ -9,13 +9,14 @@ class DummyImageWiseEstimator(nn.Module):
             Is used by the dynamic_pipeline and dynamic_solver just like the real SmplEstimator
     '''
 
-    def __init__(self, goal_pose, betas):
+    def __init__(self, goal_pose, betas, ground_truth_pose=None):
         super(DummyImageWiseEstimator, self).__init__()
 
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
         self.betas = torch.nn.Parameter(betas.data, requires_grad=False)  # [1, 10]
-        self.goal_pose = torch.nn.Parameter(goal_pose.data, requires_grad=False)  # [number_images*h*w, 69]
+        self.goal_pose = torch.nn.Parameter(goal_pose.data, requires_grad=True)  # [1, 69]
+        self.ground_truth_pose = torch.nn.Parameter(ground_truth_pose.data, requires_grad=False)  # [1, 69]
 
 
     def forward(self, x):
