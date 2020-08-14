@@ -25,6 +25,7 @@ from PIL import Image
 from io import BytesIO
 import torch
 import smplx
+from util.prior import MaxMixturePrior
 
 from util.smpl_sequence_loading import load_pose_sequence
 from tqdm import tqdm
@@ -79,6 +80,10 @@ def parse_arguments():
                         help='Initialization method of pose [zero, last_frame]')
     parser.add_argument('--photo_loss', type=str, default='L1',
                         help='Photometric Loss [L1, L2]')
+    parser.add_argument('--angle_prior_weight', type=float, default=1e-2,
+                        help='Angle prior weight')
+    parser.add_argument('--pose_prior_weight', type=float, default=1e-2,
+                        help='Pose prior weight')
     
     return parser.parse_args()
 
@@ -290,8 +295,8 @@ def optimize_sequence(true_poses, gt_translation, args, save_path: str):
     losses_frames = []
     pose_losses_frames = []
     iterations = args.iterations
-    # for f_id, true_pose in tqdm(enumerate(true_poses[150:300:20])):
-    for f_id, true_pose in tqdm(enumerate(true_poses[150:170:10])):
+    # for f_id, true_pose in tqdm(enumerate(true_poses[150:170:10])):
+    for f_id, true_pose in tqdm(enumerate(true_poses[150:300:20])):
         if f_id > 0:
             iterations = 200
         losses = []
@@ -373,13 +378,15 @@ def optimize_sequence(true_poses, gt_translation, args, save_path: str):
             # angle prior for elbow and knees
             if args.angle_prior:
                 # Angle prior for knees and elbows
-                angle_prior_weight=1e-1
-                pose_prior_weight=4.78
-                angle_prior_loss = (angle_prior_weight ** 2) * angle_prior(perturbed_pose).sum(dim=-1)[0]
-                print("Prior: ", angle_prior_loss.item())
+                angle_prior_loss = (args.angle_prior_weight ** 2) * angle_prior(perturbed_pose).sum(dim=-1)[0]
+                print("Angle Prior: ", angle_prior_loss.item())
                 # Pose prior loss
-                pose_prior_loss = (pose_prior_weight ** 2) * pose_prior(perturbed_pose, betas)
-                loss += angle_prior_loss
+                pose_prior = MaxMixturePrior(prior_folder='SPIN/data',
+                                          num_gaussians=8,
+                                          dtype=torch.float32).to(device)
+                pose_prior_loss = (args.pose_prior_weight ** 2) * pose_prior(perturbed_pose, betas)[0]
+                print("Pose Prior: ", pose_prior_loss.item())
+                loss += angle_prior_loss + pose_prior_loss
                 # Pose prior loss
                 # pose_prior_loss = (pose_prior_weight ** 2) * pose_prior(body_pose, betas)
             print("Iter: {} Loss: {}".format(i, loss.item()))
@@ -387,6 +394,7 @@ def optimize_sequence(true_poses, gt_translation, args, save_path: str):
             optim.step()
             losses.append(loss.item())
             pose_losses.append(pose_loss.item())
+            imageio.imwrite("{}/iteration_{:03d}.png".format(save_path, i), (255 * image.detach().cpu().numpy()).astype(np.uint8))
         result_images.append((255 * result_image.detach().cpu().numpy()).astype(np.uint8))
         losses_frames.append(losses)
         pose_losses_frames.append(pose_losses)
@@ -424,8 +432,8 @@ def main_single_frame():
 def main_sequence():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     args = parse_arguments()
-    experiment_name = "loss{}_gaussian_blur{}_kernel_size{}_sigma{}_coarse_to_fine{}_\
-    coarse_to_fine_steps{}_angle_prior{}_blur_to_no_blur{}_blur_to_no_blur_steps{}_iterations{}_initpose{}".format(args.photo_loss, args.gaussian_blur, args.kernel_size, args.sigma, 
+    experiment_name = "loss{}_angleprior{}_poseprior{}_gaussian_blur{}_kernel_size{}_sigma{}_coarse_to_fine{}_\
+    coarse_to_fine_steps{}_angle_prior{}_blur_to_no_blur{}_blur_to_no_blur_steps{}_iterations{}_initpose{}".format(args.photo_loss, args.angle_prior_weight, args.pose_prior_weight, args.gaussian_blur, args.kernel_size, args.sigma, 
     args.coarse_to_fine, args.coarse_to_fine_steps, args.angle_prior,
     args.blur_to_no_blur, args.blur_to_no_blur_steps, args.iterations, args.init_pose)
     save_path = args.save_path + '/' + experiment_name
