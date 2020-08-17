@@ -88,6 +88,8 @@ class ImageWiseDataset(Dataset):
         # should we append a list of the different h, w of all images? right now referencing only the last h, w
         self.focal = .5 * self.w / np.tan(.5 * self.camera_angle_x)
         rays_translation, rays_direction = get_rays(self.h, self.w, self.focal, camera_transform)
+        rays_direction = rays_direction.reshape(-1, 3)
+        rays_translation = rays_translation.reshape(-1, 3)
 
         t_vals = np.linspace(0., 1., self.args.number_coarse_samples)
         z_vals = 1. / (1. / self.args.near * (1. - t_vals) + 1. / self.args.far * (t_vals))
@@ -101,16 +103,16 @@ class ImageWiseDataset(Dataset):
         intersector = RayMeshIntersector(goal_mesh)
         z_vals_image = []
         for ray_index in range(len(rays_translation)):
-            intersections = intersector.intersects_location([rays_translation.numpy()[ray_index]],
-                                                            [rays_direction.numpy()[ray_index]])
+            intersections = intersector.intersects_location([rays_translation[ray_index]],
+                                                            [rays_direction[ray_index]])
             canonical_intersections_points = torch.from_numpy(intersections[0])  # (N_intersects, 3)
             if self.args.number_coarse_samples == 1:
                 if len(canonical_intersections_points) == 0:
-                    z_vals = torch.DoubleTensor([self.args.far])[0]  # [1]
+                    z_vals = torch.DoubleTensor([self.args.far])  # [1]
                 else:
                     distances_camera = torch.norm(canonical_intersections_points - rays_translation[ray_index],
                                                   dim=1)
-                    z_vals = torch.min(distances_camera)  # [1]
+                    z_vals = torch.tensor([torch.min(distances_camera)])  # [1]
             elif self.args.coarse_samples_from_intersect == 1:
                 if len(canonical_intersections_points) == 0:
                     z_vals = z_vals_simple
@@ -133,21 +135,18 @@ class ImageWiseDataset(Dataset):
         z_vals_image = torch.stack(z_vals_image)  # [h*w, number_coarse_samples]
         if self.args.number_coarse_samples == 1:
             z_vals_image = z_vals_image.view(-1, 1)
+        rays_translation = torch.from_numpy(rays_translation)
+        rays_direction = torch.from_numpy(rays_direction)
         rays_samples = rays_translation[:, None, :] + rays_direction[:, None, :] * z_vals_image[:, :,
                                                                                    None]  # [h*w, number_coarse_samples, 3]
-
         rays_translation = rays_translation.reshape(-1, 3)
         rays_direction = rays_direction.reshape(-1, 3)
         rgb = image.reshape(-1, 3)
 
-        rays_samples = torch.from_numpy(rays_samples).float()
-        rays_translation = torch.from_numpy(rays_translation).float()
-        rays_direction = torch.from_numpy(rays_direction).float()
-        z_vals = torch.from_numpy(z_vals).float()
         rgb = (np.array(rgb) / 255.).astype(np.float32)
         rgb = torch.from_numpy(rgb).float()
 
-        return rays_samples, rays_translation, rays_direction, z_vals, rgb
+        return rays_samples.float(), rays_translation.float(), rays_direction.float(), z_vals.float(), rgb
 
     def __len__(self) -> int:
         return len(self.image_paths)

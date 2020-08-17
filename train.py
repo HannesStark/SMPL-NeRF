@@ -2,6 +2,7 @@ import os
 
 import smplx
 import torch
+from torch.autograd import Variable
 from torch.utils.data import Subset
 from torchvision.transforms import transforms
 from config_parser import config_parser
@@ -77,10 +78,14 @@ def train():
         train_data = DummyDynamicDataset(train_dir, os.path.join(train_dir, 'transforms.json'), transform)
         val_data = DummyDynamicDataset(val_dir, os.path.join(val_dir, 'transforms.json'), transform)
     elif args.model_type == 'image_wise_dynamic':
-        false_pose = torch.zeros(69).view(1, -1)
-        false_pose[0, 38] = np.deg2rad(45)
-        false_pose[0, 41] = np.deg2rad(30)
-        train_data = ImageWiseDataset(train_dir, os.path.join(train_dir, 'transforms.json'), false_pose, transform, args)
+        canonical_pose1 = torch.zeros(38).view(1, -1)
+        canonical_pose2 = torch.zeros(2).view(1, -1)
+        canonical_pose3 = torch.zeros(27).view(1, -1)
+        arm_angle_l = torch.tensor([-np.deg2rad(65)]).float().view(1, -1)
+        arm_angle_r = torch.tensor([np.deg2rad(65)]).float().view(1, -1)
+        false_pose = torch.cat([canonical_pose1, arm_angle_l, canonical_pose2, arm_angle_r, canonical_pose3], dim=-1)
+        train_data = ImageWiseDataset(train_dir, os.path.join(train_dir, 'transforms.json'), false_pose, transform,
+                                      args)
         val_data = ImageWiseDataset(val_dir, os.path.join(val_dir, 'transforms.json'), false_pose, transform, args)
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=args.batchsize, shuffle=True, num_workers=0)
     val_loader = torch.utils.data.DataLoader(val_data, batch_size=args.batchsize_val, shuffle=False, num_workers=0)
@@ -107,7 +112,7 @@ def train():
                  ['model_coarse.pt', 'model_fine.pt', 'model_warp_field.pt'], parser)
 
         model_dependent = [human_pose_encoder, positions_dim, human_pose_dim, model_warp_field]
-        #inference_gif(solver.writer.log_dir, args.model_type, args, train_data, val_data, position_encoder,
+        # inference_gif(solver.writer.log_dir, args.model_type, args, train_data, val_data, position_encoder,
         #              direction_encoder, model_coarse, model_fine, model_dependent)
 
     elif args.model_type == 'smpl':
@@ -117,7 +122,7 @@ def train():
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
         save_run(solver.writer.log_dir, [model_coarse, model_fine],
                  ['model_coarse.pt', 'model_fine.pt'], parser)
-        #inference_gif(solver.writer.log_dir, args.model_type, args, train_data, val_data, position_encoder,
+        # inference_gif(solver.writer.log_dir, args.model_type, args, train_data, val_data, position_encoder,
         #              direction_encoder, model_coarse, model_fine, [])
 
     elif args.model_type == 'nerf' or args.model_type == "original_nerf":
@@ -126,7 +131,7 @@ def train():
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
         save_run(solver.writer.log_dir, [model_coarse, model_fine],
                  ['model_coarse.pt', 'model_fine.pt'], parser)
-        #inference_gif(solver.writer.log_dir, args.model_type, args, train_data, val_data, position_encoder,
+        # inference_gif(solver.writer.log_dir, args.model_type, args, train_data, val_data, position_encoder,
         #              direction_encoder, model_coarse, model_fine, [])
 
     elif args.model_type == 'warp':
@@ -168,7 +173,7 @@ def train():
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
         save_run(solver.writer.log_dir, [model_coarse, model_fine],
                  ['model_coarse.pt', 'model_fine.pt'], parser)
-        #inference_gif(solver.writer.log_dir, args.model_type, args, train_data, val_data, position_encoder,
+        # inference_gif(solver.writer.log_dir, args.model_type, args, train_data, val_data, position_encoder,
         #              direction_encoder, model_coarse, model_fine, [])
 
     elif args.model_type == 'smpl_estimator':
@@ -199,9 +204,10 @@ def train():
         smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
         smpl_model = smplx.create(smpl_file_name, model_type='smpl')
         smpl_model.batchsize = args.batchsize
-        smpl_estimator = DummyImageWiseEstimator(false_pose, train_data.betas, torch.zeros(69).view(1, -1))
+        smpl_estimator = DummyImageWiseEstimator(canonical_pose1, canonical_pose2, canonical_pose3, arm_angle_l,
+                                                 arm_angle_r, train_data.betas, torch.zeros(69).view(1, -1))
         solver = ImageWiseSolver(model_fine, model_coarse, smpl_estimator, smpl_model, position_encoder,
-                               direction_encoder, args)
+                                 direction_encoder, args)
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
         save_run(solver.writer.log_dir, [model_coarse, model_fine, smpl_estimator],
                  ['model_coarse.pt', 'model_fine.pt', 'smpl_estimator.pt'], parser)

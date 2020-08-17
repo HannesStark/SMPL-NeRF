@@ -5,7 +5,8 @@ from torch.nn import functional as F
 from datasets.sub_dataset import SubDataset
 from models.dynamic_pipeline import DynamicPipeline
 from solver.nerf_solver import NerfSolver
-from utils import PositionalEncoder, tensorboard_rerenders, vedo_data, modified_softmax, raw2outputs, print_number_nans
+from utils import PositionalEncoder, tensorboard_rerenders, vedo_data, modified_softmax, raw2outputs, print_number_nans, \
+    print_max
 from torch.utils.data import TensorDataset, DataLoader
 
 
@@ -28,7 +29,7 @@ class ImageWiseSolver(NerfSolver):
                                               optim, loss_func)
         print('estimator params', list(self.smpl_estimator.parameters()))
         self.optim = optim(
-            list(model_coarse.parameters()) + list(model_fine.parameters()) + list(self.smpl_estimator.parameters()),
+            list(model_coarse.parameters()) + list(self.smpl_estimator.parameters()),
             **self.optim_args_merged)
 
     def init_pipeline(self):
@@ -56,7 +57,6 @@ class ImageWiseSolver(NerfSolver):
             self.model_fine.train()
             self.smpl_estimator.train()
             train_loss = 0
-            smpl_params_loss = 0
             for i, image_batch in enumerate(train_loader):
                 for j, element in enumerate(image_batch):
                     image_batch[j] = element[0].to(self.device)
@@ -67,9 +67,8 @@ class ImageWiseSolver(NerfSolver):
                 iter_per_image = len(dataloader)
 
                 goal_pose, betas = self.smpl_estimator(1)
-                # print('betas ', self.smpl_estimator.betas)
-                # print('expression ', self.smpl_estimator.expression)
-                # print('goal_poses', self.smpl_estimator.goal_poses)
+                goal_pose[0, 41].register_hook(lambda x: print_max('goal_pose_grads', x))
+                self.smpl_estimator.arm_angle_r.register_hook(lambda x: print_max('goal_pose_grads', x))
 
                 canonical_model = self.smpl_model(betas=betas, return_verts=True,
                                                   body_pose=self.canonical_pose)  # [number_vertices, 3]
@@ -86,18 +85,12 @@ class ImageWiseSolver(NerfSolver):
                     distances = ray_samples[:, :, None, :] - goal_vertices[:, None, :, :].expand(
                         (-1, ray_samples.shape[1], -1, -1))  # [batchsize, number_samples, number_vertices, 3]
                     distances = torch.norm(distances, dim=-1)  # [batchsize, number_samples, number_vertices]
-                    attentions_1 = distances - self.args.warp_radius  # [batchsize, number_samples, number_vertices]
-                    attentions_2 = F.relu(-attentions_1)
-                    # print('iter')
-                    attentions_2.register_hook(lambda x: print_number_nans('pre', x))
-                    # attentions_2.register_hook(lambda x: print_max('pre',x))
+                    attentions = distances - self.args.warp_radius  # [batchsize, number_samples, number_vertices]
+                    attentions = F.relu(-attentions)
+                    #attentions = torch.softmax(self.args.warp_temperature * attentions, dim=-1)
+                    attentions = attentions / (attentions.sum(-1, keepdims=True) + 1e-5)
 
-                    # attentions_3 = modified_softmax(self.args.warp_temperature * attentions_2)
-
-                    attentions_3 = torch.softmax(self.args.warp_temperature * attentions_2, dim=-1)
-                    attentions_3.register_hook(lambda x: print_max('post',x))
-
-                    warps = warp[:, None, :, :] * attentions_3[:, :, :,
+                    warps = warp[:, None, :, :] * attentions[:, :, :,
                                                   None]  # [batchsize, number_samples, number_vertices, 3]
                     warps = warps.sum(dim=-2)  # [batchsize, number_samples, 3]
                     warped_samples = ray_samples + warps
@@ -124,10 +117,13 @@ class ImageWiseSolver(NerfSolver):
                     self.optim.step()
 
                     loss_item = loss.item()
-                    pose_loss = self.loss_func(self.smpl_estimator.goal_pose, self.smpl_estimator.ground_truth_pose).item()
+                    left_arm_loss = self.loss_func(self.smpl_estimator.arm_angle_l,
+                                                   self.smpl_estimator.ground_truth_pose[0, 38]).item()
+                    right_arm_loss = self.loss_func(self.smpl_estimator.arm_angle_r,
+                                                    self.smpl_estimator.ground_truth_pose[0, 41]).item()
                     if j % args.log_iterations == args.log_iterations - 1:
                         print('[Epoch %d, Iteration %5d/%5d] TRAIN loss: %.7f Pose Loss: %.7f' %
-                              (epoch + 1, j + 1, iter_per_image, loss_item, pose_loss))
+                              (epoch + 1, j + 1, iter_per_image, loss_item, left_arm_loss + right_arm_loss))
 
                     train_loss += loss_item
             print('[Epoch %d] Average loss of Epoch: %.7f' %
@@ -140,7 +136,6 @@ class ImageWiseSolver(NerfSolver):
             rerender_images = []
             ground_truth_images = []
             samples = []
-            warp_history = []
             ray_warp_magnitudes = []
             densities_list = []
             for i, image_batch in enumerate(val_loader):
@@ -204,11 +199,11 @@ class ImageWiseSolver(NerfSolver):
                     rerender_images.append(rgb.detach().cpu().numpy())
                     samples.append(ray_samples.detach().cpu().numpy())
                     image_samples.append(ray_samples.detach().cpu().numpy())
-                    warp_history.append(warps.detach().cpu().numpy())
                     image_warps.append(warps.detach().cpu().numpy())
                     densities_list.append(densities.detach().cpu().numpy())
                     image_densities.append(densities.detach().cpu().numpy())
-                    warp_magnitude = np.linalg.norm(warp.detach().cpu(), axis=-1)  # [batchsize, number_samples]
+
+                    warp_magnitude = np.linalg.norm(warps.detach().cpu(), axis=-1)  # [batchsize, number_samples]
                     ray_warp_magnitudes.append(warp_magnitude.mean(axis=1))  # mean over the samples => [batchsize]
 
                 vedo_data(self.writer, np.concatenate(image_densities).reshape(-1),
