@@ -29,6 +29,8 @@ from datasets.transforms import CoarseSampling, ToTensor, NormalizeRGB
 from utils import PositionalEncoder
 import create_dataset
 
+from util.scores import print_scores
+
 
 def inference():
     parser_inference = config_parser_inference()
@@ -69,7 +71,8 @@ def inference():
         [NormalizeRGB(), CoarseSampling(args_training.near, args_training.far, args_training.number_coarse_samples),
          ToTensor()])
 
-    rgb_images = []
+    rgb_images_renders = []
+    rgb_images_truth = []
 
     if args_inference.model_type == "smpl_nerf":
         dataset = SmplNerfDataset(args_inference.ground_truth_dir,
@@ -134,13 +137,19 @@ def inference():
         rgb_truth = data[-1]
         out = pipeline(data)
         rgb_fine = out[1]
-        rgb_images.append(rgb_fine.detach().cpu().numpy())
-    rgb_images = np.concatenate(rgb_images, 0).reshape((len(camera_transforms), dataset.h, dataset.w, 3))
-    rgb_images = np.clip(rgb_images, 0, 1) * 255
-
-    rgb_images = rgb_images.astype(np.uint8)
-    save_rerenders(rgb_images, args_inference.run_dir, args_inference.save_dir)
-    return rgb_images
+        rgb_images_renders.append(rgb_fine.detach().cpu())
+        rgb_images_truth.append(rgb_truth.detach().cpu())
+    rgb_images_renders = torch.cat(rgb_images_renders).reshape((len(camera_transforms), dataset.h, dataset.w, 3))
+    rgb_images_truth = torch.cat(rgb_images_truth).reshape((len(camera_transforms), dataset.h, dataset.w, 3))
+    # calculate scores
+    print_scores(rgb_images_renders.permute(0, 3, 1, 2), rgb_images_truth.permute(0, 3, 1, 2))
+    # save renders
+    rgb_images_renders = np.concatenate(rgb_images_renders.numpy(), 0).reshape((len(camera_transforms), dataset.h, dataset.w, 3))
+    rgb_images_renders = np.clip(rgb_images_renders, 0, 1) * 255
+    rgb_images_renders = rgb_images_renders.astype(np.uint8)
+    rgb_images_renders = rgb_images_renders[..., ::-1]
+    save_rerenders(rgb_images_renders, args_inference.run_dir, args_inference.save_dir)
+    return rgb_images_renders
 
 
 def save_rerenders(rgb_images, run_file, output_dir='renders'):
@@ -149,9 +158,9 @@ def save_rerenders(rgb_images, run_file, output_dir='renders'):
     if not os.path.exists(output_dir):  # create directory if it does not already exist
         os.makedirs(output_dir)
     for i, image in enumerate(rgb_images):
-        cv2.imwrite(os.path.join(output_dir, 'img_{:03d}.png'.format(i)), image[..., ::-1])
-    imageio.mimwrite(os.path.join(output_dir, 'animated.mp4'), rgb_images[..., ::-1],
-                     fps=40, quality=8)
+        imageio.imwrite(os.path.join(output_dir, 'img_{:03d}.png'.format(i)), image)
+    imageio.mimwrite(os.path.join(output_dir, 'animated.gif'), rgb_images,
+                     fps=30)
 
 
 def config_parser_inference():
@@ -164,7 +173,7 @@ def config_parser_inference():
     parser.add_argument('--save_dir', default="renders",
                         help='save directory for inference output (appended to run_dir')
     parser.add_argument('--run_dir', default="runs/Aug18_10-51-09_korhal", help='path to load model')
-    parser.add_argument('--ground_truth_dir', default="data/fix_pose_camera_-10_10_10/train",
+    parser.add_argument('--ground_truth_dir', default="data/debug/train",
                         help='path to load ground truth, created with create_dataset.py')
     parser.add_argument('--model_type', default="nerf", type=str,
                         help='choose dataset type for model [smpl_nerf, nerf, pix2pix, smpl, append_to_nerf]')
@@ -249,6 +258,6 @@ def inference_gif(run_dir, model_type, args, train_data, val_data, position_enco
     return rgb_images
 
 if __name__ == '__main__':
-    rgb_images = inference()
+    rgb_images, rgb_images = inference()
     plt.imshow(rgb_images[0])
     plt.show()

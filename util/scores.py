@@ -454,6 +454,15 @@ class LPIPS(ContentLoss):
                          replace_pooling=replace_pooling, distance=distance,
                          reduction=reduction, mean=mean, std=std,
                          normalize_features=True)
+def print_scores(x, y):
+    mse_score = img2mse(x, y)
+    psnr_score = img2psnr(x, y)
+    ssim_score = ssim(x, y)
+    lpips_loss = LPIPS()
+    lpips_score = lpips_loss(x, y)
+    print("MSE: {}, PSNR: {:.3f}, SSIM: {:.3f}, LPIPS: {:.3f}".format(
+        mse_score.item(), psnr_score.item(), ssim_score.item(), lpips_score.item()))
+
 
 if __name__ == "__main__":
     x = torch.Tensor([cv2.imread("img_000.png")/255.])
@@ -465,7 +474,6 @@ if __name__ == "__main__":
     ssim_score = ssim(x, y)
     lpips_loss = LPIPS()
     lpips_score = lpips_loss(x, y)
-    x_shift = preprocess_image(cv2.imread("img_000.png"))
     print("X shape: {}, Y shape: {}".format(x.shape, y.shape))
     print("MSE: {}, PSNR: {:.3f}, SSIM: {:.3f}, LPIPS: {:.3f}".format(
         mse_score.item(), psnr_score.item(), ssim_score.item(), lpips_score.item()))
