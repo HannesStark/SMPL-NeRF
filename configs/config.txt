@@ -1,6 +1,6 @@
 experiment_name = pretrain_model_for_experiments
 number_validation_images = 2
-model_type = nerf
+model_type = image_wise_dynamic
 dataset_dir = data
 
 netdepth = 8
@@ -9,13 +9,14 @@ run_fine = 0
 netdepth_fine = 8
 
 log_iterations = 5
-batchsize = 1024
-batchsize_val = 512
+batchsize = 2048
+batchsize_val = 4096
 num_epochs = 20
 mesh_epochs = [1]
 skips = [4]
 skips_fine= [4]
 
+number_coarse_samples=1
 coarse_samples_from_prior=0
 vertex_sphere_radius=0.01
 white_background = 1

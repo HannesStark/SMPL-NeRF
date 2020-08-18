@@ -19,7 +19,7 @@ from torch.nn import functional as F
 
 from camera import get_sphere_pose
 from render import get_smpl_vertices, get_smpl_mesh
-from utils import get_rays
+from utils import get_rays, print_number_nans
 
 camera_transform = get_sphere_pose(0, 0, 2.4)
 h, w = 16, 16
@@ -106,7 +106,7 @@ for sample_index in tqdm(range(number_samples), desc='Samples'):
 
     def softmax(x):
         exp = torch.exp(x - torch.max(x))
-        return (exp - torch.exp(-torch.max(x))) / exp.sum(-1, keepdim=True)
+        return exp / exp.sum(-1, keepdim=True)
 
 
     # subtract 1/number_vertices after the softmax
@@ -129,10 +129,12 @@ for sample_index in tqdm(range(number_samples), desc='Samples'):
     attentions = attentions - vertex_sphere_radius
     attentions = -attentions
     attentions = F.relu(attentions)
-    attentions = softmax(10000 * attentions)
+    attentions = attentions / (attentions.sum(-1, keepdims=True) + 1e-5)
+    # attentions = softmax(100000 * attentions)
     warp_differentiable = warp[None, :, :] * attentions[:, :, None]  # [h*w, number_vertices, 3]
     warp_differentiable = warp_differentiable.sum(dim=1)  # [h*w, 3]
     warp_differentiable = warp_differentiable  # [h*w, 3]
+    print_number_nans("asdf", warp_differentiable)
     warps_differentiable.append(warp_differentiable)
 
     if warp_by_vertex_mean:
