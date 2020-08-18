@@ -56,11 +56,14 @@ def inference():
         model_coarse.load_state_dict(
             torch.load(os.path.join(args_inference.run_dir, "model_coarse.pt"), map_location=torch.device('cpu')))
         model_coarse.eval()
-        model_fine.load_state_dict(
-            torch.load(os.path.join(args_inference.run_dir, "model_fine.pt"), map_location=torch.device('cpu')))
-        model_fine.eval()
         model_coarse.to(device)
-        model_fine.to(device)
+        if os.path.exists(os.path.join(args_inference.run_dir, "model_fine.pt")):
+            model_fine.load_state_dict(
+            torch.load(os.path.join(args_inference.run_dir, "model_fine.pt"), map_location=torch.device('cpu')))
+            model_fine.eval()
+            model_fine.to(device)
+        else:
+            model_fine = None
 
     transform = transforms.Compose(
         [NormalizeRGB(), CoarseSampling(args_training.near, args_training.far, args_training.number_coarse_samples),
@@ -123,7 +126,7 @@ def inference():
                                                      'transforms.json'), transform)
         data_loader = torch.utils.data.DataLoader(dataset, batch_size=args_training.batchsize, shuffle=False,
                                                   num_workers=0)
-        pipeline = NerfPipeline(model_coarse, args_training, position_encoder, direction_encoder)
+        pipeline = NerfPipeline(model_coarse, model_fine, args_training, position_encoder, direction_encoder)
     camera_transforms = dataset.image_transform_map
     for i, data in enumerate(tqdm(data_loader)):
         for j, element in enumerate(data):
@@ -160,10 +163,10 @@ def config_parser_inference():
     # General
     parser.add_argument('--save_dir', default="renders",
                         help='save directory for inference output (appended to run_dir')
-    parser.add_argument('--run_dir', default="runs/Jun23_09-32-18_korhal", help='path to load model')
-    parser.add_argument('--ground_truth_dir', default="data/render_512_folder/train",
+    parser.add_argument('--run_dir', default="runs/Aug18_10-51-09_korhal", help='path to load model')
+    parser.add_argument('--ground_truth_dir', default="data/fix_pose_camera_-10_10_10/train",
                         help='path to load ground truth, created with create_dataset.py')
-    parser.add_argument('--model_type', default="append_to_nerf", type=str,
+    parser.add_argument('--model_type', default="nerf", type=str,
                         help='choose dataset type for model [smpl_nerf, nerf, pix2pix, smpl, append_to_nerf]')
     return parser
 
