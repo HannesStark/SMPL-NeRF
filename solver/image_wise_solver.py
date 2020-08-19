@@ -1,13 +1,15 @@
+import pyrender
 import torch
 import numpy as np
+import trimesh
 
 from torch.nn import functional as F
+
+from camera import get_sphere_pose
 from datasets.sub_dataset import SubDataset
-from models.dynamic_pipeline import DynamicPipeline
 from solver.nerf_solver import NerfSolver
-from utils import PositionalEncoder, tensorboard_rerenders, vedo_data, modified_softmax, raw2outputs, print_number_nans, \
-    print_max
-from torch.utils.data import TensorDataset, DataLoader
+from utils import PositionalEncoder, tensorboard_rerenders, vedo_data, raw2outputs
+from torch.utils.data import DataLoader
 
 
 class ImageWiseSolver(NerfSolver):
@@ -28,8 +30,10 @@ class ImageWiseSolver(NerfSolver):
         super(ImageWiseSolver, self).__init__(model_coarse, model_fine, positions_encoder, directions_encoder, args,
                                               optim, loss_func)
         print('estimator params', list(self.smpl_estimator.parameters()))
-        self.optim = optim(
-            list(model_coarse.parameters()) + list(self.smpl_estimator.parameters()),
+        self.optim = optim([
+            {'params': model_coarse.parameters()},
+            {'params': self.smpl_estimator.parameters(), 'lr': args.lrate_pose}
+        ],
             **self.optim_args_merged)
 
     def init_pipeline(self):
@@ -57,6 +61,7 @@ class ImageWiseSolver(NerfSolver):
             self.model_fine.train()
             self.smpl_estimator.train()
             train_loss = 0
+            pose_loss = 0
             for i, image_batch in enumerate(train_loader):
                 for j, element in enumerate(image_batch):
                     image_batch[j] = element[0].to(self.device)
@@ -67,8 +72,8 @@ class ImageWiseSolver(NerfSolver):
                 iter_per_image = len(dataloader)
 
                 goal_pose, betas = self.smpl_estimator(1)
-                goal_pose[0, 41].register_hook(lambda x: print_max('goal_pose_grads', x))
-                self.smpl_estimator.arm_angle_r.register_hook(lambda x: print_max('goal_pose_grads', x))
+                # goal_pose[0, 41].register_hook(lambda x: print_max('goal_pose_grads', x))
+                # self.smpl_estimator.arm_angle_r.register_hook(lambda x: print_max('goal_pose_grads', x))
 
                 canonical_model = self.smpl_model(betas=betas, return_verts=True,
                                                   body_pose=self.canonical_pose)  # [number_vertices, 3]
@@ -87,7 +92,8 @@ class ImageWiseSolver(NerfSolver):
                     distances = torch.norm(distances, dim=-1)  # [batchsize, number_samples, number_vertices]
                     attentions = distances - self.args.warp_radius  # [batchsize, number_samples, number_vertices]
                     attentions = F.relu(-attentions)
-                    #attentions = torch.softmax(self.args.warp_temperature * attentions, dim=-1)
+
+                    # attentions = torch.softmax(self.args.warp_temperature * attentions, dim=-1)
                     attentions = attentions / (attentions.sum(-1, keepdims=True) + 1e-5)
 
                     warps = warp[:, None, :, :] * attentions[:, :, :,
@@ -117,17 +123,21 @@ class ImageWiseSolver(NerfSolver):
                     self.optim.step()
 
                     loss_item = loss.item()
-                    left_arm_loss = self.loss_func(self.smpl_estimator.arm_angle_l,
-                                                   self.smpl_estimator.ground_truth_pose[0, 38]).item()
-                    right_arm_loss = self.loss_func(self.smpl_estimator.arm_angle_r,
-                                                    self.smpl_estimator.ground_truth_pose[0, 41]).item()
+                    left_arm_loss = (self.smpl_estimator.arm_angle_l[0] -
+                                     self.smpl_estimator.ground_truth_pose[0, 38]) ** 2
+                    right_arm_loss = (self.smpl_estimator.arm_angle_r[0] -
+                                      self.smpl_estimator.ground_truth_pose[0, 41]) ** 2
+                    pose_loss_item = (left_arm_loss + right_arm_loss).item()
+
                     if j % args.log_iterations == args.log_iterations - 1:
                         print('[Epoch %d, Iteration %5d/%5d] TRAIN loss: %.7f Pose Loss: %.7f' %
-                              (epoch + 1, j + 1, iter_per_image, loss_item, left_arm_loss + right_arm_loss))
+                              (epoch + 1, j + 1, iter_per_image, loss_item, pose_loss_item))
 
+                    pose_loss += pose_loss_item
                     train_loss += loss_item
-            print('[Epoch %d] Average loss of Epoch: %.7f' %
-                  (epoch + 1, train_loss / iter_per_image * len(train_loader)))
+            print('[Epoch %d] Average loss of Epoch: %.7f Pose Loss: %.7f' %
+                  (epoch + 1, train_loss / iter_per_image * len(train_loader),
+                   pose_loss / iter_per_image * len(train_loader)))
 
             self.model_coarse.eval()
             self.model_fine.eval()
@@ -166,12 +176,13 @@ class ImageWiseSolver(NerfSolver):
                     distances = ray_samples[:, :, None, :] - goal_vertices[:, None, :, :].expand(
                         (-1, ray_samples.shape[1], -1, -1))  # [batchsize, number_samples, number_vertices, 3]
                     distances = torch.norm(distances, dim=-1)  # [batchsize, number_samples, number_vertices]
-                    attentions_1 = distances - self.args.warp_radius  # [batchsize, number_samples, number_vertices]
-                    attentions_2 = F.relu(-attentions_1)
+                    attentions = distances - self.args.warp_radius  # [batchsize, number_samples, number_vertices]
+                    attentions = F.relu(-attentions)
 
-                    attentions_3 = torch.softmax(self.args.warp_temperature * attentions_2, dim=-1)
+                    # attentions = torch.softmax(self.args.warp_temperature * attentions, dim=-1)
+                    attentions = attentions / (attentions.sum(-1, keepdims=True) + 1e-5)
 
-                    warps = warp[:, None, :, :] * attentions_3[:, :, :,
+                    warps = warp[:, None, :, :] * attentions[:, :, :,
                                                   None]  # [batchsize, number_samples, number_vertices, 3]
                     warps = warps.sum(dim=-2)  # [batchsize, number_samples, 3]
                     warped_samples = ray_samples + warps
@@ -218,6 +229,25 @@ class ImageWiseSolver(NerfSolver):
             tensorboard_rerenders(self.writer, args.number_validation_images, rerender_images, ground_truth_images,
                                   step=epoch + 1, ray_warps=ray_warp_magnitudes)
 
+            goal_model = self.smpl_model(betas=betas, return_verts=True, body_pose=goal_pose)
+
+            mesh = trimesh.Trimesh(goal_model.vertices.detach().cpu().numpy()[0], self.smpl_model.faces, process=False)
+            mesh = pyrender.Mesh.from_trimesh(mesh)
+
+            scene = pyrender.Scene()
+            scene.add(mesh, pose=get_sphere_pose(0, 0, 0))
+            camera = pyrender.PerspectiveCamera(yfov=np.pi / 3, aspectRatio=1.0)
+            scene.add(camera, pose=get_sphere_pose(0, 0, 2.4))
+            light = pyrender.SpotLight(color=np.ones(3), intensity=200.0,
+                                       innerConeAngle=np.pi / 16.0,
+                                       outerConeAngle=np.pi / 6.0)
+            scene.add(light, pose=get_sphere_pose(0, 0, 2.4))
+            r = pyrender.OffscreenRenderer(128, 128)
+            img, depth = r.render(scene)
+            img = img.copy()
+
+            self.writer.add_image(str(epoch + 1) + ' Smpl', torch.from_numpy(img).permute(2,0,1), epoch + 1)
+
             print('[Epoch %d] VAL loss: %.7f' % (
                 epoch + 1,
                 val_loss / (len(val_loader) * iter_per_image_val or not len(val_loader) * iter_per_image_val)))
@@ -226,4 +256,5 @@ class ImageWiseSolver(NerfSolver):
                                                            len(val_loader) * iter_per_image_val or not len(
                                                        val_loader) * iter_per_image_val)},
                                     epoch + 1)
+            self.writer.add_scalar('Pose difference', pose_loss / iter_per_image * len(train_loader), epoch + 1)
         print('FINISH.')

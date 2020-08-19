@@ -16,10 +16,11 @@ import os
 import glob
 import shutil
 
-from tqdm import tqdm
 from trimesh.ray.ray_triangle import RayMeshIntersector
 from scipy.spatial.transform import Rotation as R
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+
 
 
 def get_rays(H: int, W: int, focal: float,
@@ -370,6 +371,10 @@ def get_dependent_rays_indices(ray_translation: np.array, ray_direction: np.arra
     distortion_coeffs = np.array([0.0, 0.0, 0.0, 0.0])
     camera_coords = cv2.projectPoints(goal_intersections, rvec, tvec, camera_matrix, distortion_coeffs)[0]
     return np.round(camera_coords.reshape(-1, 2)), vertices
+
+
+
+
 
 
 def tensorboard_rerenders(writer: SummaryWriter, number_validation_images, rerender_images, ground_truth_images, step,

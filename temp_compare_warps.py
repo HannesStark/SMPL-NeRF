@@ -37,7 +37,7 @@ safe_mode = False
 
 goal_pose = torch.zeros(69).view(1, -1)
 goal_pose[0, 38] = np.deg2rad(45)
-goal_pose[0, 41] = np.deg2rad(30)
+goal_pose[0, 41] = -np.deg2rad(30)
 
 betas = np.array([[-0.3596, -1.0232, -1.7584, -2.0465, 0.3387,
                    -0.8562, 0.8869, 0.5013, 0.5338, -0.0210]])

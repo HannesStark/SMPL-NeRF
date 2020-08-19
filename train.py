@@ -81,12 +81,14 @@ def train():
         canonical_pose1 = torch.zeros(38).view(1, -1)
         canonical_pose2 = torch.zeros(2).view(1, -1)
         canonical_pose3 = torch.zeros(27).view(1, -1)
-        arm_angle_l = torch.tensor([-np.deg2rad(65)]).float().view(1, -1)
-        arm_angle_r = torch.tensor([np.deg2rad(65)]).float().view(1, -1)
-        false_pose = torch.cat([canonical_pose1, arm_angle_l, canonical_pose2, arm_angle_r, canonical_pose3], dim=-1)
-        train_data = ImageWiseDataset(train_dir, os.path.join(train_dir, 'transforms.json'), false_pose, transform,
+        arm_angle_l = torch.tensor([np.deg2rad(30)]).float().view(1, -1)
+        arm_angle_r = torch.tensor([np.deg2rad(40)]).float().view(1, -1)
+        smpl_estimator = DummyImageWiseEstimator(canonical_pose1, canonical_pose2, canonical_pose3, arm_angle_l,
+                                                 arm_angle_r, torch.zeros(10).view(1, -1), torch.zeros(69).view(1, -1))
+        train_data = ImageWiseDataset(train_dir, os.path.join(train_dir, 'transforms.json'), smpl_estimator,
+                                      transform,
                                       args)
-        val_data = ImageWiseDataset(val_dir, os.path.join(val_dir, 'transforms.json'), false_pose, transform, args)
+        val_data = ImageWiseDataset(val_dir, os.path.join(val_dir, 'transforms.json'), smpl_estimator, transform, args)
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=args.batchsize, shuffle=True, num_workers=0)
     val_loader = torch.utils.data.DataLoader(val_data, batch_size=args.batchsize_val, shuffle=False, num_workers=0)
     position_encoder = PositionalEncoder(args.number_frequencies_postitional, args.use_identity_positional)
@@ -198,14 +200,14 @@ def train():
     elif args.model_type == "image_wise_dynamic":
         if args.load_coarse_model != None:
             model_coarse.load_state_dict(
-                torch.load(os.path.join(args.load_coarse_model, "model_coarse.pt"), map_location=torch.device(device)))
+                torch.load(args.load_coarse_model, map_location=torch.device(device)))
+            for params in model_coarse.parameters():
+                params.requires_grad = False
         train_loader = torch.utils.data.DataLoader(train_data, batch_size=1, shuffle=True, num_workers=0)
         val_loader = torch.utils.data.DataLoader(val_data, batch_size=1, shuffle=False, num_workers=0)
         smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
         smpl_model = smplx.create(smpl_file_name, model_type='smpl')
         smpl_model.batchsize = args.batchsize
-        smpl_estimator = DummyImageWiseEstimator(canonical_pose1, canonical_pose2, canonical_pose3, arm_angle_l,
-                                                 arm_angle_r, train_data.betas, torch.zeros(69).view(1, -1))
         solver = ImageWiseSolver(model_fine, model_coarse, smpl_estimator, smpl_model, position_encoder,
                                  direction_encoder, args)
         solver.train(train_loader, val_loader, train_data.h, train_data.w)

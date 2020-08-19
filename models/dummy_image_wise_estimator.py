@@ -33,6 +33,9 @@ class DummyImageWiseEstimator(nn.Module):
             [self.canonical_pose1, self.arm_angle_l, self.canonical_pose2, self.arm_angle_r, self.canonical_pose3],
             dim=-1), self.betas
 
+    def set_betas(self, betas):
+        self.betas = torch.nn.Parameter(betas.data, requires_grad=False)  # [1, 10]
+
     @property
     def is_cuda(self):
         """

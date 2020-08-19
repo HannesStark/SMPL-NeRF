@@ -55,6 +55,7 @@ def config_parser():
     parser.add_argument("--batchsize_val", type=int, default=512,
                         help='batch size (number of random rays per gradient step)')
     parser.add_argument("--lrate", type=float, default=5e-4, help='learning rate')
+    parser.add_argument("--lrate_pose", type=float, default=0.1, help='learning rate')
     parser.add_argument("--weight_decay", type=int, default=0, help='adam weight decay')
     parser.add_argument("--log_iterations", type=int, default=10,
                         help='number of iterations to pass to run extra validation and logging')

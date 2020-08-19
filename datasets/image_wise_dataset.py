@@ -10,6 +10,7 @@ from torch.utils.data import Dataset
 from trimesh.ray.ray_triangle import RayMeshIntersector
 import torch.distributions as D
 
+from models.dummy_image_wise_estimator import DummyImageWiseEstimator
 from render import get_smpl_mesh
 from utils import get_rays
 
@@ -20,7 +21,7 @@ class ImageWiseDataset(Dataset):
     uses the indices to map a ray to the goal pose that is present in the image.
     """
 
-    def __init__(self, image_directory: str, transforms_file: str, goal_pose,
+    def __init__(self, image_directory: str, transforms_file: str, smpl_estimator: DummyImageWiseEstimator,
                  transform, args) -> None:
         """
         Parameters
@@ -39,7 +40,6 @@ class ImageWiseDataset(Dataset):
         self.near = args.near
         self.far = args.far
         self.args = args
-        self.goal_pose = goal_pose
 
         with open(transforms_file, 'r') as transforms_file:
             transforms_dict = json.load(transforms_file)
@@ -53,6 +53,9 @@ class ImageWiseDataset(Dataset):
         image_pose_map = transforms_dict.get('image_pose_map')
         self.expression = torch.tensor([transforms_dict['expression']])
         self.betas = torch.tensor([transforms_dict['betas']])
+        smpl_estimator.set_betas(self.betas)
+        self.smpl_estimator = smpl_estimator
+
         for i, image_path in enumerate(self.image_paths):
             human_pose = np.array(image_pose_map[os.path.basename(image_path)])
             self.goal_poses.append(human_pose[np.newaxis, :])
@@ -99,7 +102,9 @@ class ImageWiseDataset(Dataset):
         # get coarse samples in each bin of the ray
         z_vals_simple = torch.from_numpy(lower + (upper - lower) * np.random.rand())
 
-        goal_mesh = get_smpl_mesh(body_pose=self.goal_pose, return_pyrender=False)
+        # the parameters in the smpl estimator that we use to obtain the intersections will be optimized by the image wise solver
+        false_pose, _ = self.smpl_estimator(1)
+        goal_mesh = get_smpl_mesh(body_pose=false_pose.cpu(), return_pyrender=False)
         intersector = RayMeshIntersector(goal_mesh)
         z_vals_image = []
         for ray_index in range(len(rays_translation)):

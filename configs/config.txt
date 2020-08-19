@@ -9,9 +9,9 @@ run_fine = 0
 netdepth_fine = 8
 
 log_iterations = 5
-batchsize = 2048
+batchsize = 1024
 batchsize_val = 4096
-num_epochs = 20
+num_epochs = 40
 mesh_epochs = [1]
 skips = [4]
 skips_fine= [4]
@@ -22,3 +22,6 @@ vertex_sphere_radius=0.01
 white_background = 1
 sigma_noise_std = 1
 lrate = 4e-5
+lrate_pose = 0.01
+
+load_coarse_model = runs/Aug18_10-51-09_korhal/model_coarse.pt
