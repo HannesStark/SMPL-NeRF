@@ -1,7 +1,7 @@
 experiment_name = pretrain_model_for_experiments
 number_validation_images = 2
 model_type = append_vertex_locations_to_nerf
-dataset_dir = armangle_-30_30_101_one_viewpoint_128x128
+dataset_dir = data/armangle_-30_30_101_one_viewpoint_128x128
 
 netdepth = 8
 
