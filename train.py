@@ -42,6 +42,7 @@ def train():
     parser = config_parser()
     args = parser.parse_args()
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    args.default_device = device
     if args.model_type not in ["nerf", "smpl_nerf", "append_to_nerf", "smpl", "warp", 'vertex_sphere', "smpl_estimator",
                                "original_nerf", 'dummy_dynamic', 'image_wise_dynamic']:
         raise Exception("The model type ", args.model_type, " does not exist.")
@@ -203,6 +204,7 @@ def train():
                 torch.load(args.load_coarse_model, map_location=torch.device(device)))
             for params in model_coarse.parameters():
                 params.requires_grad = False
+            model_coarse.eval()
         train_loader = torch.utils.data.DataLoader(train_data, batch_size=1, shuffle=True, num_workers=0)
         val_loader = torch.utils.data.DataLoader(val_data, batch_size=1, shuffle=False, num_workers=0)
         smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"

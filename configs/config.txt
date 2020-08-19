@@ -1,6 +1,6 @@
 experiment_name = pretrain_model_for_experiments
 number_validation_images = 2
-model_type = image_wise_dynamic
+model_type = nerf
 dataset_dir = data
 
 netdepth = 8
@@ -16,7 +16,7 @@ mesh_epochs = [1]
 skips = [4]
 skips_fine= [4]
 
-number_coarse_samples=1
+number_coarse_samples=3
 coarse_samples_from_prior=0
 vertex_sphere_radius=0.01
 white_background = 1
@@ -24,4 +24,4 @@ sigma_noise_std = 1
 lrate = 4e-5
 lrate_pose = 0.01
 
-load_coarse_model = runs/Aug18_10-51-09_korhal/model_coarse.pt
+load_coarse_model = runs//Aug18_10-51-09_korhal//model_coarse.pt

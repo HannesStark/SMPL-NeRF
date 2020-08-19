@@ -29,7 +29,6 @@ class ImageWiseSolver(NerfSolver):
         self.canonical_pose = torch.zeros([1, 69], device=self.device)
         super(ImageWiseSolver, self).__init__(model_coarse, model_fine, positions_encoder, directions_encoder, args,
                                               optim, loss_func)
-        print('estimator params', list(self.smpl_estimator.parameters()))
         self.optim = optim([
             {'params': model_coarse.parameters()},
             {'params': self.smpl_estimator.parameters(), 'lr': args.lrate_pose}
@@ -57,7 +56,7 @@ class ImageWiseSolver(NerfSolver):
         print('START TRAIN.')
 
         for epoch in range(args.num_epochs):  # loop over the dataset multiple times
-            self.model_coarse.train()
+            #self.model_coarse.train()
             self.model_fine.train()
             self.smpl_estimator.train()
             train_loss = 0

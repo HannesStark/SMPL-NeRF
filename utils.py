@@ -21,8 +21,6 @@ from scipy.spatial.transform import Rotation as R
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
-
-
 def get_rays(H: int, W: int, focal: float,
              camera_transform: np.array) -> [np.array, np.array]:
     """
@@ -161,7 +159,8 @@ def raw2outputs(raw: torch.Tensor, z_vals: torch.Tensor,
     raw2density = lambda raw, dists: 1. - torch.exp(-torch.nn.functional.relu(raw) * dists)
 
     dists = z_vals[..., 1:] - z_vals[..., :-1]
-    dists = torch.cat([dists, torch.Tensor([1e10]).expand(dists[..., :1].shape)], -1)  # [batchsize, number_samples]
+    dists = torch.cat([dists, torch.tensor([1e10], device=args.default_device).expand(dists[..., :1].shape)],
+                      -1)  # [batchsize, number_samples]
 
     dists = dists * torch.norm(samples_directions, dim=-1)
 
@@ -170,18 +169,19 @@ def raw2outputs(raw: torch.Tensor, z_vals: torch.Tensor,
         return rgb.view(raw.shape[0], 3), torch.ones(raw.shape[0], 1), torch.ones(raw.shape[0], 1)
     noise = 0.
     if args.sigma_noise_std > 0.:
-        noise = torch.normal(0, args.sigma_noise_std, raw[..., 3].shape)
+        noise = torch.normal(0, args.sigma_noise_std, raw[..., 3].shape, device=args.default_device)
     density = raw2density(raw[..., 3] + noise, dists)  # [batchsize, number_samples]
     one_minus_density = 1. - density + 1e-10
 
     # remove last column from one_minus_alhpa and add ones as first column so cumprod gives us the exclusive cumprod like tf.cumprod(exclusive=True)
-    ones = torch.ones(one_minus_density.shape[:-1]).unsqueeze(-1)
+    ones = torch.ones(one_minus_density.shape[:-1], device=args.default_device).unsqueeze(-1)
     exclusive = torch.cat([ones, one_minus_density[..., :-1]], -1)
     weights = density * torch.cumprod(exclusive, -1)
     rgb = torch.sum(weights[..., None] * rgb, -2)  # [batchsize, 3]
 
     depth_map = torch.sum(weights * z_vals, -1)
-    disp_map = 1. / torch.max(torch.full(depth_map.shape, 1e-10), depth_map / torch.sum(weights, -1))
+    disp_map = 1. / torch.max(torch.full(depth_map.shape, 1e-10, device=args.default_device),
+                              depth_map / torch.sum(weights, -1))
     acc_map = torch.sum(weights, -1)
     if args.white_background:
         rgb = rgb + (1. - acc_map[..., None])
@@ -371,10 +371,6 @@ def get_dependent_rays_indices(ray_translation: np.array, ray_direction: np.arra
     distortion_coeffs = np.array([0.0, 0.0, 0.0, 0.0])
     camera_coords = cv2.projectPoints(goal_intersections, rvec, tvec, camera_matrix, distortion_coeffs)[0]
     return np.round(camera_coords.reshape(-1, 2)), vertices
-
-
-
-
 
 
 def tensorboard_rerenders(writer: SummaryWriter, number_validation_images, rerender_images, ground_truth_images, step,

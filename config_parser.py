@@ -88,5 +88,7 @@ def config_parser():
                         help='std dev of noise added to regularize sigma_a output, 1e0 r ecommended')
     parser.add_argument("--white_background", default=0, type=int,
                         help='set to render synthetic data on a white bkgd (always use for dvoxels)')
+    parser.add_argument("--default_device", type=str, default='cuda',
+                        help='You do not need to set this to cpu if you dont have a cuda device')
 
     return parser
