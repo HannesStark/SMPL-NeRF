@@ -33,7 +33,7 @@ class DynamicPipeline(NerfPipeline):
             """
         ray_samples, ray_translation, ray_direction, z_vals, images, rb_truth = data
 
-        goal_poses, expressions, betas = self.smpl_estimator(images)
+        goal_poses, betas = self.smpl_estimator(images)
         #print('betas ', self.smpl_estimator.betas)
         #print('expression ', self.smpl_estimator.expression)
         #print('goal_poses', self.smpl_estimator.goal_poses)
@@ -42,10 +42,10 @@ class DynamicPipeline(NerfPipeline):
         global_orient = self.global_orient.expand(len(ray_samples), -1)
         canonical_pose = self.canonical_pose.expand(len(ray_samples), -1)
 
-        canonical_model = self.smpl_model(betas=betas, expression=expressions, return_verts=True,
+        canonical_model = self.smpl_model(betas=betas, return_verts=True,
                                           body_pose=canonical_pose,
                                           global_orient=global_orient)  # [number_vertices, 3]
-        goal_models = self.smpl_model(betas=betas, expression=expressions, return_verts=True, body_pose=goal_poses,
+        goal_models = self.smpl_model(betas=betas, return_verts=True, body_pose=goal_poses,
                                       global_orient=global_orient)
         goal_vertices = goal_models.vertices  # [batchsize, number_vertices, 3]
         warps = canonical_model.vertices - goal_vertices  # [batchsize, number_vertices, 3]

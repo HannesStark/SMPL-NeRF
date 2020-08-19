@@ -1,27 +1,27 @@
 experiment_name = pretrain_model_for_experiments
 number_validation_images = 2
-model_type = nerf
-dataset_dir = data
+model_type = append_vertex_locations_to_nerf
+dataset_dir = armangle_-30_30_101_one_viewpoint_128x128
 
 netdepth = 8
 
 run_fine = 0
 netdepth_fine = 8
 
-log_iterations = 5
+log_iterations = 2
 batchsize = 1024
-batchsize_val = 4096
-num_epochs = 40
+batchsize_val = 128
+num_epochs = 60
 mesh_epochs = [1]
 skips = [4]
 skips_fine= [4]
 
-number_coarse_samples=3
+number_coarse_samples=64
+coarse_samples_from_intersect=1
 coarse_samples_from_prior=0
 vertex_sphere_radius=0.01
 white_background = 1
 sigma_noise_std = 1
 lrate = 4e-5
-lrate_pose = 0.01
+lrate_pose = 0
 
-load_coarse_model = runs//Aug18_10-51-09_korhal//model_coarse.pt

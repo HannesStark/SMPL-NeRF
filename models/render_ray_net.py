@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 class RenderRayNet(nn.Module):
 
-    def __init__(self, n_layers=8, width=256, positions_dim=60, directions_dim=24, pose_dim=0, skips=[4]):
+    def __init__(self, n_layers=8, width=256, positions_dim=60, directions_dim=24, additional_input_dim=0, skips=[4]):
         super(RenderRayNet, self).__init__()
 
         self.n_layers = n_layers
@@ -13,13 +13,13 @@ class RenderRayNet(nn.Module):
         self.positions_dim = positions_dim
         self.direcions_dim = directions_dim
         self.skips = skips
-        self.pose_dim = pose_dim
+        self.additional_input_dim = additional_input_dim
 
-        self.positions_pose_input = torch.nn.Linear(positions_dim + pose_dim, width)
+        self.positions_pose_input = torch.nn.Linear(positions_dim + additional_input_dim, width)
         self.positional_net = nn.ModuleList()
         for i in range(self.n_layers - 1):  # minus one because we create the first layer as self.positions_pose_input
             if i in skips:
-                self.positional_net.append(torch.nn.Linear(width + positions_dim + pose_dim, width))
+                self.positional_net.append(torch.nn.Linear(width + positions_dim + additional_input_dim, width))
             else:
                 self.positional_net.append(torch.nn.Linear(width, width))
 
@@ -35,7 +35,7 @@ class RenderRayNet(nn.Module):
         self.rgb_out_layer = torch.nn.Linear(directional_width, 3)
 
     def forward(self, x):
-        positions_pose, directions = x[..., :self.positions_dim + self.pose_dim], x[..., -self.direcions_dim:]
+        positions_pose, directions = x[..., :self.positions_dim + self.additional_input_dim], x[..., -self.direcions_dim:]
         o = positions_pose
         o = F.relu(self.positions_pose_input(o))
         for i, positional_layer in enumerate(self.positional_net):

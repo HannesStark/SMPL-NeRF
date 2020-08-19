@@ -87,10 +87,6 @@ class DummyDynamicDataset(Dataset):
         """
         rays_translation, rays_direction, rgb = self.rays[index]
 
-
-        print(rays_translation.shape)
-        print(rays_direction.shape)
-        print(rgb.shape)
         ray_samples, samples_translations, samples_directions, z_vals, rgb = self.transform(
             (rays_translation, rays_direction, rgb))
 

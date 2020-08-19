@@ -194,6 +194,7 @@ def sample_pdf(bins, weights, number_samples):
     Hierarchical sampling
     """
     # Get pdf
+
     weights = weights + 1e-5  # prevent nans
     pdf = weights / torch.sum(weights, -1, keepdim=True)
     cdf = torch.cumsum(pdf, -1)

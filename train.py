@@ -20,6 +20,7 @@ from models.dummy_image_wise_estimator import DummyImageWiseEstimator
 from models.dummy_smpl_estimator_model import DummySmplEstimatorModel
 from models.render_ray_net import RenderRayNet
 from models.warp_field_net import WarpFieldNet
+from solver.append_vertices_solver import AppendVerticesSolver
 from solver.dynamic_solver import DynamicSolver
 from solver.image_wise_solver import ImageWiseSolver
 from solver.vertex_sphere_solver import VertexSphereSolver
@@ -44,7 +45,7 @@ def train():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     args.default_device = device
     if args.model_type not in ["nerf", "smpl_nerf", "append_to_nerf", "smpl", "warp", 'vertex_sphere', "smpl_estimator",
-                               "original_nerf", 'dummy_dynamic', 'image_wise_dynamic']:
+                               "original_nerf", 'dummy_dynamic', 'image_wise_dynamic', "append_vertex_locations_to_nerf"]:
         raise Exception("The model type ", args.model_type, " does not exist.")
 
     transform = transforms.Compose(
@@ -76,6 +77,9 @@ def train():
         val_data = OriginalNerfDataset(args.dataset_dir, os.path.join(args.dataset_dir, 'transforms_val.json'),
                                        transform)
     elif args.model_type == "dummy_dynamic":
+        train_data = DummyDynamicDataset(train_dir, os.path.join(train_dir, 'transforms.json'), transform)
+        val_data = DummyDynamicDataset(val_dir, os.path.join(val_dir, 'transforms.json'), transform)
+    elif args.model_type == "append_vertex_locations_to_nerf":
         train_data = DummyDynamicDataset(train_dir, os.path.join(train_dir, 'transforms.json'), transform)
         val_data = DummyDynamicDataset(val_dir, os.path.join(val_dir, 'transforms.json'), transform)
     elif args.model_type == 'image_wise_dynamic':
@@ -168,6 +172,24 @@ def train():
         model_dependent = [human_pose_encoder, human_pose_dim]
         inference_gif(solver.writer.log_dir, args.model_type, args, train_data, val_data, position_encoder,
                       direction_encoder, model_coarse, model_fine, model_dependent)
+    elif args.model_type == 'append_vertex_locations_to_nerf':
+        model_coarse = RenderRayNet(args.netdepth, args.netwidth, position_encoder.output_dim * 3,
+                                    direction_encoder.output_dim * 3, 6890,
+                                    skips=args.skips)
+        model_fine = RenderRayNet(args.netdepth_fine, args.netwidth_fine, position_encoder.output_dim * 3,
+                                  direction_encoder.output_dim * 3, 6890,
+                                  skips=args.skips_fine)
+        smpl_estimator = DummySmplEstimatorModel(train_data.goal_poses, train_data.betas)
+        smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
+        smpl_model = smplx.create(smpl_file_name, model_type='smpl')
+        smpl_model.batchsize = args.batchsize
+        solver = AppendVerticesSolver(model_coarse, model_fine, smpl_estimator, smpl_model, position_encoder, direction_encoder,
+                                    args, torch.optim.Adam,
+                                    torch.nn.MSELoss())
+        solver.train(train_loader, val_loader, train_data.h, train_data.w)
+
+        save_run(solver.writer.log_dir, [model_coarse, model_fine],
+                 ['model_coarse.pt', 'model_fine.pt'], parser)
 
     elif args.model_type == 'vertex_sphere':
         solver = VertexSphereSolver(model_coarse, model_fine, position_encoder, direction_encoder, args,
@@ -192,7 +214,7 @@ def train():
         smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
         smpl_model = smplx.create(smpl_file_name, model_type='smpl')
         smpl_model.batchsize = args.batchsize
-        smpl_estimator = DummySmplEstimatorModel(train_data.goal_poses, train_data.betas, train_data.expression)
+        smpl_estimator = DummySmplEstimatorModel(train_data.goal_poses, train_data.betas)
         solver = DynamicSolver(model_fine, model_coarse, smpl_estimator, smpl_model, position_encoder,
                                direction_encoder, args)
         solver.train(train_loader, val_loader, train_data.h, train_data.w)

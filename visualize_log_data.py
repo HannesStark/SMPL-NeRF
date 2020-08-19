@@ -23,7 +23,7 @@ def config_parser():
                         help='if 0 it will choose the newest epoch')
     parser.add_argument('--number_images', default=2, type=int,
                         help='images that will be visualized')
-    parser.add_argument('--mode', default='density', type=str,
+    parser.add_argument('--mode', default='warp', type=str,
                         help='whether to visualize densities or warps [density, warp]')
     parser.add_argument('--number_of_points_to_visualize', default=20000, type=int,
                         help='only visualize this many points. Chooses the highest points of the provided points ')
