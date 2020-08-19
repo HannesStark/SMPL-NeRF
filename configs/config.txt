@@ -1,7 +1,7 @@
-experiment_name = pretrain_model_for_experiments
+experiment_name = append_vertex_locations_to_nerf_only_coarse_net
 number_validation_images = 2
 model_type = append_vertex_locations_to_nerf
-dataset_dir = data/armangle_-30_30_101_one_viewpoint_128x128
+dataset_dir = data/static_camera_human_-30_30_128
 
 netdepth = 8
 
@@ -9,7 +9,7 @@ run_fine = 0
 netdepth_fine = 8
 
 log_iterations = 2
-batchsize = 1024
+batchsize = 128
 batchsize_val = 128
 num_epochs = 60
 mesh_epochs = [1]
@@ -22,6 +22,6 @@ coarse_samples_from_prior=0
 vertex_sphere_radius=0.01
 white_background = 1
 sigma_noise_std = 1
-lrate = 4e-5
+lrate = 1e-5
 lrate_pose = 0
 
