@@ -1,7 +1,7 @@
 experiment_name = append_vertex_locations_to_nerf_with_fine_net
 number_validation_images = 2
 model_type = append_vertex_locations_to_nerf
-dataset_dir = data/test_local
+dataset_dir = data/static_camera_human_-30_30_128
 
 netdepth = 8
 
@@ -17,11 +17,11 @@ skips = [4]
 skips_fine= [4]
 
 number_coarse_samples=64
-coarse_samples_from_intersect=1
+coarse_samples_from_intersect=0
 coarse_samples_from_prior=0
 vertex_sphere_radius=0.01
 white_background = 1
 sigma_noise_std = 1
-lrate = 1e-5
+lrate = 4e-6
 lrate_pose = 0
 
