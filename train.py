@@ -86,8 +86,8 @@ def train():
         canonical_pose1 = torch.zeros(38).view(1, -1)
         canonical_pose2 = torch.zeros(2).view(1, -1)
         canonical_pose3 = torch.zeros(27).view(1, -1)
-        arm_angle_l = torch.tensor([np.deg2rad(30)]).float().view(1, -1)
-        arm_angle_r = torch.tensor([np.deg2rad(40)]).float().view(1, -1)
+        arm_angle_l = torch.tensor([np.deg2rad(0)]).float().view(1, -1)
+        arm_angle_r = torch.tensor([np.deg2rad(0)]).float().view(1, -1)
         smpl_estimator = DummyImageWiseEstimator(canonical_pose1, canonical_pose2, canonical_pose3, arm_angle_l,
                                                  arm_angle_r, torch.zeros(10).view(1, -1), torch.zeros(69).view(1, -1))
         train_data = ImageWiseDataset(train_dir, os.path.join(train_dir, 'transforms.json'), smpl_estimator,
