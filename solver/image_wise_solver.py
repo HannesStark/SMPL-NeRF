@@ -228,7 +228,7 @@ class ImageWiseSolver(NerfSolver):
             tensorboard_rerenders(self.writer, args.number_validation_images, rerender_images, ground_truth_images,
                                   step=epoch + 1, ray_warps=ray_warp_magnitudes)
 
-            goal_model = self.smpl_model(betas=betas, return_verts=True, body_pose=goal_pose)
+            """goal_model = self.smpl_model(betas=betas, return_verts=True, body_pose=goal_pose)
 
             mesh = trimesh.Trimesh(goal_model.vertices.detach().cpu().numpy()[0], self.smpl_model.faces, process=False)
             mesh = pyrender.Mesh.from_trimesh(mesh)
@@ -246,7 +246,7 @@ class ImageWiseSolver(NerfSolver):
             img = img.copy()
 
             self.writer.add_image(str(epoch + 1) + ' Smpl', torch.from_numpy(img).permute(2,0,1), epoch + 1)
-
+            """
             print('[Epoch %d] VAL loss: %.7f' % (
                 epoch + 1,
                 val_loss / (len(val_loader) * iter_per_image_val or not len(val_loader) * iter_per_image_val)))
