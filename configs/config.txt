@@ -1,15 +1,15 @@
-experiment_name = append_vertex_locations_to_nerf_only_coarse_net
+experiment_name = append_vertex_locations_to_nerf_with_fine_net
 number_validation_images = 2
 model_type = append_vertex_locations_to_nerf
-dataset_dir = data/static_camera_human_-30_30_128
+dataset_dir = data/test_local
 
 netdepth = 8
 
-run_fine = 0
+run_fine = 1
 netdepth_fine = 8
 
 log_iterations = 2
-batchsize = 128
+batchsize = 256
 batchsize_val = 128
 num_epochs = 60
 mesh_epochs = [1]

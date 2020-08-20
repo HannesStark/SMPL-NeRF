@@ -45,7 +45,7 @@ class NerfPipeline(SmplPipeline):
 
         # get values for the fine network and run them through the fine network
         z_vals, ray_samples_fine = fine_sampling(ray_translation, ray_direction, z_vals, weights,
-                                                 self.args.number_fine_samples)  # [batchsize, number_coarse_samples + number_fine_samples, 3]
+                                                 self.args)  # [batchsize, number_coarse_samples + number_fine_samples, 3]
         samples_encoding_fine = self.position_encoder.encode(ray_samples_fine)
         # expand directions and translations to the number of coarse samples + fine_samples
         directions_encoding_fine = directions_encoding[..., :1, :].expand(directions_encoding.shape[0],

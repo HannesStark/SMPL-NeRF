@@ -189,7 +189,7 @@ def raw2outputs(raw: torch.Tensor, z_vals: torch.Tensor,
     return rgb, weights, density
 
 
-def sample_pdf(bins, weights, number_samples):
+def sample_pdf(bins, weights, args):
     """
     Hierarchical sampling
     """
@@ -198,17 +198,17 @@ def sample_pdf(bins, weights, number_samples):
     weights = weights + 1e-5  # prevent nans
     pdf = weights / torch.sum(weights, -1, keepdim=True)
     cdf = torch.cumsum(pdf, -1)
-    cdf = torch.cat([torch.zeros_like(cdf[..., :1]), cdf], -1)  # (batch, len(bins))
+    cdf = torch.cat([torch.zeros_like(cdf[..., :1], device=args.default_device), cdf], -1)  # (batch, len(bins))
 
     # Take uniform samples
-    u = torch.linspace(0., 1., steps=number_samples)
-    u = u.expand(list(cdf.shape[:-1]) + [number_samples])
+    u = torch.linspace(0., 1., steps=args.number_fine_samples, device=args.default_device)
+    u = u.expand(list(cdf.shape[:-1]) + [args.number_fine_samples])
 
     # Invert CDF
     u = u.contiguous()
     inds = searchsorted(cdf, u, side='right')
-    below = torch.max(torch.zeros_like(inds - 1), inds - 1)
-    above = torch.min(cdf.shape[-1] - 1 * torch.ones_like(inds), inds)
+    below = torch.max(torch.zeros_like(inds - 1, device=args.default_device), inds - 1)
+    above = torch.min(cdf.shape[-1] - 1 * torch.ones_like(inds, device=args.default_device), inds)
     inds_g = torch.stack([below, above], -1)  # (batch, N_samples, 2)
 
     # cdf_g = tf.gather(cdf, inds_g, axis=-1, batch_dims=len(inds_g.shape)-2)
@@ -218,7 +218,7 @@ def sample_pdf(bins, weights, number_samples):
     bins_g = torch.gather(bins.unsqueeze(1).expand(matched_shape), 2, inds_g)
 
     denom = (cdf_g[..., 1] - cdf_g[..., 0])
-    denom = torch.where(denom < 1e-5, torch.ones_like(denom), denom)
+    denom = torch.where(denom < 1e-5, torch.ones_like(denom, device=args.default_device), denom)
     t = (u - cdf_g[..., 0]) / denom
     samples = bins_g[..., 0] + t * (bins_g[..., 1] - bins_g[..., 0])
 
@@ -227,7 +227,7 @@ def sample_pdf(bins, weights, number_samples):
 
 def fine_sampling(ray_translation: torch.Tensor, samples_directions: torch.Tensor,
                   z_vals: torch.Tensor, weights: torch.Tensor,
-                  number_samples: int) -> Tuple[torch.tensor, torch.tensor]:
+                  args) -> Tuple[torch.tensor, torch.tensor]:
     """
     Obtain additional samples using weights assigned to colors by the
     coarse net.
@@ -253,7 +253,7 @@ def fine_sampling(ray_translation: torch.Tensor, samples_directions: torch.Tenso
         Fine samples along ray.
     """
     z_vals_mid = .5 * (z_vals[..., 1:] + z_vals[..., :-1])
-    z_samples = sample_pdf(z_vals_mid, weights[..., 1:-1], number_samples)
+    z_samples = sample_pdf(z_vals_mid, weights[..., 1:-1], args)
     z_samples = z_samples.detach()
     z_vals, _ = torch.sort(torch.cat([z_vals, z_samples], -1), -1)
     ray_samples_fine = ray_translation[..., None, :] + samples_directions[..., None, :] * z_vals[..., :,
