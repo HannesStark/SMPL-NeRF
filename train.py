@@ -222,6 +222,7 @@ def train():
                  ['model_coarse.pt', 'model_fine.pt', 'smpl_estimator.pt'], parser)
     elif args.model_type == "image_wise_dynamic":
         if args.load_coarse_model != None:
+            print("Load model..")
             model_coarse.load_state_dict(
                 torch.load(args.load_coarse_model, map_location=torch.device(device)))
             for params in model_coarse.parameters():
@@ -232,7 +233,7 @@ def train():
         smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
         smpl_model = smplx.create(smpl_file_name, model_type='smpl')
         smpl_model.batchsize = args.batchsize
-        solver = ImageWiseSolver(model_fine, model_coarse, smpl_estimator, smpl_model, position_encoder,
+        solver = ImageWiseSolver(model_coarse, model_fine, smpl_estimator, smpl_model, position_encoder,
                                  direction_encoder, args)
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
         save_run(solver.writer.log_dir, [model_coarse, model_fine, smpl_estimator],
