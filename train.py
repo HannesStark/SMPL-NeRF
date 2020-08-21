@@ -15,6 +15,7 @@ from datasets.smpl_estimator_dataset import SmplEstimatorDataset
 from datasets.transforms import CoarseSampling, ToTensor, NormalizeRGB, NormalizeRGBImage
 from datasets.vertex_sphere_dataset import VertexSphereDataset
 from datasets.original_nerf_dataset import OriginalNerfDataset
+from models.append_vertices_net import AppendVerticesNet
 from models.debug_model import DebugModel
 from models.dummy_image_wise_estimator import DummyImageWiseEstimator
 from models.dummy_smpl_estimator_model import DummySmplEstimatorModel
@@ -45,7 +46,8 @@ def train():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     args.default_device = device
     if args.model_type not in ["nerf", "smpl_nerf", "append_to_nerf", "smpl", "warp", 'vertex_sphere', "smpl_estimator",
-                               "original_nerf", 'dummy_dynamic', 'image_wise_dynamic', "append_vertex_locations_to_nerf"]:
+                               "original_nerf", 'dummy_dynamic', 'image_wise_dynamic',
+                               "append_vertex_locations_to_nerf", 'append_smpl_params']:
         raise Exception("The model type ", args.model_type, " does not exist.")
 
     transform = transforms.Compose(
@@ -59,7 +61,7 @@ def train():
     elif args.model_type == "smpl" or args.model_type == "warp":
         train_data = SmplDataset(train_dir, os.path.join(train_dir, 'transforms.json'), args, transform=NormalizeRGB())
         val_data = SmplDataset(val_dir, os.path.join(val_dir, 'transforms.json'), args, transform=NormalizeRGB())
-    elif args.model_type == "smpl_nerf" or args.model_type == "append_to_nerf":
+    elif args.model_type == "smpl_nerf" or args.model_type == "append_to_nerf" or args.model_type == "append_smpl_params":
         train_data = SmplNerfDataset(train_dir, os.path.join(train_dir, 'transforms.json'), transform)
         val_data = SmplNerfDataset(val_dir, os.path.join(val_dir, 'transforms.json'), transform)
     elif args.model_type == "vertex_sphere":
@@ -86,8 +88,8 @@ def train():
         canonical_pose1 = torch.zeros(38).view(1, -1)
         canonical_pose2 = torch.zeros(2).view(1, -1)
         canonical_pose3 = torch.zeros(27).view(1, -1)
-        arm_angle_l = torch.tensor([np.deg2rad(0)]).float().view(1, -1)
-        arm_angle_r = torch.tensor([np.deg2rad(0)]).float().view(1, -1)
+        arm_angle_l = torch.tensor([np.deg2rad(10)]).float().view(1, -1)
+        arm_angle_r = torch.tensor([np.deg2rad(10)]).float().view(1, -1)
         smpl_estimator = DummyImageWiseEstimator(canonical_pose1, canonical_pose2, canonical_pose3, arm_angle_l,
                                                  arm_angle_r, torch.zeros(10).view(1, -1), torch.zeros(69).view(1, -1))
         train_data = ImageWiseDataset(train_dir, os.path.join(train_dir, 'transforms.json'), smpl_estimator,
@@ -152,6 +154,26 @@ def train():
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
         save_run(solver.writer.log_dir, [model_warp_field],
                  ['model_warp_field.pt'], parser)
+    elif args.model_type == 'append_smpl_params':
+        human_pose_encoder = PositionalEncoder(args.number_frequencies_pose, args.use_identity_pose)
+        human_pose_dim = human_pose_encoder.output_dim if args.human_pose_encoding else 1
+        model_coarse = RenderRayNet(args.netdepth, args.netwidth, position_encoder.output_dim * 3,
+                                    direction_encoder.output_dim * 3, human_pose_dim * 2,
+                                    skips=args.skips)
+        model_fine = RenderRayNet(args.netdepth_fine, args.netwidth_fine, position_encoder.output_dim * 3,
+                                  direction_encoder.output_dim * 3, human_pose_dim * 2,
+                                  skips=args.skips_fine)
+        solver = AppendToNerfSolver(model_coarse, model_fine, position_encoder, direction_encoder, human_pose_encoder,
+                                    args, torch.optim.Adam,
+                                    torch.nn.MSELoss())
+        solver.train(train_loader, val_loader, train_data.h, train_data.w)
+
+        save_run(solver.writer.log_dir, [model_coarse, model_fine],
+                 ['model_coarse.pt', 'model_fine.pt'], parser)
+
+        model_dependent = [human_pose_encoder, human_pose_dim]
+        inference_gif(solver.writer.log_dir, args.model_type, args, train_data, val_data, position_encoder,
+                      direction_encoder, model_coarse, model_fine, model_dependent)
     elif args.model_type == 'append_to_nerf':
         human_pose_encoder = PositionalEncoder(args.number_frequencies_pose, args.use_identity_pose)
         human_pose_dim = human_pose_encoder.output_dim if args.human_pose_encoding else 1
@@ -173,19 +195,20 @@ def train():
         inference_gif(solver.writer.log_dir, args.model_type, args, train_data, val_data, position_encoder,
                       direction_encoder, model_coarse, model_fine, model_dependent)
     elif args.model_type == 'append_vertex_locations_to_nerf':
-        model_coarse = RenderRayNet(args.netdepth, args.netwidth, position_encoder.output_dim * 3,
-                                    direction_encoder.output_dim * 3, 6890,
-                                    skips=args.skips)
-        model_fine = RenderRayNet(args.netdepth_fine, args.netwidth_fine, position_encoder.output_dim * 3,
-                                  direction_encoder.output_dim * 3, 6890,
-                                  skips=args.skips_fine)
+        model_coarse = AppendVerticesNet(args.netdepth, args.netwidth, position_encoder.output_dim * 3,
+                                         direction_encoder.output_dim * 3, 6890, additional_input_layers=1,
+                                         skips=args.skips)
+        model_fine = AppendVerticesNet(args.netdepth_fine, args.netwidth_fine, position_encoder.output_dim * 3,
+                                       direction_encoder.output_dim * 3, 6890, additional_input_layers=1,
+                                       skips=args.skips_fine)
         smpl_estimator = DummySmplEstimatorModel(train_data.goal_poses, train_data.betas)
         smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
         smpl_model = smplx.create(smpl_file_name, model_type='smpl')
         smpl_model.batchsize = args.batchsize
-        solver = AppendVerticesSolver(model_coarse, model_fine, smpl_estimator, smpl_model, position_encoder, direction_encoder,
-                                    args, torch.optim.Adam,
-                                    torch.nn.MSELoss())
+        solver = AppendVerticesSolver(model_coarse, model_fine, smpl_estimator, smpl_model, position_encoder,
+                                      direction_encoder,
+                                      args, torch.optim.Adam,
+                                      torch.nn.MSELoss())
         solver.train(train_loader, val_loader, train_data.h, train_data.w)
 
         save_run(solver.writer.log_dir, [model_coarse, model_fine],
