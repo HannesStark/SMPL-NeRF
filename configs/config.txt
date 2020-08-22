@@ -1,11 +1,11 @@
 experiment_name = append_vertex_locations_to_nerf_with_fine_net
 number_validation_images = 2
 model_type = append_smpl_params
-dataset_dir = data/arm_and_viewpoint
+dataset_dir = data/overfit_two_arm_angles_128
 
 netdepth = 8
 
-run_fine = 1
+run_fine = 0
 netdepth_fine = 8
 
 log_iterations = 2
