@@ -9,6 +9,7 @@ from skimage.color import gray2rgb
 import configargparse
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+from util.smpl_sequence_loading import load_pose_sequence
 
 np.random.seed(0)
 
@@ -42,7 +43,12 @@ def config_parser():
                         help='Multiple human poses per viewpoint')
     parser.add_argument('--train_index', default=[], help='Needed to retain the original dataset order', action="append")
     parser.add_argument('--val_index', default=[], help='Needed to retain the original dataset order', action="append")
-
+    parser.add_argument('--smpl_sequence_file', default=None,
+                        type=str, help='Path to load sequence of smpl parameters')
+    parser.add_argument('--sequence_start', default=0,
+                        type=int, help='Sequence start time point')
+    parser.add_argument('--sequence_skip', default=3,
+                        type=int, help='Sequence skips [::skip]')
 
     return parser
 
@@ -62,7 +68,7 @@ def save_split(save_dir, camera_transforms, indices, split,
     print("Length of {} set: {}".format(split, len(image_names)))
     image_transform_map = {image_name: camera_transform.tolist()
                            for (image_name, camera_transform) in zip(image_names, camera_transforms)}
-    if dataset_type == "smpl_nerf" or "smpl":
+    if dataset_type == "smpl_nerf" or dataset_type == "smpl":
         human_poses = human_poses[indices]
         image_pose_map = {image_name: human_pose[0].numpy().tolist()
                           for (image_name, human_pose) in zip(image_names, human_poses)}
@@ -109,6 +115,7 @@ def create_dataset():
     parser = config_parser()
     args = parser.parse_args()
     camera_angle_x = np.pi / 3
+    human_poses = None
     if args.camera_path == "sphere":
         dataset_size = args.number_steps ** 2
         camera_number_steps = args.number_steps ** 2
@@ -120,13 +127,22 @@ def create_dataset():
         camera_number_steps = args.number_steps
     else:
         raise Exception("This camera path is unknown")
-    if args.dataset_type == "smpl_nerf" or args.dataset_type == "smpl":
+    if args.smpl_sequence_file != None:
+        human_poses, _ = load_pose_sequence(args.smpl_sequence_file, device="cpu")
+        human_poses = human_poses[args.sequence_start::args.sequence_skip] #human_poses = human_poses[160::5]
+        args.human_number_steps = len(human_poses)
+        print(human_poses.shape)
+        print(args.human_number_steps)
+        if args.multi_human_pose:
+            dataset_size = dataset_size * args.human_number_steps
+        else:
+            dataset_size = len(human_poses)
+    elif args.dataset_type == "smpl_nerf" or args.dataset_type == "smpl":
         if args.multi_human_pose:
             dataset_size = dataset_size * args.human_number_steps
     print("Dataset size: ", dataset_size)
     far = args.camera_radius * 2  # For depth normalization
 
-    human_poses = None
     if args.camera_path == "sphere":
         camera_transforms, camera_angles = get_sphere_poses(args.start_angle, args.end_angle, args.number_steps,
                                                             args.camera_radius)
@@ -136,7 +152,7 @@ def create_dataset():
     elif args.camera_path == "circle_on_sphere":
         camera_transforms, camera_angles = get_circle_on_sphere_poses(args.number_steps, 20,
                                                                       args.camera_radius)
-    if args.dataset_type == "smpl_nerf" or args.dataset_type == "smpl":
+    if (args.dataset_type == "smpl_nerf" or args.dataset_type == "smpl") and args.smpl_sequence_file is None:
         if args.multi_human_pose:
             human_poses = get_human_poses(args.joints, args.human_start_angle, args.human_end_angle,
                                           args.human_number_steps)
@@ -145,6 +161,20 @@ def create_dataset():
         else:
             human_poses = get_human_poses(args.joints, args.human_start_angle, args.human_end_angle,
                                           dataset_size)
+    elif args.smpl_sequence_file is not None:
+        if args.multi_human_pose:
+            human_poses = human_poses.repeat(camera_number_steps, 1, 1)
+            camera_transforms = np.repeat(camera_transforms, args.human_number_steps, axis=0)
+            print("Human pose: ", human_poses.shape)
+            print("Camera trafo: ", camera_transforms.shape)
+        else:
+            print("Original camera trafo", len(camera_transforms))
+            print("Camera steps: ", camera_number_steps)
+            print("Human steps: ", args.human_number_steps)
+            print(camera_transforms.shape)
+            print("Factor: ", int(np.ceil(args.human_number_steps/args.number_steps)))
+            camera_transforms = np.concatenate([camera_transforms]*int(np.ceil(args.human_number_steps/camera_number_steps)), axis=0)
+            print(camera_transforms.shape)
     train_indices, val_indices = disjoint_indices(dataset_size, args.train_val_ratio)
     train_indices, val_indices = sorted(train_indices), sorted(val_indices)
     save_split(args.save_dir, camera_transforms, train_indices, "train",
