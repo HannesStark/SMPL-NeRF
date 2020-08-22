@@ -182,8 +182,8 @@ def raw2outputs(raw: torch.Tensor, z_vals: torch.Tensor,
     rgb = torch.sum(weights[..., None] * rgb, -2)  # [batchsize, 3]
 
     depth_map = torch.sum(weights * z_vals, -1)
-    disp_map = 1. / torch.max(torch.full(depth_map.shape, 1e-10, device=args.default_device),
-                              depth_map / torch.sum(weights, -1))
+    #disp_map = 1. / torch.max(torch.full(depth_map.shape, 1e-10, device=args.default_device),
+    #                          depth_map / torch.sum(weights, -1))
     acc_map = torch.sum(weights, -1)
     if args.white_background:
         rgb = rgb + (1. - acc_map[..., None])
@@ -208,6 +208,7 @@ def sample_pdf(bins, weights, args):
 
     # Invert CDF
     u = u.contiguous()
+    #inds = torch.searchsorted(cdf, u, right=True)
     inds = searchsorted(cdf, u, side='right')
     below = torch.max(torch.zeros_like(inds - 1, device=args.default_device), inds - 1)
     above = torch.min(cdf.shape[-1] - 1 * torch.ones_like(inds, device=args.default_device), inds)
