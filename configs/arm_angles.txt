@@ -1,17 +1,17 @@
-experiment_name = append_vertex_locations_to_nerf_with_fine_net
-number_validation_images = 2
-model_type = append_smpl_params
-dataset_dir = data/overfit_two_arm_angles_128
+experiment_name = append_to_nerf_160_images_-10_10_camera_-10_10_arm_angle
+number_validation_images = 4
+model_type = append_to_nerf
+dataset_dir = data/160_images_-10_10_camera_-10_10_arm_angle
 
 netdepth = 8
 
-run_fine = 0
+run_fine = 1
 netdepth_fine = 8
 
-log_iterations = 2
-batchsize = 2048
+log_iterations = 5
+batchsize = 1024
 batchsize_val = 128
-num_epochs = 200
+num_epochs = 30
 mesh_epochs = [1]
 skips = [4]
 skips_fine= [4]

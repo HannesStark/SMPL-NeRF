@@ -214,7 +214,7 @@ def inference_gif(run_dir, model_type, args, train_data, val_data, position_enco
         pipeline = SmplNerfPipeline(model_coarse, model_fine, model_warp_field,
                                     args, position_encoder, direction_encoder, human_pose_encoder)
 
-    elif model_type == "append_to_nerf":
+    elif model_type == "append_to_nerf" or model_type == 'append_smpl_params':
         [human_pose_encoder, human_pose_dim] = model_dependent
         pipeline = AppendToNerfPipeline(model_coarse, model_fine, args, position_encoder, direction_encoder, human_pose_encoder)
 

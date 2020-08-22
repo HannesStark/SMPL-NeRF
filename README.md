@@ -26,6 +26,7 @@ Navigate to `localhost:6006` in your browser and watch the model train.
 - numpy
 - imageio
 - configargparse
+- torchsearchsorted
 - smplx
 
 Creating synthetic datasets requires
