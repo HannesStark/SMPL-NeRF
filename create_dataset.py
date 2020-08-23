@@ -55,10 +55,12 @@ def config_parser():
                         type=int, help='Sequence end time point')
     parser.add_argument('--frames_per_view', default=1,
                         type=int, help='Frames per view for circle_on_sphere')
-    parser.add_argument('--circle_on_sphere_radius', defautl=10, 
-                        type=float, help="Circle on sphere radius")
-
-
+    parser.add_argument('--circle_on_sphere_radius', default=10, 
+                        type=float, help="Radius of circle on sphere radius")
+    parser.add_argument('--center_phi', default=0, 
+                        type=float, help="Phi of center of circle on sphere radius")
+    parser.add_argument('--center_theta', default=0, 
+                        type=float, help="Theta of center of circle on sphere radius")
     return parser
 
 
@@ -170,13 +172,13 @@ def create_dataset():
                                                             args.camera_radius)
     elif args.camera_path == "circle_on_sphere":
         camera_transforms, camera_angles = get_circle_on_sphere_poses(dataset_size, args.circle_on_sphere_radius,
-                                                                      args.camera_radius)
+                                                                      args.camera_radius, args.center_theta, args.center_phi)
         if args.smpl_sequence_file is not None:
             circle_on_sphere_steps = int(dataset_size / args.frames_per_view)
             camera_transforms, camera_angles = get_circle_on_sphere_poses(circle_on_sphere_steps, args.circle_on_sphere_radius,
-                                                                      args.camera_radius)
+                                                                      args.camera_radius, args.center_theta, args.center_phi)
             camera_transforms_test, camera_angles_test = get_circle_on_sphere_poses(dataset_size, args.circle_on_sphere_radius,
-                                                                      args.camera_radius)
+                                                                      args.camera_radius, args.center_theta, args.center_phi)
             
         camera_number_steps = len(camera_transforms)
             
@@ -206,6 +208,7 @@ def create_dataset():
             else:
                 camera_transforms = np.repeat(camera_transforms, int(np.ceil(args.human_number_steps/camera_number_steps)), axis=0)
             print(camera_transforms.shape)
+    print("Unique trafos: ", len(np.unique(camera_transforms, axis=0)))
     train_indices, val_indices = disjoint_indices(dataset_size, args.train_val_ratio)
     train_indices, val_indices = sorted(train_indices), sorted(val_indices)
     save_split(args.save_dir, camera_transforms, train_indices, "train",
