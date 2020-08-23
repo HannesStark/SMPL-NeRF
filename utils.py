@@ -264,7 +264,7 @@ def fine_sampling(ray_translation: torch.Tensor, samples_directions: torch.Tenso
     return z_vals, ray_samples_fine
 
 
-def save_run(save_dir: str, models, model_names, parser):
+def save_run(save_dir: str, models, model_names, parser=None):
     """
     Save all models and config args under save_dir
 
@@ -279,13 +279,14 @@ def save_run(save_dir: str, models, model_names, parser):
     parser : TYPE
         Parser with configurations for training.
     """
-    args = parser.parse_args()
     for i, model in enumerate(models):
         torch.save(model.state_dict(), os.path.join(save_dir, model_names[i]))
-    parser.write_config_file(args, [os.path.join(save_dir, 'config.txt')])
-    dataset_config_files = glob.glob(os.path.join(args.dataset_dir, '*.txt'))
-    if len(dataset_config_files) > 0:
-        shutil.copyfile(dataset_config_files[0], os.path.join(save_dir, 'create_dataset_config.txt'))
+    if parser is not None:
+        args = parser.parse_args()
+        parser.write_config_file(args, [os.path.join(save_dir, 'config.txt')])
+        dataset_config_files = glob.glob(os.path.join(args.dataset_dir, '*.txt'))
+        if len(dataset_config_files) > 0:
+            shutil.copyfile(dataset_config_files[0], os.path.join(save_dir, 'create_dataset_config.txt'))
 
 
 def disjoint_indices(size: int, ratio: float, random=True) -> Tuple[np.ndarray, np.ndarray]:
