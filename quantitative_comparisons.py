@@ -33,7 +33,7 @@ def l1_val_rerender(run_file, val_folder='data/val', batchsize=128):
 
 def render_vs_rerender(run_file, camera_transforms, height, width, yfov, output_dir, degrees, batchsize=128):
     smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
-    texture_file_name = 'textures/texture.jpg'
+    texture_file_name = 'textures/female1.jpg'
     uv_map_file_name = 'textures/smpl_uv_map.npy'
     rerenders = inference(run_file, camera_transforms, batchsize)
     mesh = get_smpl_mesh(smpl_file_name, texture_file_name, uv_map_file_name)

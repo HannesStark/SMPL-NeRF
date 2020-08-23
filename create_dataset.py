@@ -49,20 +49,32 @@ def config_parser():
                         type=int, help='Sequence start time point')
     parser.add_argument('--sequence_skip', default=3,
                         type=int, help='Sequence skips [::skip]')
+    parser.add_argument('--texture', default=1,
+                        type=int, help='texture of person 1 to 3')
     parser.add_argument('--sequence_end', default=-1,
                         type=int, help='Sequence end time point')
+
 
     return parser
 
 
 def save_split(save_dir, camera_transforms, indices, split,
-               height, width, camera_angle_x, far, dataset_type, human_poses=None):
+               height, width, camera_angle_x, far, dataset_type, human_poses=None, texture=1):
     mesh_canonical, betas, expression = get_smpl_mesh(return_betas_exps=True)
     if dataset_type not in ["nerf", "pix2pix", "smpl_nerf", "smpl"]:
         raise Exception("This dataset type is unknown")
     directory = os.path.join(save_dir, split)
     if not os.path.exists(directory):
         os.makedirs(directory)
+    if texture == 1:
+        smpl_path = 'SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl'
+        texture_path ='textures/female1.jpg'
+    elif texture == 2:
+        smpl_path = 'SMPLs/smpl/models/basicmodel_m_lbs_10_207_0_v1.0.0.pkl'
+        texture_path = 'textures/male2.jpg'
+    elif texture == 3:
+        smpl_path = 'SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl'
+        texture_path = 'textures/female3.jpg'
     camera_transforms = camera_transforms[indices]
     image_names = ["img_{:03d}.png".format(index) for index in indices]
     depth_names = ["depth_{:03d}.npy".format(index) for index in indices]
@@ -92,13 +104,13 @@ def save_split(save_dir, camera_transforms, indices, split,
             depth = (depth / far * 255).astype(np.uint8)
             img = np.concatenate([rgb, gray2rgb(depth)], 1)
         elif dataset_type == "smpl_nerf":
-            mesh_goal = get_smpl_mesh(body_pose=human_poses[i])
+            mesh_goal = get_smpl_mesh(body_pose=human_poses[i],smpl_file_name=smpl_path, texture_file_name=texture_path)
             img = render_scene(mesh_goal, camera_pose, get_pose_matrix(), camera_pose,
                                height, width, camera_angle_x)
         elif dataset_type == "smpl":
-            mesh_goal = get_smpl_mesh(body_pose=human_poses[i])
-            trimesh_goal = get_smpl_mesh(body_pose=human_poses[i], return_pyrender=False)
-            trimesh_canonical = get_smpl_mesh(return_pyrender=False)
+            mesh_goal = get_smpl_mesh(body_pose=human_poses[i],smpl_file_name=smpl_path, texture_file_name=texture_path)
+            trimesh_goal = get_smpl_mesh(body_pose=human_poses[i], return_pyrender=False,smpl_file_name=smpl_path, texture_file_name=texture_path)
+            trimesh_canonical = get_smpl_mesh(return_pyrender=False,smpl_file_name=smpl_path, texture_file_name=texture_path)
             img, depth = render_scene(mesh_goal, camera_pose, get_pose_matrix(), camera_pose,
                                       height, width, camera_angle_x, return_depth=True)
             warp, depth1 = get_warp(trimesh_canonical, trimesh_goal, np.array(camera_pose), height, width, camera_angle_x)
@@ -185,10 +197,10 @@ def create_dataset():
     train_indices, val_indices = sorted(train_indices), sorted(val_indices)
     save_split(args.save_dir, camera_transforms, train_indices, "train",
                args.resolution, args.resolution, camera_angle_x, far,
-               args.dataset_type, human_poses)
+               args.dataset_type, human_poses, args.texture)
     save_split(args.save_dir, camera_transforms, val_indices, "val",
                args.resolution, args.resolution, camera_angle_x, far,
-               args.dataset_type, human_poses)
+               args.dataset_type, human_poses, args.texture)
 
     args.train_index = train_indices
     args.val_index = val_indices
