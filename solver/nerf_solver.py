@@ -3,7 +3,7 @@ from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 
 from models.nerf_pipeline import NerfPipeline
-from utils import PositionalEncoder, tensorboard_rerenders, vedo_data, vedo_data
+from utils import PositionalEncoder, tensorboard_rerenders, vedo_data, vedo_data, save_run
 
 
 class NerfSolver():
@@ -51,7 +51,7 @@ class NerfSolver():
         loss = loss_coarse + loss_fine
         return loss
 
-    def train(self, train_loader, val_loader, h: int, w: int):
+    def train(self, train_loader, val_loader, h: int, w: int,  parser):
         """
         Train coarse and fine model on training data and run validation
 
@@ -157,4 +157,7 @@ class NerfSolver():
             self.writer.add_scalars('Loss Curve', {'train loss': train_loss / iter_per_epoch,
                                                    'val loss': val_loss / (len(val_loader) or not len(val_loader))},
                                     epoch)
+
+            save_run(self.writer.log_dir, [self.model_coarse, self.model_fine],
+                         ['model_coarse.pt', 'model_fine.pt'], parser)
         print('FINISH.')

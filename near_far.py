@@ -34,11 +34,11 @@ all_samples = []
 
 
 
-poses, _ = load_pose_sequence('data/Walk B10 - Walk turn left 45_poses.npz', device='cpu')
+poses, _ = load_pose_sequence('SMPLs/SMPL_sequences/Walk B10 - Walk turn left 45_poses.npz', device='cpu')
 near = 10
 far = 0
 for pose in  tqdm(poses):
-    camera_transforms, _ = get_circle_on_sphere_poses(number_steps, 20,camera_radius)
+    camera_transforms, _ = get_circle_on_sphere_poses(number_steps, 30,camera_radius)
     vertices = get_smpl_vertices(betas=betas, expression=expression, body_pose=pose)
     for camera_transform in camera_transforms:
         rays_translations, ray_directions = get_rays(h, w, f, camera_transform)

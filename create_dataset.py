@@ -167,11 +167,11 @@ def create_dataset():
         camera_transforms, camera_angles = get_circle_poses(args.start_angle, args.end_angle, args.number_steps,
                                                             args.camera_radius)
     elif args.camera_path == "circle_on_sphere":
-        camera_transforms, camera_angles = get_circle_on_sphere_poses(dataset_size, 30,
+        camera_transforms, camera_angles = get_circle_on_sphere_poses(dataset_size, 10,
                                                                       args.camera_radius)
         if args.smpl_sequence_file is not None:
             circle_on_sphere_steps = int(dataset_size / args.frames_per_view)
-            camera_transforms, camera_angles = get_circle_on_sphere_poses(circle_on_sphere_steps, 30,
+            camera_transforms, camera_angles = get_circle_on_sphere_poses(circle_on_sphere_steps, 10,
                                                                       args.camera_radius)
             
         camera_number_steps = len(camera_transforms)

@@ -87,7 +87,7 @@ all_samples = torch.cat(all_samples).view(-1, 3)
 
 
 
-poses, _ = load_pose_sequence('data/G14-  roundhouse body left_poses.npz', device='cpu')
+poses, _ = load_pose_sequence('SMPLs/SMPL_sequences/G14-  roundhouse body left_poses.npz', device='cpu')
 
 
 sm1 = trimesh.creation.uv_sphere(radius=0.007)
