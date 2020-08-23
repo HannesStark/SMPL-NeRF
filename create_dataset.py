@@ -53,6 +53,9 @@ def config_parser():
                         type=int, help='texture of person 1 to 3')
     parser.add_argument('--sequence_end', default=-1,
                         type=int, help='Sequence end time point')
+    parser.add_argument('--frames_per_view', default=1,
+                        type=int, help='Frames per view for circle_on_sphere')
+    
 
 
     return parser
@@ -70,8 +73,8 @@ def save_split(save_dir, camera_transforms, indices, split,
         smpl_path = 'SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl'
         texture_path ='textures/female1.jpg'
     elif texture == 2:
-        smpl_path = 'SMPLs/smpl/models/basicmodel_m_lbs_10_207_0_v1.0.0.pkl'
-        texture_path = 'textures/male2.jpg'
+        smpl_path = 'SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl'
+        texture_path = 'textures/female2.jpg'
     elif texture == 3:
         smpl_path = 'SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl'
         texture_path = 'textures/female3.jpg'
@@ -167,9 +170,12 @@ def create_dataset():
         camera_transforms, camera_angles = get_circle_on_sphere_poses(dataset_size, 30,
                                                                       args.camera_radius)
         if args.smpl_sequence_file is not None:
-            camera_transforms, camera_angles = get_circle_on_sphere_poses(dataset_size, 30,
+            circle_on_sphere_steps = int(dataset_size / args.frames_per_view)
+            camera_transforms, camera_angles = get_circle_on_sphere_poses(circle_on_sphere_steps, 30,
                                                                       args.camera_radius)
-            camera_number_steps = len(camera_transforms)
+            
+        camera_number_steps = len(camera_transforms)
+            
     if (args.dataset_type == "smpl_nerf" or args.dataset_type == "smpl") and args.smpl_sequence_file is None:
         if args.multi_human_pose:
             human_poses = get_human_poses(args.joints, args.human_start_angle, args.human_end_angle,
@@ -191,7 +197,10 @@ def create_dataset():
             print("Human steps: ", args.human_number_steps)
             print(camera_transforms.shape)
             print("Factor: ", int(np.ceil(args.human_number_steps/args.number_steps)))
-            camera_transforms = np.concatenate([camera_transforms]*int(np.ceil(args.human_number_steps/camera_number_steps)), axis=0)
+            if args.frames_per_view == 1:
+                camera_transforms = np.concatenate([camera_transforms]*int(np.ceil(args.human_number_steps/camera_number_steps)), axis=0)
+            else:
+                camera_transforms = np.repeat(camera_transforms, int(np.ceil(args.human_number_steps/camera_number_steps)), axis=0)
             print(camera_transforms.shape)
     train_indices, val_indices = disjoint_indices(dataset_size, args.train_val_ratio)
     train_indices, val_indices = sorted(train_indices), sorted(val_indices)
