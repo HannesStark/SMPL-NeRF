@@ -49,6 +49,8 @@ def config_parser():
                         type=int, help='Sequence start time point')
     parser.add_argument('--sequence_skip', default=3,
                         type=int, help='Sequence skips [::skip]')
+    parser.add_argument('--sequence_end', default=-1,
+                        type=int, help='Sequence end time point')
 
     return parser
 
@@ -129,7 +131,7 @@ def create_dataset():
         raise Exception("This camera path is unknown")
     if args.smpl_sequence_file != None:
         human_poses, _ = load_pose_sequence(args.smpl_sequence_file, device="cpu")
-        human_poses = human_poses[args.sequence_start::args.sequence_skip] #human_poses = human_poses[160::5]
+        human_poses = human_poses[args.sequence_start:args.sequence_end:args.sequence_skip] #human_poses = human_poses[160::5]
         args.human_number_steps = len(human_poses)
         print(human_poses.shape)
         print(args.human_number_steps)
@@ -150,8 +152,12 @@ def create_dataset():
         camera_transforms, camera_angles = get_circle_poses(args.start_angle, args.end_angle, args.number_steps,
                                                             args.camera_radius)
     elif args.camera_path == "circle_on_sphere":
-        camera_transforms, camera_angles = get_circle_on_sphere_poses(args.number_steps, 20,
+        camera_transforms, camera_angles = get_circle_on_sphere_poses(dataset_size, 30,
                                                                       args.camera_radius)
+        if args.smpl_sequence_file is not None:
+            camera_transforms, camera_angles = get_circle_on_sphere_poses(dataset_size, 30,
+                                                                      args.camera_radius)
+            camera_number_steps = len(camera_transforms)
     if (args.dataset_type == "smpl_nerf" or args.dataset_type == "smpl") and args.smpl_sequence_file is None:
         if args.multi_human_pose:
             human_poses = get_human_poses(args.joints, args.human_start_angle, args.human_end_angle,
