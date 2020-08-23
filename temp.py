@@ -24,7 +24,7 @@ camera_radius = 2.4
 degrees = np.arange(90, 120, 2)
 
 smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
-texture_file_name = 'textures/texture.jpg'
+texture_file_name = 'textures/female1.jpg'
 uv_map_file_name = 'textures/smpl_uv_map.npy'
 save_location = 'baseline/pytorch-CycleGAN-and-pix2pix/datasets/testdir/test'
 mesh = get_smpl_mesh(smpl_file_name, texture_file_name, uv_map_file_name)

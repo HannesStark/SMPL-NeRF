@@ -46,7 +46,7 @@ def get_smpl_mesh(smpl_file_name: str = None, texture_file_name: str = None,
     if smpl_file_name is None:
         smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
     if texture_file_name is None:
-        texture_file_name = "textures/texture.jpg"
+        texture_file_name = "textures/female1.jpg"
     if uv_map_file_name is None:
         uv_map_file_name = "textures/smpl_uv_map.npy"
     model = smplx.create(smpl_file_name, model_type='smpl')
@@ -103,7 +103,7 @@ def get_smpl_mesh_distorted(smpl_file_name: str = None, texture_file_name: str =
     if smpl_file_name is None:
         smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
     if texture_file_name is None:
-        texture_file_name = "textures/texture.jpg"
+        texture_file_name = "textures/female1.jpg"
     if uv_map_file_name is None:
         uv_map_file_name = "textures/smpl_uv_map.npy"
     model = smplx.create(smpl_file_name, model_type='smpl')
@@ -175,7 +175,7 @@ def get_smpl_vertices(betas, expression,
     if smpl_file_name is None:
         smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
     if texture_file_name is None:
-        texture_file_name = "textures/texture.jpg"
+        texture_file_name = "textures/female1.jpg"
     if uv_map_file_name is None:
         uv_map_file_name = "textures/smpl_uv_map.npy"
     model = smplx.create(smpl_file_name, model_type='smpl')

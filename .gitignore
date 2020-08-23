@@ -11,4 +11,5 @@ data
 data_*
 baseline/*
 results
+textures/smpl_data.npz
 SPIN/data
