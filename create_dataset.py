@@ -55,12 +55,12 @@ def config_parser():
                         type=int, help='Sequence end time point')
     parser.add_argument('--frames_per_view', default=1,
                         type=int, help='Frames per view for circle_on_sphere')
-    parser.add_argument('--circle_on_sphere_radius', default=10, 
-                        type=float, help="Radius of circle on sphere radius")
     parser.add_argument('--center_phi', default=0, 
                         type=float, help="Phi of center of circle on sphere radius")
     parser.add_argument('--center_theta', default=0, 
                         type=float, help="Theta of center of circle on sphere radius")
+    parser.add_argument('--circle_on_sphere_radius', defautl=10,
+                        type=float, help="Circle on sphere radius")
     return parser
 
 

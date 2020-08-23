@@ -128,7 +128,7 @@ def train():
         solver = SmplSolver(model_coarse, model_fine, position_encoder, direction_encoder,
                             args, torch.optim.Adam,
                             torch.nn.MSELoss())
-        solver.train(train_loader, val_loader, train_data.h, train_data.w)
+        solver.train(train_loader, val_loader, train_data.h, train_data.w, parser)
         save_run(solver.writer.log_dir, [model_coarse, model_fine],
                  ['model_coarse.pt', 'model_fine.pt'], parser)
         # inference_gif(solver.writer.log_dir, args.model_type, args, train_data, val_data, position_encoder,
@@ -137,7 +137,7 @@ def train():
     elif args.model_type == 'nerf' or args.model_type == "original_nerf":
         solver = NerfSolver(model_coarse, model_fine, position_encoder, direction_encoder, args, torch.optim.Adam,
                             torch.nn.MSELoss())
-        solver.train(train_loader, val_loader, train_data.h, train_data.w)
+        solver.train(train_loader, val_loader, train_data.h, train_data.w, parser)
         save_run(solver.writer.log_dir, [model_coarse, model_fine],
                  ['model_coarse.pt', 'model_fine.pt'], parser)
         # inference_gif(solver.writer.log_dir, args.model_type, args, train_data, val_data, position_encoder,
@@ -166,7 +166,7 @@ def train():
         solver = AppendToNerfSolver(model_coarse, model_fine, position_encoder, direction_encoder, human_pose_encoder,
                                     args, torch.optim.Adam,
                                     torch.nn.MSELoss())
-        solver.train(train_loader, val_loader, train_data.h, train_data.w)
+        solver.train(train_loader, val_loader, train_data.h, train_data.w, parser)
 
         save_run(solver.writer.log_dir, [model_coarse, model_fine],
                  ['model_coarse.pt', 'model_fine.pt'], parser)
@@ -186,7 +186,7 @@ def train():
         solver = AppendToNerfSolver(model_coarse, model_fine, position_encoder, direction_encoder, human_pose_encoder,
                                     args, torch.optim.Adam,
                                     torch.nn.MSELoss())
-        solver.train(train_loader, val_loader, train_data.h, train_data.w)
+        solver.train(train_loader, val_loader, train_data.h, train_data.w,   parser)
 
         save_run(solver.writer.log_dir, [model_coarse, model_fine],
                  ['model_coarse.pt', 'model_fine.pt'], parser)
