@@ -2,7 +2,7 @@ import smplx
 import numpy as np
 import sys, os
 import torch
-from vedo import show, Mesh
+# from vedo import show, Mesh
 
 def load_pose_sequence(file_path: str, device: str, visualize: str = False):
     """
@@ -38,7 +38,7 @@ def load_pose_sequence(file_path: str, device: str, visualize: str = False):
     pose_sequence[..., :63] = torch.Tensor(bdata['poses'][:, 3:66])
     pose_sequence = pose_sequence.view(-1, 1, 69)
     root_orient = torch.Tensor(bdata['poses'][:, :3].reshape(-1, 1, 3)).to(device)
-    if visualize:
+    """if visualize:
         smpl_file_name = "../SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
         fId = 0 # frame id of the mocap sequence
         frames = np.arange(0, n_frames, 10)
@@ -55,7 +55,7 @@ def load_pose_sequence(file_path: str, device: str, visualize: str = False):
             vertices = output.vertices.detach().cpu().numpy().squeeze()
             faces = model.faces
             smpl_mesh = Mesh([vertices, faces], alpha=0.5)
-            show([smpl_mesh], at=root_orient)
+            show([smpl_mesh], at=root_orient)"""
         
     return pose_sequence, root_orient
 
