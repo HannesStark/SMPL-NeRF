@@ -135,7 +135,7 @@ def optimize(args, save_path):
     smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
     uv_map_file_name = "textures/smpl_uv_map.npy"
     uv = np.load(uv_map_file_name)
-    texture_file_name = "textures/texture.jpg"
+    texture_file_name = "textures/female1.jpg"
     with open(texture_file_name, 'rb') as file:
         texture = Image.open(BytesIO(file.read()))
     model = smplx.create(smpl_file_name, model_type='smpl')
@@ -278,7 +278,7 @@ def optimize_sequence(true_poses, gt_translation, args, save_path: str):
     smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
     uv_map_file_name = "textures/smpl_uv_map.npy"
     uv = np.load(uv_map_file_name)
-    texture_file_name = "textures/texture.jpg"
+    texture_file_name = "textures/female1.jpg"
     with open(texture_file_name, 'rb') as file:
         texture = Image.open(BytesIO(file.read()))
     results = []

@@ -4,7 +4,7 @@ import sys, os
 import torch
 from vedo import show, Mesh
 
-def load_pose_sequence(file_path: str, device: str, visualize: str = False) -> torch.Tensor:
+def load_pose_sequence(file_path: str, device: str, visualize: str = False):
     """
     Load pose parameters from an AMASS-sequence.
     (The SMPL model requires an (1, 69)-tensor but the AMASS pose-sequence
