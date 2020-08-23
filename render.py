@@ -355,9 +355,10 @@ def render_scene(mesh: pyrender.Mesh, camera_pose: np.array,
     scene.add(mesh, pose=human_pose)
     camera = pyrender.PerspectiveCamera(yfov=yfov, aspectRatio=1.0)
     scene.add(camera, pose=camera_pose)
-    light = pyrender.SpotLight(color=np.ones(3), intensity=200.0,
-                                innerConeAngle=np.pi/16.0,
-                                outerConeAngle=np.pi/6.0)
+    #light = pyrender.SpotLight(color=np.ones(3), intensity=200.0,
+    #                            innerConeAngle=np.pi/16.0,
+    #                            outerConeAngle=np.pi/6.0)
+    light = pyrender.DirectionalLight(color=np.ones(3), intensity=28.0)
     scene.add(light, pose=camera_pose)
     r = pyrender.OffscreenRenderer(height, width)
     img, depth = r.render(scene)

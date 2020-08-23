@@ -121,11 +121,11 @@ class PositionalEncoder():
         if include_identity:
             self.embed_fns.append(lambda x: x)
             self.output_dim += 1
-
-        for freq in freq_bands:
-            for periodic_fn in [torch.sin, torch.cos]:
-                self.embed_fns.append(lambda x, periodic_fn=periodic_fn, freq=freq: periodic_fn(x * freq))
-                self.output_dim += 1
+        if number_frequencies > 0:
+            for freq in freq_bands:
+                for periodic_fn in [torch.sin, torch.cos]:
+                    self.embed_fns.append(lambda x, periodic_fn=periodic_fn, freq=freq: periodic_fn(x * freq))
+                    self.output_dim += 1
 
     def encode(self, coordinate):
         return torch.cat([fn(coordinate) for fn in self.embed_fns], -1)
