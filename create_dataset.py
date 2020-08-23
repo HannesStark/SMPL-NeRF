@@ -70,8 +70,8 @@ def save_split(save_dir, camera_transforms, indices, split,
         smpl_path = 'SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl'
         texture_path ='textures/female1.jpg'
     elif texture == 2:
-        smpl_path = 'SMPLs/smpl/models/basicmodel_m_lbs_10_207_0_v1.0.0.pkl'
-        texture_path = 'textures/male2.jpg'
+        smpl_path = 'SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl'
+        texture_path = 'textures/female2.jpg'
     elif texture == 3:
         smpl_path = 'SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl'
         texture_path = 'textures/female3.jpg'
