@@ -55,7 +55,8 @@ def config_parser():
                         type=int, help='Sequence end time point')
     parser.add_argument('--frames_per_view', default=1,
                         type=int, help='Frames per view for circle_on_sphere')
-    
+    parser.add_argument('--circle_on_sphere_radius', defautl=10,
+                        type=float, help="Circle on sphere radius")
 
 
     return parser
@@ -85,7 +86,7 @@ def save_split(save_dir, camera_transforms, indices, split,
     print("Length of {} set: {}".format(split, len(image_names)))
     image_transform_map = {image_name: camera_transform.tolist()
                            for (image_name, camera_transform) in zip(image_names, camera_transforms)}
-    if dataset_type == "smpl_nerf" or dataset_type == "smpl":
+    if dataset_type == "smpl_nerf" or dataset_type == "smpl" or dataset_type=="pix2pix":
         human_poses = human_poses[indices]
         image_pose_map = {image_name: human_pose[0].numpy().tolist()
                           for (image_name, human_pose) in zip(image_names, human_poses)}
@@ -94,7 +95,7 @@ def save_split(save_dir, camera_transforms, indices, split,
                 'image_pose_map': image_pose_map,
                 'betas': betas[0].numpy().tolist(),
                 'expression': expression[0].numpy().tolist()}
-    elif dataset_type == "nerf" or dataset_type == "pix2pix":
+    elif dataset_type == "nerf":
         dict = {'camera_angle_x': camera_angle_x,
                 'image_transform_map': image_transform_map}
     for i, (image_name, camera_pose) in tqdm(enumerate(image_transform_map.items())):
@@ -102,7 +103,8 @@ def save_split(save_dir, camera_transforms, indices, split,
             img = render_scene(mesh_canonical, camera_pose, get_pose_matrix(), camera_pose,
                                height, width, camera_angle_x)
         elif dataset_type == "pix2pix":
-            rgb, depth = render_scene(mesh_canonical, camera_pose, get_pose_matrix(), camera_pose,
+            mesh_goal = get_smpl_mesh(body_pose=human_poses[i],smpl_file_name=smpl_path, texture_file_name=texture_path)
+            rgb, depth = render_scene(mesh_goal, camera_pose, get_pose_matrix(), camera_pose,
                                       height, width, camera_angle_x, return_depth=True)
             depth = (depth / far * 255).astype(np.uint8)
             img = np.concatenate([rgb, gray2rgb(depth)], 1)
@@ -167,11 +169,13 @@ def create_dataset():
         camera_transforms, camera_angles = get_circle_poses(args.start_angle, args.end_angle, args.number_steps,
                                                             args.camera_radius)
     elif args.camera_path == "circle_on_sphere":
-        camera_transforms, camera_angles = get_circle_on_sphere_poses(dataset_size, 10,
+        camera_transforms, camera_angles = get_circle_on_sphere_poses(dataset_size, args.circle_on_sphere_radius,
                                                                       args.camera_radius)
         if args.smpl_sequence_file is not None:
             circle_on_sphere_steps = int(dataset_size / args.frames_per_view)
-            camera_transforms, camera_angles = get_circle_on_sphere_poses(circle_on_sphere_steps, 10,
+            camera_transforms, camera_angles = get_circle_on_sphere_poses(circle_on_sphere_steps, args.circle_on_sphere_radius,
+                                                                      args.camera_radius)
+            camera_transforms_test, camera_angles_test = get_circle_on_sphere_poses(dataset_size, args.circle_on_sphere_radius,
                                                                       args.camera_radius)
             
         camera_number_steps = len(camera_transforms)
@@ -210,7 +214,10 @@ def create_dataset():
     save_split(args.save_dir, camera_transforms, val_indices, "val",
                args.resolution, args.resolution, camera_angle_x, far,
                args.dataset_type, human_poses, args.texture)
-
+    if args.smpl_sequence_file is not None and args.frames_per_view != 1:
+        save_split(args.save_dir, camera_transforms_test, np.arange(dataset_size), "test",
+               args.resolution, args.resolution, camera_angle_x, far,
+               args.dataset_type, human_poses, args.texture)
     args.train_index = train_indices
     args.val_index = val_indices
 
