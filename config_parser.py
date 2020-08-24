@@ -90,5 +90,9 @@ def config_parser():
                         help='set to render synthetic data on a white bkgd (always use for dvoxels)')
     parser.add_argument("--default_device", type=str, default='cuda',
                         help='You do not need to set this to cpu if you dont have a cuda device')
+    parser.add_argument("--siren", type=str, default=0,
+                        help='Use Siren as RenderRayNet')
+    parser.add_argument("--load_run", type=str, default=None,
+                        help='Load latest models from given run')
 
     return parser

@@ -202,6 +202,12 @@ def train():
         model_fine = AppendVerticesNet(args.netdepth_fine, args.netwidth_fine, position_encoder.output_dim * 3,
                                        direction_encoder.output_dim * 3, 6890, additional_input_layers=1,
                                        skips=args.skips_fine)
+        if args.load_run is not None:
+            model_coarse.load_state_dict(
+                torch.load(os.path.join(args.load_run, 'model_coarse.pt'), map_location=torch.device(device)))
+            model_fine.load_state_dict(
+                torch.load(os.path.join(args.load_run, 'model_fine.pt'), map_location=torch.device(device)))
+            print("Models loaded from ", args.load_run)
         smpl_estimator = DummySmplEstimatorModel(train_data.goal_poses, train_data.betas)
         smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
         smpl_model = smplx.create(smpl_file_name, model_type='smpl')
