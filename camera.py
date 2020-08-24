@@ -170,7 +170,8 @@ def get_circle_poses(start_angle: float, end_angle: float,
 
 
 def get_circle_on_sphere_poses(number_steps: int, circle_radius: float,
-                               sphere_radius) -> np.array:
+                               sphere_radius: float, center_theta: float=0, 
+                               center_phi: float=0) -> np.array:
     """
     Compute poses on a circle with radius circle_radius on a sphere with
     radius sphere_radius
@@ -183,6 +184,10 @@ def get_circle_on_sphere_poses(number_steps: int, circle_radius: float,
         radius of circle.
     sphere_radius : float
         radius of sphere.
+    center_theta: float
+        theta of center of circle on sphere
+    center_phi: float
+        phi of center of circle on sphere
 
     Returns
     -------
@@ -194,8 +199,8 @@ def get_circle_on_sphere_poses(number_steps: int, circle_radius: float,
     print("Angle stepsize: {:.2f}°".format(360/number_steps))
     poses = []
     for angle in angles:
-        phi = circle_radius*np.cos(angle)
-        theta = circle_radius*np.sin(angle)
+        phi = circle_radius*np.cos(angle) + center_phi
+        theta = circle_radius*np.sin(angle) + center_theta
         camera_pose = get_sphere_pose(phi, theta, sphere_radius)
         poses.append(camera_pose)
     return np.array(poses), angles
