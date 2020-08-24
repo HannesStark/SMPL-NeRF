@@ -59,7 +59,7 @@ def config_parser():
                         type=float, help="Phi of center of circle on sphere radius")
     parser.add_argument('--center_theta', default=0, 
                         type=float, help="Theta of center of circle on sphere radius")
-    parser.add_argument('--circle_on_sphere_radius', defautl=10,
+    parser.add_argument('--circle_on_sphere_radius', default=10,
                         type=float, help="Circle on sphere radius")
     return parser
 
@@ -161,6 +161,8 @@ def create_dataset():
     elif args.dataset_type == "smpl_nerf" or args.dataset_type == "smpl":
         if args.multi_human_pose:
             dataset_size = dataset_size * args.human_number_steps
+        if args.frames_per_view:
+             dataset_size = args.human_number_steps
     print("Dataset size: ", dataset_size)
     far = args.camera_radius * 2  # For depth normalization
 
@@ -171,7 +173,9 @@ def create_dataset():
         camera_transforms, camera_angles = get_circle_poses(args.start_angle, args.end_angle, args.number_steps,
                                                             args.camera_radius)
     elif args.camera_path == "circle_on_sphere":
-        camera_transforms, camera_angles = get_circle_on_sphere_poses(dataset_size, args.circle_on_sphere_radius,
+        camera_transforms, camera_angles = get_circle_on_sphere_poses(args.number_steps, args.circle_on_sphere_radius,
+                                                                      args.camera_radius, args.center_theta, args.center_phi)
+        camera_transforms_test, camera_angles_test = get_circle_on_sphere_poses(dataset_size, args.circle_on_sphere_radius,
                                                                       args.camera_radius, args.center_theta, args.center_phi)
         if args.smpl_sequence_file is not None:
             circle_on_sphere_steps = int(dataset_size / args.frames_per_view)
@@ -188,6 +192,10 @@ def create_dataset():
                                           args.human_number_steps)
             human_poses = human_poses.repeat(camera_number_steps, 1, 1)
             camera_transforms = np.repeat(camera_transforms, args.human_number_steps, axis=0)
+        elif args.frames_per_view:
+            human_poses = get_human_poses(args.joints, args.human_start_angle, args.human_end_angle,
+                                          dataset_size)
+            camera_transforms = np.repeat(camera_transforms, int(np.ceil(args.human_number_steps/camera_number_steps)), axis=0)
         else:
             human_poses = get_human_poses(args.joints, args.human_start_angle, args.human_end_angle,
                                           dataset_size)
@@ -207,7 +215,7 @@ def create_dataset():
                 camera_transforms = np.concatenate([camera_transforms]*int(np.ceil(args.human_number_steps/camera_number_steps)), axis=0)
             else:
                 camera_transforms = np.repeat(camera_transforms, int(np.ceil(args.human_number_steps/camera_number_steps)), axis=0)
-            print(camera_transforms.shape)
+    print("Camera trafos shape: ", camera_transforms.shape)
     print("Unique trafos: ", len(np.unique(camera_transforms, axis=0)))
     train_indices, val_indices = disjoint_indices(dataset_size, args.train_val_ratio)
     train_indices, val_indices = sorted(train_indices), sorted(val_indices)
@@ -217,7 +225,7 @@ def create_dataset():
     save_split(args.save_dir, camera_transforms, val_indices, "val",
                args.resolution, args.resolution, camera_angle_x, far,
                args.dataset_type, human_poses, args.texture)
-    if args.smpl_sequence_file is not None and args.frames_per_view != 1:
+    if args.smpl_sequence_file is not None or args.frames_per_view != 1:
         save_split(args.save_dir, camera_transforms_test, np.arange(dataset_size), "test",
                args.resolution, args.resolution, camera_angle_x, far,
                args.dataset_type, human_poses, args.texture)
