@@ -21,6 +21,7 @@ from models.dummy_image_wise_estimator import DummyImageWiseEstimator
 from models.dummy_smpl_estimator_model import DummySmplEstimatorModel
 from models.render_ray_net import RenderRayNet
 from models.warp_field_net import WarpFieldNet
+from solver.append_smpl_params_solver import AppendSmplParamsSolver
 from solver.append_vertices_solver import AppendVerticesSolver
 from solver.dynamic_solver import DynamicSolver
 from solver.image_wise_solver import ImageWiseSolver
@@ -158,12 +159,12 @@ def train():
         human_pose_encoder = PositionalEncoder(args.number_frequencies_pose, args.use_identity_pose)
         human_pose_dim = human_pose_encoder.output_dim if args.human_pose_encoding else 1
         model_coarse = RenderRayNet(args.netdepth, args.netwidth, position_encoder.output_dim * 3,
-                                    direction_encoder.output_dim * 3, human_pose_dim * 2,
+                                    direction_encoder.output_dim * 3, human_pose_dim * 69,
                                     skips=args.skips)
         model_fine = RenderRayNet(args.netdepth_fine, args.netwidth_fine, position_encoder.output_dim * 3,
-                                  direction_encoder.output_dim * 3, human_pose_dim * 2,
+                                  direction_encoder.output_dim * 3, human_pose_dim * 69,
                                   skips=args.skips_fine)
-        solver = AppendToNerfSolver(model_coarse, model_fine, position_encoder, direction_encoder, human_pose_encoder,
+        solver = AppendSmplParamsSolver(model_coarse, model_fine, position_encoder, direction_encoder, human_pose_encoder,
                                     args, torch.optim.Adam,
                                     torch.nn.MSELoss())
         solver.train(train_loader, val_loader, train_data.h, train_data.w, parser)
