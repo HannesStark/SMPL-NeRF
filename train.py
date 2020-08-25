@@ -156,7 +156,6 @@ def train():
         save_run(solver.writer.log_dir, [model_warp_field],
                  ['model_warp_field.pt'], parser)
     elif args.model_type == 'append_smpl_params':
-        # use_directional_input
         human_pose_encoder = PositionalEncoder(args.number_frequencies_pose, args.use_identity_pose)
         human_pose_dim = human_pose_encoder.output_dim if args.human_pose_encoding else 1
 
