@@ -158,12 +158,14 @@ def train():
     elif args.model_type == 'append_smpl_params':
         human_pose_encoder = PositionalEncoder(args.number_frequencies_pose, args.use_identity_pose)
         human_pose_dim = human_pose_encoder.output_dim if args.human_pose_encoding else 1
+
         model_coarse = RenderRayNet(args.netdepth, args.netwidth, position_encoder.output_dim * 3,
                                     direction_encoder.output_dim * 3, human_pose_dim * 69,
-                                    skips=args.skips)
+                                    skips=args.skips, use_directional_input=args.use_directional_input)
         model_fine = RenderRayNet(args.netdepth_fine, args.netwidth_fine, position_encoder.output_dim * 3,
                                   direction_encoder.output_dim * 3, human_pose_dim * 69,
-                                  skips=args.skips_fine)
+                                  skips=args.skips_fine, use_directional_input=args.use_directional_input)
+
         if args.load_run is not None:
             model_coarse.load_state_dict(
                 torch.load(os.path.join(args.load_run, 'model_coarse.pt'), map_location=torch.device(device)))
@@ -186,10 +188,10 @@ def train():
         human_pose_dim = human_pose_encoder.output_dim if args.human_pose_encoding else 1
         model_coarse = RenderRayNet(args.netdepth, args.netwidth, position_encoder.output_dim * 3,
                                     direction_encoder.output_dim * 3, human_pose_dim * 2,
-                                    skips=args.skips)
+                                    skips=args.skips, use_directional_input=args.use_directional_input)
         model_fine = RenderRayNet(args.netdepth_fine, args.netwidth_fine, position_encoder.output_dim * 3,
                                   direction_encoder.output_dim * 3, human_pose_dim * 2,
-                                  skips=args.skips_fine)
+                                  skips=args.skips_fine, use_directional_input=args.use_directional_input)
         solver = AppendToNerfSolver(model_coarse, model_fine, position_encoder, direction_encoder, human_pose_encoder,
                                     args, torch.optim.Adam,
                                     torch.nn.MSELoss())

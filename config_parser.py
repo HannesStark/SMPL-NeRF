@@ -94,5 +94,7 @@ def config_parser():
                         help='Use Siren as RenderRayNet')
     parser.add_argument("--load_run", type=str, default=None,
                         help='Load latest models from given run')
+    parser.add_argument("--use_directional_input", type=int, default=1,
+                        help='use directional input in the model; for ablation studies')
 
     return parser
