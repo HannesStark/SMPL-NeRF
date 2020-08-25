@@ -13,6 +13,7 @@ from tqdm import tqdm
 
 from config_parser import config_parser
 from models.append_to_nerf_pipeline import AppendToNerfPipeline
+from models.append_smpl_params_pipeline import AppendSmplParamsPipeline
 
 from models.render_ray_net import RenderRayNet
 from models.warp_field_net import WarpFieldNet
@@ -115,6 +116,30 @@ def inference():
         human_pose_encoder = PositionalEncoder(args_training.number_frequencies_pose, args_training.use_identity_pose)
         pipeline = AppendToNerfPipeline(model_coarse, model_fine, args_training, position_encoder, direction_encoder,
                                         human_pose_encoder)
+    elif args_inference.model_type == "append_smpl_params":
+        human_pose_encoder = PositionalEncoder(args_training.number_frequencies_pose, args_training.use_identity_pose)
+        human_pose_dim = human_pose_encoder.output_dim if args_training.human_pose_encoding else 1
+        model_coarse = RenderRayNet(args_training.netdepth, args_training.netwidth, position_encoder.output_dim * 3,
+                                    direction_encoder.output_dim * 3, human_pose_dim * 69,
+                                    skips=args_training.skips)
+        model_fine = RenderRayNet(args_training.netdepth_fine, args_training.netwidth_fine, position_encoder.output_dim * 3,
+                                  direction_encoder.output_dim * 3, human_pose_dim * 69,
+                                  skips=args_training.skips_fine)
+        model_coarse.load_state_dict(
+            torch.load(os.path.join(args_inference.run_dir, "model_coarse.pt"), map_location=torch.device('cpu')))
+        model_coarse.eval()
+        model_fine.load_state_dict(
+            torch.load(os.path.join(args_inference.run_dir, "model_fine.pt"), map_location=torch.device('cpu')))
+        model_fine.eval()
+        model_coarse.to(device)
+        model_fine.to(device)
+        dataset = SmplNerfDataset(args_inference.ground_truth_dir,
+                                  os.path.join(args_inference.ground_truth_dir,
+                                               'transforms.json'), transform)
+        data_loader = torch.utils.data.DataLoader(dataset, batch_size=args_training.batchsize, shuffle=False,
+                                                  num_workers=0)
+        pipeline = AppendSmplParamsPipeline(model_coarse, model_fine, args_training, position_encoder, direction_encoder,
+                                        human_pose_encoder)
     elif args_inference.model_type == "smpl":
         dataset = SmplDataset(args_inference.ground_truth_dir,
                               os.path.join(args_inference.ground_truth_dir,
@@ -172,7 +197,7 @@ def config_parser_inference():
     # General
     parser.add_argument('--save_dir', default="renders",
                         help='save directory for inference output (appended to run_dir')
-    parser.add_argument('--run_dir', default="runs/Aug18_10-51-09_korhal", help='path to load model')
+    parser.add_argument('--run_dir', default="runs/Aug24_10-50-14_korhal", help='path to load model')
     parser.add_argument('--ground_truth_dir', default="data/fix_pose_camera_-10_10_10/val",
                         help='path to load ground truth, created with create_dataset.py')
     parser.add_argument('--model_type', default="nerf", type=str,
