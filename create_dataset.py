@@ -150,15 +150,15 @@ def create_dataset():
         raise Exception("This camera path is unknown")
     if args.smpl_sequence_file != None:
         human_poses, _ = load_pose_sequence(args.smpl_sequence_file, device="cpu")
+        print("Original sequence length: ", len(human_poses))
         human_poses = human_poses[args.sequence_start:args.sequence_end:args.sequence_skip] #human_poses = human_poses[160::5]
         args.human_number_steps = len(human_poses)
-        print(human_poses.shape)
-        print(args.human_number_steps)
+        print("Number of chosen frames: ", args.human_number_steps)
         if args.multi_human_pose:
             dataset_size = dataset_size * args.human_number_steps
         else:
             dataset_size = len(human_poses)
-    elif args.dataset_type == "smpl_nerf" or args.dataset_type == "smpl":
+    elif args.dataset_type == "smpl_nerf" or args.dataset_type == "smpl" or args.dataset_type=="pix2pix":
         if args.multi_human_pose:
             dataset_size = dataset_size * args.human_number_steps
         if args.frames_per_view:
@@ -186,7 +186,7 @@ def create_dataset():
             
         camera_number_steps = len(camera_transforms)
             
-    if (args.dataset_type == "smpl_nerf" or args.dataset_type == "smpl") and args.smpl_sequence_file is None:
+    if (args.dataset_type == "smpl_nerf" or args.dataset_type == "smpl" or args.dataset_type=="pix2pix") and args.smpl_sequence_file is None:
         if args.multi_human_pose:
             human_poses = get_human_poses(args.joints, args.human_start_angle, args.human_end_angle,
                                           args.human_number_steps)
