@@ -50,7 +50,7 @@ def inference():
                                          args_training.use_identity_positional)
     direction_encoder = PositionalEncoder(args_training.number_frequencies_directional,
                                           args_training.use_identity_directional)
-    if not args_inference.model_type == "append_to_nerf":
+    if not args_inference.model_type == "append_to_nerf" and not args_inference.model_type=="append_smpl_params":
         model_coarse = RenderRayNet(args_training.netdepth, args_training.netwidth, position_encoder.output_dim * 3,
                                     direction_encoder.output_dim * 3, skips=args_training.skips)
         model_fine = RenderRayNet(args_training.netdepth_fine, args_training.netwidth_fine,
@@ -198,9 +198,9 @@ def config_parser_inference():
     parser.add_argument('--save_dir', default="renders",
                         help='save directory for inference output (appended to run_dir')
     parser.add_argument('--run_dir', default="runs/Aug24_10-50-14_korhal", help='path to load model')
-    parser.add_argument('--ground_truth_dir', default="data/fix_pose_camera_-10_10_10/val",
+    parser.add_argument('--ground_truth_dir', default="data/sequence_3/val",
                         help='path to load ground truth, created with create_dataset.py')
-    parser.add_argument('--model_type', default="nerf", type=str,
+    parser.add_argument('--model_type', default="append_smpl_params", type=str,
                         help='choose dataset type for model [smpl_nerf, nerf, pix2pix, smpl, append_to_nerf]')
     return parser
 
