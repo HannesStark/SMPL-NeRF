@@ -71,6 +71,7 @@ def inference():
     transform = transforms.Compose(
         [NormalizeRGB(), CoarseSampling(args_training.near, args_training.far, args_training.number_coarse_samples),
          ToTensor()])
+    print(args_training.number_coarse_samples)
 
     rgb_images_renders = []
     rgb_images_truth = []
@@ -117,6 +118,7 @@ def inference():
         pipeline = AppendToNerfPipeline(model_coarse, model_fine, args_training, position_encoder, direction_encoder,
                                         human_pose_encoder)
     elif args_inference.model_type == "append_smpl_params":
+        args_training.batchsize = 1000
         human_pose_encoder = PositionalEncoder(args_training.number_frequencies_pose, args_training.use_identity_pose)
         human_pose_dim = human_pose_encoder.output_dim if args_training.human_pose_encoding else 1
         model_coarse = RenderRayNet(args_training.netdepth, args_training.netwidth, position_encoder.output_dim * 3,
@@ -197,8 +199,8 @@ def config_parser_inference():
     # General
     parser.add_argument('--save_dir', default="renders",
                         help='save directory for inference output (appended to run_dir')
-    parser.add_argument('--run_dir', default="runs/Aug24_10-50-14_korhal", help='path to load model')
-    parser.add_argument('--ground_truth_dir', default="data/sequence_3/val",
+    parser.add_argument('--run_dir', default="runs/Aug24_20-17-13_korhal", help='path to load model')
+    parser.add_argument('--ground_truth_dir', default="data/sequence_2/val",
                         help='path to load ground truth, created with create_dataset.py')
     parser.add_argument('--model_type', default="append_smpl_params", type=str,
                         help='choose dataset type for model [smpl_nerf, nerf, pix2pix, smpl, append_to_nerf]')
