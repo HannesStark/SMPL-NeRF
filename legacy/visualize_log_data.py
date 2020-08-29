@@ -35,16 +35,16 @@ def visualize_log_data():
     parser = config_parser()
     args = parser.parse_args()
     if args.run_dir == "newest":
-        run_folders = os.listdir('runs')
+        run_folders = os.listdir('../runs')
         if len(run_folders) == 0:
             raise ValueError('There is no run in the runs directory')
         newest = 0
         run_dir = ""
         for run_folder in run_folders:
-            timestamp = os.path.getmtime(os.path.join('runs', run_folder))
+            timestamp = os.path.getmtime(os.path.join('../runs', run_folder))
             if timestamp > newest:
                 newest = timestamp
-                run_dir = os.path.join('runs', run_folder)
+                run_dir = os.path.join('../runs', run_folder)
     else:
         run_dir = args.run_dir
 

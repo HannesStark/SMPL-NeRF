@@ -12,16 +12,15 @@ log_iterations = 2
 batchsize = 2048
 batchsize_val = 128
 num_epochs = 200
-mesh_epochs = [1]
 skips = [4]
 skips_fine= [4]
 
+near=1.6
+far=3.1
 number_coarse_samples=64
-coarse_samples_from_intersect=1
-coarse_samples_from_prior=0
-vertex_sphere_radius=0.01
+number_fine_samples=64
 white_background = 1
 sigma_noise_std = 1
-lrate = 4e-5
-lrate_pose = 0.01
+lrate = 1e-4
+
 

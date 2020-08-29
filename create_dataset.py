@@ -81,6 +81,9 @@ def save_split(save_dir, camera_transforms, indices, split,
     elif texture == 3:
         smpl_path = 'SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl'
         texture_path = 'textures/female3.jpg'
+    elif texture == 4:
+        smpl_path = 'SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl'
+        texture_path = 'textures/female4.jpg'
     camera_transforms = camera_transforms[indices]
     image_names = ["img_{:03d}.png".format(index) for index in indices]
     depth_names = ["depth_{:03d}.npy".format(index) for index in indices]

@@ -14,7 +14,7 @@ def nearest_neighbor(inference_dir='data/val', use_pose=True):
     # calculate nearest neighbor from input transform vs list of transformation matrices: frobenius norm
     # copy images with nearest transforms in new directory
 
-    with open('data/train/transforms.json', 'r') as transforms_file:
+    with open('../data/train/transforms.json', 'r') as transforms_file:
         transforms_dict = json.load(transforms_file)
     image_transform_map = transforms_dict.get('image_transform_map')
     train_transforms = list(image_transform_map.items())
@@ -62,7 +62,7 @@ def nearest_neighbor(inference_dir='data/val', use_pose=True):
 
     for nn in nneighbors:
         #print(nn)
-        image_name = os.path.join("data/train/", nn[1])
+        image_name = os.path.join("../data/train/", nn[1])
         nn_image = os.path.join("data/nn/", "nn_" + nn[0])
         shutil.copy(image_name, nn_image)
 

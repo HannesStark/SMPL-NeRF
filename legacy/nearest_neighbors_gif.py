@@ -40,7 +40,7 @@ def nearest_neighbor(val_transforms):
 
     for nn in nneighbors:
         #print(nn)
-        image_name = os.path.join("data/train/", nn[1])
+        image_name = os.path.join("../data/train/", nn[1])
         nn_image = os.path.join("data/nn/", "nn_" + nn[0])
 
 

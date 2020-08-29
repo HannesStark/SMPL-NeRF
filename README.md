@@ -8,7 +8,13 @@ This repository is a PyTorch implementation of [NeRF](https://github.com/bmild/n
 python create_dataset.py --dataset=smpl_nerf --save_dir=data --resolution=128 --start_angle=0 --end_angle=1 --number_steps=1 --human_number_steps=10 --multi_human_pose=1 --human_start_angle=0 --human_end_angle=60
 ```
 
-- Run the train file .
+- Install torchsearchsorted.
+```bash
+cd torchsearchsorted
+pip install .
+```
+
+- Run the train file.
 ```bash
 python train.py --experiment_name=SMPLNeRF --model_type=smpl_nerf --dataset_dir=data --batchsize=64 --batchsize_val=64 --num_epochs=100 --netdepth=8 --run_fine=1 --netdepth_fine=8
 ```
