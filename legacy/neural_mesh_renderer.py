@@ -8,7 +8,6 @@ from matplotlib import pyplot as plt
 import argparse
 import os
 import numpy as np
-import torch
 import tqdm
 import imageio
 from torch.autograd import Variable
@@ -17,10 +16,6 @@ from kaolin.graphics import NeuralMeshRenderer as Renderer
 from kaolin.graphics.nmr.util import get_points_from_angles
 from kaolin.rep import TriangleMesh
 
-from models.dummy_smpl_estimator_model import DummySmplEstimatorModel
-from util_nmr import normalize_vertices, pre_normalize_vertices
-
-import smplx
 from PIL import Image
 from io import BytesIO
 import torch
@@ -132,10 +127,10 @@ def angle_prior(pose):
 
 def optimize(args, save_path):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
-    uv_map_file_name = "textures/smpl_uv_map.npy"
+    smpl_file_name = "../SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
+    uv_map_file_name = "../textures/smpl_uv_map.npy"
     uv = np.load(uv_map_file_name)
-    texture_file_name = "textures/female1.jpg"
+    texture_file_name = "../textures/female1.jpg"
     with open(texture_file_name, 'rb') as file:
         texture = Image.open(BytesIO(file.read()))
     model = smplx.create(smpl_file_name, model_type='smpl')
@@ -275,10 +270,10 @@ def optimize(args, save_path):
     
 def optimize_sequence(true_poses, gt_translation, args, save_path: str):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    smpl_file_name = "SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
-    uv_map_file_name = "textures/smpl_uv_map.npy"
+    smpl_file_name = "../SMPLs/smpl/models/basicModel_f_lbs_10_207_0_v1.0.0.pkl"
+    uv_map_file_name = "../textures/smpl_uv_map.npy"
     uv = np.load(uv_map_file_name)
-    texture_file_name = "textures/female1.jpg"
+    texture_file_name = "../textures/female1.jpg"
     with open(texture_file_name, 'rb') as file:
         texture = Image.open(BytesIO(file.read()))
     results = []
