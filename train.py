@@ -17,6 +17,7 @@ from datasets.vertex_sphere_dataset import VertexSphereDataset
 from datasets.original_nerf_dataset import OriginalNerfDataset
 from models.append_vertices_net import AppendVerticesNet
 from models.debug_model import DebugModel
+from models.siren_net import SirenRenderRayNet
 from models.dummy_image_wise_estimator import DummyImageWiseEstimator
 from models.dummy_smpl_estimator_model import DummySmplEstimatorModel
 from models.render_ray_net import RenderRayNet
@@ -172,6 +173,13 @@ def train():
             model_fine.load_state_dict(
                 torch.load(os.path.join(args.load_run, 'model_fine.pt'), map_location=torch.device(device)))
             print("Models loaded from ", args.load_run)
+        if args.siren:
+            model_coarse = SirenRenderRayNet(args.netdepth, args.netwidth, position_encoder.output_dim * 3,
+                                        direction_encoder.output_dim * 3, human_pose_dim * 69,
+                                        skips=args.skips, use_directional_input=args.use_directional_input)
+            model_fine = SirenRenderRayNet(args.netdepth_fine, args.netwidth_fine, position_encoder.output_dim * 3,
+                                      direction_encoder.output_dim * 3, human_pose_dim * 69,
+                                      skips=args.skips_fine, use_directional_input=args.use_directional_input)
         solver = AppendSmplParamsSolver(model_coarse, model_fine, position_encoder, direction_encoder, human_pose_encoder,
                                     args, torch.optim.Adam,
                                     torch.nn.MSELoss())
