@@ -404,7 +404,7 @@ def main_single_frame():
     torch.autograd.set_detect_anomaly(True)
     
     losses, results, arm_parameters_l, arm_parameters_r, beta_diffs = optimize(args, save_path)
-    imageio.mimsave(save_path +"/gif.gif", results, fps=30)
+    imageio.mimsave(save_path +"/pose_only.gif", results, fps=30)
     for idx, image in enumerate(results):
         imageio.imwrite("{}/{:03d}.png".format(save_path, idx), image)
     plt.plot(losses)
@@ -446,7 +446,7 @@ def main_sequence():
     result_true_pairs = []
     for idx in range(len(result_images)):
         result_true_pairs.append(np.hstack((result_images[idx], true_images[idx])))
-    imageio.mimsave(save_path +"/gif.gif", result_true_pairs, fps=5)
+    imageio.mimsave(save_path +"/pose_only.gif", result_true_pairs, fps=5)
     for idx, image in enumerate(result_images):
         imageio.imwrite("{}/results_{:03d}.png".format(save_path, idx), image)
     for idx, image in enumerate(init_images):

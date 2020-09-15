@@ -272,7 +272,7 @@ def save_rerenders(rgb_images, run_file, output_dir='renders'):
         os.makedirs(output_dir)
     for i, image in enumerate(rgb_images):
         imageio.imwrite(os.path.join(output_dir, 'img_{:03d}.png'.format(i)), image)
-    imageio.mimwrite(os.path.join(output_dir, 'animated.gif'), rgb_images,
+    imageio.mimwrite(os.path.join(output_dir, 'walking.gif'), rgb_images,
                      fps=30)
 
 
