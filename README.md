@@ -1,5 +1,5 @@
 # PyTorch Neural Radiance Fields (NeRF) with SMPL embedding
-### [Video](https://www.youtube.com/watch?v=8MCWE7R0xN8&ab_channel=HannesSt%C3%A4rk)
+### [Video](https://www.youtube.com/watch?v=8MCWE7R0xN8&ab_channel=HannesSt%C3%A4rk) | [Paper](artefacts/NeRF%20for%20Novel%20View%20and%20Human%20Pose%20Synthesis_Stärk_Reiser_Wolters.pdf)
 This repository is a PyTorch implementation of [NeRF](https://github.com/bmild/nerf) which can be trained on images of a scene to then render novel views. To enjoy the the vanilla NeRF just run the train file with `model_type=nerf`. Additionally, different model types are supported that embed an SMPL model of a human to control its pose in addition to the view point.
 
 
