@@ -73,11 +73,13 @@ class SmplEstimatorSolver():
             for i, data in enumerate(val_loader):
                 for j, element in enumerate(data):
                     data[j] = element.to(self.device)
+
                 image_truth, goal_pose_truth = data
-                goal_pose_truth = torch.stack([goal_pose_truth[:, 38], goal_pose_truth[:, 41]], axis=-1)
-                goal_pose = self.model_smpl_estimator.forward(image_truth)
-                loss = self.loss_func(goal_pose, goal_pose_truth)
-                val_loss += loss.item()
+                with torch.no_grad():
+                    goal_pose_truth = torch.stack([goal_pose_truth[:, 38], goal_pose_truth[:, 41]], axis=-1)
+                    goal_pose = self.model_smpl_estimator.forward(image_truth)
+                    loss = self.loss_func(goal_pose, goal_pose_truth)
+                    val_loss += loss.item()
 
             print('[Epoch %d] VAL loss: %.7f' % (epoch + 1, val_loss / (len(val_loader) or not len(val_loader))))
             self.writer.add_scalars('Loss Curve', {'train loss': train_loss / iter_per_epoch,

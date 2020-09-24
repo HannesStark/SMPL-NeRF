@@ -56,7 +56,7 @@ class ImageWiseSolver(NerfSolver):
         print('START TRAIN.')
 
         for epoch in range(args.num_epochs):  # loop over the dataset multiple times
-            #self.model_coarse.train()
+            # self.model_coarse.train()
             self.model_fine.train()
             self.smpl_estimator.train()
             train_loss = 0
@@ -172,49 +172,51 @@ class ImageWiseSolver(NerfSolver):
                         ray_batch[j] = element.to(self.device)
                     ray_samples, rays_translation, rays_direction, rgb_truth = ray_batch
 
-                    distances = ray_samples[:, :, None, :] - goal_vertices[:, None, :, :].expand(
-                        (-1, ray_samples.shape[1], -1, -1))  # [batchsize, number_samples, number_vertices, 3]
-                    distances = torch.norm(distances, dim=-1)  # [batchsize, number_samples, number_vertices]
-                    attentions = distances - self.args.warp_radius  # [batchsize, number_samples, number_vertices]
-                    attentions = F.relu(-attentions)
+                    with torch.no_grad():
+                        distances = ray_samples[:, :, None, :] - goal_vertices[:, None, :, :].expand(
+                            (-1, ray_samples.shape[1], -1, -1))  # [batchsize, number_samples, number_vertices, 3]
+                        distances = torch.norm(distances, dim=-1)  # [batchsize, number_samples, number_vertices]
+                        attentions = distances - self.args.warp_radius  # [batchsize, number_samples, number_vertices]
+                        attentions = F.relu(-attentions)
 
-                    # attentions = torch.softmax(self.args.warp_temperature * attentions, dim=-1)
-                    attentions = attentions / (attentions.sum(-1, keepdims=True) + 1e-5)
+                        # attentions = torch.softmax(self.args.warp_temperature * attentions, dim=-1)
+                        attentions = attentions / (attentions.sum(-1, keepdims=True) + 1e-5)
 
-                    warps = warp[:, None, :, :] * attentions[:, :, :,
-                                                  None]  # [batchsize, number_samples, number_vertices, 3]
-                    warps = warps.sum(dim=-2)  # [batchsize, number_samples, 3]
-                    warped_samples = ray_samples + warps
+                        warps = warp[:, None, :, :] * attentions[:, :, :,
+                                                      None]  # [batchsize, number_samples, number_vertices, 3]
+                        warps = warps.sum(dim=-2)  # [batchsize, number_samples, 3]
+                        warped_samples = ray_samples + warps
 
-                    samples_encoding = self.position_encoder.encode(warped_samples)
+                        samples_encoding = self.position_encoder.encode(warped_samples)
 
-                    coarse_samples_directions = warped_samples - rays_translation[:, None,
-                                                                 :]  # [batchsize, number_coarse_samples, 3]
-                    samples_directions_norm = coarse_samples_directions / torch.norm(coarse_samples_directions, dim=-1,
-                                                                                     keepdim=True)
-                    directions_encoding = self.direction_encoder.encode(samples_directions_norm)
-                    # flatten the encodings from [batchsize, number_coarse_samples, encoding_size] to [batchsize * number_coarse_samples, encoding_size] and concatenate
-                    inputs = torch.cat([samples_encoding.view(-1, samples_encoding.shape[-1]),
-                                        directions_encoding.view(-1, directions_encoding.shape[-1])], -1)
-                    raw_outputs = self.model_coarse(inputs)  # [batchsize * number_coarse_samples, 4]
-                    raw_outputs = raw_outputs.view(samples_encoding.shape[0], samples_encoding.shape[1],
-                                                   raw_outputs.shape[-1])  # [batchsize, number_coarse_samples, 4]
-                    rgb, weights, densities = raw2outputs(raw_outputs, z_vals, coarse_samples_directions, self.args)
+                        coarse_samples_directions = warped_samples - rays_translation[:, None,
+                                                                     :]  # [batchsize, number_coarse_samples, 3]
+                        samples_directions_norm = coarse_samples_directions / torch.norm(coarse_samples_directions,
+                                                                                         dim=-1,
+                                                                                         keepdim=True)
+                        directions_encoding = self.direction_encoder.encode(samples_directions_norm)
+                        # flatten the encodings from [batchsize, number_coarse_samples, encoding_size] to [batchsize * number_coarse_samples, encoding_size] and concatenate
+                        inputs = torch.cat([samples_encoding.view(-1, samples_encoding.shape[-1]),
+                                            directions_encoding.view(-1, directions_encoding.shape[-1])], -1)
+                        raw_outputs = self.model_coarse(inputs)  # [batchsize * number_coarse_samples, 4]
+                        raw_outputs = raw_outputs.view(samples_encoding.shape[0], samples_encoding.shape[1],
+                                                       raw_outputs.shape[-1])  # [batchsize, number_coarse_samples, 4]
+                        rgb, weights, densities = raw2outputs(raw_outputs, z_vals, coarse_samples_directions, self.args)
 
-                    loss = self.loss_func(rgb, rgb_truth)
+                        loss = self.loss_func(rgb, rgb_truth)
 
-                    val_loss += loss.item()
+                        val_loss += loss.item()
 
-                    ground_truth_images.append(rgb_truth.detach().cpu().numpy())
-                    rerender_images.append(rgb.detach().cpu().numpy())
-                    samples.append(ray_samples.detach().cpu().numpy())
-                    image_samples.append(ray_samples.detach().cpu().numpy())
-                    image_warps.append(warps.detach().cpu().numpy())
-                    densities_list.append(densities.detach().cpu().numpy())
-                    image_densities.append(densities.detach().cpu().numpy())
+                        ground_truth_images.append(rgb_truth.detach().cpu().numpy())
+                        rerender_images.append(rgb.detach().cpu().numpy())
+                        samples.append(ray_samples.detach().cpu().numpy())
+                        image_samples.append(ray_samples.detach().cpu().numpy())
+                        image_warps.append(warps.detach().cpu().numpy())
+                        densities_list.append(densities.detach().cpu().numpy())
+                        image_densities.append(densities.detach().cpu().numpy())
 
-                    warp_magnitude = np.linalg.norm(warps.detach().cpu(), axis=-1)  # [batchsize, number_samples]
-                    ray_warp_magnitudes.append(warp_magnitude.mean(axis=1))  # mean over the samples => [batchsize]
+                        warp_magnitude = np.linalg.norm(warps.detach().cpu(), axis=-1)  # [batchsize, number_samples]
+                        ray_warp_magnitudes.append(warp_magnitude.mean(axis=1))  # mean over the samples => [batchsize]
 
                 vedo_data(self.writer, np.concatenate(image_densities).reshape(-1),
                           np.concatenate(image_samples).reshape(-1, 3),

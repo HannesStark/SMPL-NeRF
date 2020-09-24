@@ -124,28 +124,28 @@ class NerfSolver():
                 for j, element in enumerate(data):
                     data[j] = element.to(self.device)
                 rgb_truth = data[-1]
+                with torch.no_grad():
+                    rgb, rgb_fine, ray_samples, densities = self.pipeline(data)
 
-                rgb, rgb_fine, ray_samples, densities = self.pipeline(data)
+                    loss = self.nerf_loss(rgb, rgb_fine, rgb_truth)
+                    val_loss += loss.item()
 
-                loss = self.nerf_loss(rgb, rgb_fine, rgb_truth)
-                val_loss += loss.item()
-
-                ground_truth_images.append(rgb_truth.detach().cpu().numpy())
-                rerender_images.append(rgb_fine.detach().cpu().numpy())
-                samples.append(ray_samples.detach().cpu().numpy())
-                densities_list.append(densities.detach().cpu().numpy())
-                if np.concatenate(densities_list).shape[0]>=(h*w):
-                    while np.concatenate(densities_list).shape[0]>=(h*w):
-                        densities_list = np.concatenate(densities_list)
-                        image_densities = densities_list[:h*w].reshape(-1)
-                        densities_list = [densities_list[h*w:]]
-                        samples = np.concatenate(samples)
-                        image_samples = samples[:h*w].reshape(-1, 3)
-                        samples = [samples[h*w:]]
-                        vedo_data(self.writer, image_densities, image_samples, 
-                                  image_warps=None, epoch=epoch + 1, 
-                                  image_idx=image_counter)
-                        image_counter += 1
+                    ground_truth_images.append(rgb_truth.detach().cpu().numpy())
+                    rerender_images.append(rgb_fine.detach().cpu().numpy())
+                    samples.append(ray_samples.detach().cpu().numpy())
+                    densities_list.append(densities.detach().cpu().numpy())
+                    if np.concatenate(densities_list).shape[0]>=(h*w):
+                        while np.concatenate(densities_list).shape[0]>=(h*w):
+                            densities_list = np.concatenate(densities_list)
+                            image_densities = densities_list[:h*w].reshape(-1)
+                            densities_list = [densities_list[h*w:]]
+                            samples = np.concatenate(samples)
+                            image_samples = samples[:h*w].reshape(-1, 3)
+                            samples = [samples[h*w:]]
+                            vedo_data(self.writer, image_densities, image_samples,
+                                      image_warps=None, epoch=epoch + 1,
+                                      image_idx=image_counter)
+                            image_counter += 1
             if len(val_loader) != 0:
                 rerender_images = np.concatenate(rerender_images, 0).reshape((-1, h, w, 3))
                 ground_truth_images = np.concatenate(ground_truth_images).reshape((-1, h, w, 3))
